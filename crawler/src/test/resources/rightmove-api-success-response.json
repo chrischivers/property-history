@@ -1,0 +1,529 @@
+{
+  "result": "SUCCESS",
+  "createDate": 1658609045695,
+  "property": {
+    "identifier": 124999760,
+    "visible": true,
+    "price": 315000,
+    "priceQualifier": "O.I.E.O",
+    "shouldShowPrice": true,
+    "bedrooms": 6,
+    "address": "Norman Avenue, Tunstall, Stoke-On-Trent",
+    "latitude": 53.060074,
+    "longitude": -2.195828,
+    "showMap": true,
+    "propertyType": "semi-detached house",
+    "development": false,
+    "commercial": false,
+    "updateDate": 1658237961000,
+    "autoEmailReasonType": "new",
+    "transactionTypeId": 1,
+    "sortDate": 1657875302000,
+    "photoThumbnailUrl": "https://media.rightmove.co.uk/19k/18654/124999760/18654_11600008_IMG_00_0000.jpeg",
+    "photoLargeThumbnailUrl": "https://media.rightmove.co.uk/dir/19k/18654/124999760/18654_11600008_IMG_00_0000_max_656x437.jpeg",
+    "photoCount": 52,
+    "floorplanCount": 0,
+    "branch": {
+      "identifier": 18654,
+      "name": "Tunstall",
+      "brandName": "Priory Property Services",
+      "development": false,
+      "updateDate": 1657633462000,
+      "branchLogo": "https://media.rightmove.co.uk/19k/18654/branch_rmchoice_logo_18654_0004.jpeg",
+      "largeBranchLogo": "https://media.rightmove.co.uk/19k/18654/branch_logo_18654_0004.jpeg",
+      "brandPlusResale": true,
+      "brandPlusLettings": false,
+      "hideReducedPropsFlag": false,
+      "address": "66 Roundwell Street, Stoke on Trent,\r\nStaffordshire,\r\nST6 5AN"
+    },
+    "exactLocationAvailable": true,
+    "status": null,
+    "dateShortlisted": null,
+    "premiumDisplay": false,
+    "photoThumbnail2Url": null,
+    "photoThumbnail3Url": null,
+    "photoThumbnail4Url": null,
+    "showStreetView": true,
+    "letFurnishType": null,
+    "summary": "This exceptional SIX BEDROOM extended semi detached home is finished to a very high standard throughout with quality fixtures and fittings with contemporary and luxury finish.  The property has been the subject of a comprehensive program of extension, remodelling and refurbishment, resulting in a...",
+    "telephoneNumber": "01782 955083",
+    "saved": false,
+    "hidden": false,
+    "displayPrices": [
+      {
+        "displayPrice": "£315,000",
+        "displayPriceQualifier": "O.I.E.O"
+      }
+    ],
+    "onlineViewing": false,
+    "buildToRent": false,
+    "thumbnailPhotos": null,
+    "keywords": null,
+    "photos": [
+      {
+        "identifier": -1871749793,
+        "order": 2,
+        "url": "https://media.rightmove.co.uk/dir/19k/18654/124999760/18654_11600008_IMG_00_0000_max_620x414.jpeg",
+        "thumbnailUrl": "https://media.rightmove.co.uk/dir/19k/18654/124999760/18654_11600008_IMG_00_0000_max_200x138.jpeg",
+        "type": "Master Photo Image",
+        "caption": "EXTERNAL"
+      },
+      {
+        "identifier": -1871749790,
+        "order": 3,
+        "url": "https://media.rightmove.co.uk/dir/19k/18654/124999760/18654_11600008_IMG_01_0000_max_620x414.jpeg",
+        "thumbnailUrl": "https://media.rightmove.co.uk/dir/19k/18654/124999760/18654_11600008_IMG_01_0000_max_200x138.jpeg",
+        "type": "Master Photo Image",
+        "caption": "RECEPTION HALLWAY"
+      },
+      {
+        "identifier": -1871749787,
+        "order": 4,
+        "url": "https://media.rightmove.co.uk/dir/19k/18654/124999760/18654_11600008_IMG_02_0000_max_620x414.jpeg",
+        "thumbnailUrl": "https://media.rightmove.co.uk/dir/19k/18654/124999760/18654_11600008_IMG_02_0000_max_200x138.jpeg",
+        "type": "Master Photo Image",
+        "caption": "LOUNGE"
+      },
+      {
+        "identifier": -1871749784,
+        "order": 5,
+        "url": "https://media.rightmove.co.uk/dir/19k/18654/124999760/18654_11600008_IMG_03_0000_max_620x414.jpeg",
+        "thumbnailUrl": "https://media.rightmove.co.uk/dir/19k/18654/124999760/18654_11600008_IMG_03_0000_max_200x138.jpeg",
+        "type": "Master Photo Image",
+        "caption": "FAMILY ROOM"
+      },
+      {
+        "identifier": -1871749781,
+        "order": 6,
+        "url": "https://media.rightmove.co.uk/dir/19k/18654/124999760/18654_11600008_IMG_04_0000_max_620x414.jpeg",
+        "thumbnailUrl": "https://media.rightmove.co.uk/dir/19k/18654/124999760/18654_11600008_IMG_04_0000_max_200x138.jpeg",
+        "type": "Master Photo Image",
+        "caption": "CONSERVATORY"
+      },
+      {
+        "identifier": -1871749778,
+        "order": 7,
+        "url": "https://media.rightmove.co.uk/dir/19k/18654/124999760/18654_11600008_IMG_05_0000_max_620x414.jpeg",
+        "thumbnailUrl": "https://media.rightmove.co.uk/dir/19k/18654/124999760/18654_11600008_IMG_05_0000_max_200x138.jpeg",
+        "type": "Master Photo Image",
+        "caption": "KITCHEN"
+      },
+      {
+        "identifier": -1871749775,
+        "order": 8,
+        "url": "https://media.rightmove.co.uk/dir/19k/18654/124999760/18654_11600008_IMG_06_0000_max_620x414.jpeg",
+        "thumbnailUrl": "https://media.rightmove.co.uk/dir/19k/18654/124999760/18654_11600008_IMG_06_0000_max_200x138.jpeg",
+        "type": "Master Photo Image",
+        "caption": "REAR EXTERNAL"
+      },
+      {
+        "identifier": -1871749772,
+        "order": 9,
+        "url": "https://media.rightmove.co.uk/dir/19k/18654/124999760/18654_11600008_IMG_07_0000_max_620x414.jpeg",
+        "thumbnailUrl": "https://media.rightmove.co.uk/dir/19k/18654/124999760/18654_11600008_IMG_07_0000_max_200x138.jpeg",
+        "type": "Master Photo Image",
+        "caption": "EXTERNAL"
+      },
+      {
+        "identifier": -1871749769,
+        "order": 10,
+        "url": "https://media.rightmove.co.uk/dir/19k/18654/124999760/18654_11600008_IMG_08_0000_max_620x414.jpeg",
+        "thumbnailUrl": "https://media.rightmove.co.uk/dir/19k/18654/124999760/18654_11600008_IMG_08_0000_max_200x138.jpeg",
+        "type": "Master Photo Image",
+        "caption": "EXTERNAL"
+      },
+      {
+        "identifier": -1871749766,
+        "order": 11,
+        "url": "https://media.rightmove.co.uk/dir/19k/18654/124999760/18654_11600008_IMG_09_0000_max_620x414.jpeg",
+        "thumbnailUrl": "https://media.rightmove.co.uk/dir/19k/18654/124999760/18654_11600008_IMG_09_0000_max_200x138.jpeg",
+        "type": "Master Photo Image",
+        "caption": "EXTERNAL"
+      },
+      {
+        "identifier": -1871749763,
+        "order": 12,
+        "url": "https://media.rightmove.co.uk/dir/19k/18654/124999760/18654_11600008_IMG_10_0000_max_620x414.jpeg",
+        "thumbnailUrl": "https://media.rightmove.co.uk/dir/19k/18654/124999760/18654_11600008_IMG_10_0000_max_200x138.jpeg",
+        "type": "Master Photo Image",
+        "caption": "LOUNGE"
+      },
+      {
+        "identifier": -1871749760,
+        "order": 13,
+        "url": "https://media.rightmove.co.uk/dir/19k/18654/124999760/18654_11600008_IMG_11_0000_max_620x414.jpeg",
+        "thumbnailUrl": "https://media.rightmove.co.uk/dir/19k/18654/124999760/18654_11600008_IMG_11_0000_max_200x138.jpeg",
+        "type": "Master Photo Image",
+        "caption": "LOUNGE"
+      },
+      {
+        "identifier": -1871749757,
+        "order": 14,
+        "url": "https://media.rightmove.co.uk/dir/19k/18654/124999760/18654_11600008_IMG_12_0000_max_620x414.jpeg",
+        "thumbnailUrl": "https://media.rightmove.co.uk/dir/19k/18654/124999760/18654_11600008_IMG_12_0000_max_200x138.jpeg",
+        "type": "Master Photo Image",
+        "caption": "RECEPTION HALLWAY"
+      },
+      {
+        "identifier": -1871749754,
+        "order": 15,
+        "url": "https://media.rightmove.co.uk/dir/19k/18654/124999760/18654_11600008_IMG_13_0000_max_620x414.jpeg",
+        "thumbnailUrl": "https://media.rightmove.co.uk/dir/19k/18654/124999760/18654_11600008_IMG_13_0000_max_200x138.jpeg",
+        "type": "Master Photo Image",
+        "caption": "LOUNGE"
+      },
+      {
+        "identifier": -1871749751,
+        "order": 16,
+        "url": "https://media.rightmove.co.uk/dir/19k/18654/124999760/18654_11600008_IMG_14_0000_max_620x414.jpeg",
+        "thumbnailUrl": "https://media.rightmove.co.uk/dir/19k/18654/124999760/18654_11600008_IMG_14_0000_max_200x138.jpeg",
+        "type": "Master Photo Image",
+        "caption": "FAMILY ROOM"
+      },
+      {
+        "identifier": -1871749748,
+        "order": 17,
+        "url": "https://media.rightmove.co.uk/dir/19k/18654/124999760/18654_11600008_IMG_15_0000_max_620x414.jpeg",
+        "thumbnailUrl": "https://media.rightmove.co.uk/dir/19k/18654/124999760/18654_11600008_IMG_15_0000_max_200x138.jpeg",
+        "type": "Master Photo Image",
+        "caption": "FAMILY ROOM"
+      },
+      {
+        "identifier": -1871749745,
+        "order": 18,
+        "url": "https://media.rightmove.co.uk/dir/19k/18654/124999760/18654_11600008_IMG_16_0000_max_620x414.jpeg",
+        "thumbnailUrl": "https://media.rightmove.co.uk/dir/19k/18654/124999760/18654_11600008_IMG_16_0000_max_200x138.jpeg",
+        "type": "Master Photo Image",
+        "caption": "CONSERVATORY"
+      },
+      {
+        "identifier": -1871749742,
+        "order": 19,
+        "url": "https://media.rightmove.co.uk/dir/19k/18654/124999760/18654_11600008_IMG_17_0000_max_620x414.jpeg",
+        "thumbnailUrl": "https://media.rightmove.co.uk/dir/19k/18654/124999760/18654_11600008_IMG_17_0000_max_200x138.jpeg",
+        "type": "Master Photo Image",
+        "caption": "KITCHEN"
+      },
+      {
+        "identifier": -1871749739,
+        "order": 20,
+        "url": "https://media.rightmove.co.uk/dir/19k/18654/124999760/18654_11600008_IMG_18_0000_max_620x414.jpeg",
+        "thumbnailUrl": "https://media.rightmove.co.uk/dir/19k/18654/124999760/18654_11600008_IMG_18_0000_max_200x138.jpeg",
+        "type": "Master Photo Image",
+        "caption": "KITCHEN"
+      },
+      {
+        "identifier": -1871749736,
+        "order": 21,
+        "url": "https://media.rightmove.co.uk/dir/19k/18654/124999760/18654_11600008_IMG_19_0000_max_620x414.jpeg",
+        "thumbnailUrl": "https://media.rightmove.co.uk/dir/19k/18654/124999760/18654_11600008_IMG_19_0000_max_200x138.jpeg",
+        "type": "Master Photo Image",
+        "caption": "KITCHEN"
+      },
+      {
+        "identifier": -1871749733,
+        "order": 22,
+        "url": "https://media.rightmove.co.uk/dir/19k/18654/124999760/18654_11600008_IMG_20_0000_max_620x414.jpeg",
+        "thumbnailUrl": "https://media.rightmove.co.uk/dir/19k/18654/124999760/18654_11600008_IMG_20_0000_max_200x138.jpeg",
+        "type": "Master Photo Image",
+        "caption": "KITCHEN"
+      },
+      {
+        "identifier": -1871749730,
+        "order": 23,
+        "url": "https://media.rightmove.co.uk/dir/19k/18654/124999760/18654_11600008_IMG_21_0000_max_620x414.jpeg",
+        "thumbnailUrl": "https://media.rightmove.co.uk/dir/19k/18654/124999760/18654_11600008_IMG_21_0000_max_200x138.jpeg",
+        "type": "Master Photo Image",
+        "caption": "DINING AREA"
+      },
+      {
+        "identifier": -1871749727,
+        "order": 24,
+        "url": "https://media.rightmove.co.uk/dir/19k/18654/124999760/18654_11600008_IMG_22_0000_max_620x414.jpeg",
+        "thumbnailUrl": "https://media.rightmove.co.uk/dir/19k/18654/124999760/18654_11600008_IMG_22_0000_max_200x138.jpeg",
+        "type": "Master Photo Image",
+        "caption": "DINING AREA"
+      },
+      {
+        "identifier": -1871749724,
+        "order": 25,
+        "url": "https://media.rightmove.co.uk/dir/19k/18654/124999760/18654_11600008_IMG_23_0000_max_620x414.jpeg",
+        "thumbnailUrl": "https://media.rightmove.co.uk/dir/19k/18654/124999760/18654_11600008_IMG_23_0000_max_200x138.jpeg",
+        "type": "Master Photo Image",
+        "caption": "UTILITY"
+      },
+      {
+        "identifier": -1871749721,
+        "order": 26,
+        "url": "https://media.rightmove.co.uk/dir/19k/18654/124999760/18654_11600008_IMG_24_0000_max_620x414.jpeg",
+        "thumbnailUrl": "https://media.rightmove.co.uk/dir/19k/18654/124999760/18654_11600008_IMG_24_0000_max_200x138.jpeg",
+        "type": "Master Photo Image",
+        "caption": "GROUND FLOOR C..."
+      },
+      {
+        "identifier": -1871749718,
+        "order": 27,
+        "url": "https://media.rightmove.co.uk/dir/19k/18654/124999760/18654_11600008_IMG_25_0000_max_620x414.jpeg",
+        "thumbnailUrl": "https://media.rightmove.co.uk/dir/19k/18654/124999760/18654_11600008_IMG_25_0000_max_200x138.jpeg",
+        "type": "Master Photo Image",
+        "caption": "TOP FLOOR MAST..."
+      },
+      {
+        "identifier": -1871749715,
+        "order": 28,
+        "url": "https://media.rightmove.co.uk/dir/19k/18654/124999760/18654_11600008_IMG_26_0000_max_620x414.jpeg",
+        "thumbnailUrl": "https://media.rightmove.co.uk/dir/19k/18654/124999760/18654_11600008_IMG_26_0000_max_200x138.jpeg",
+        "type": "Master Photo Image",
+        "caption": "MASTER BEDROOM"
+      },
+      {
+        "identifier": -1871749712,
+        "order": 29,
+        "url": "https://media.rightmove.co.uk/dir/19k/18654/124999760/18654_11600008_IMG_27_0000_max_620x414.jpeg",
+        "thumbnailUrl": "https://media.rightmove.co.uk/dir/19k/18654/124999760/18654_11600008_IMG_27_0000_max_200x138.jpeg",
+        "type": "Master Photo Image",
+        "caption": "MASTER BEDROOM"
+      },
+      {
+        "identifier": -1871749709,
+        "order": 30,
+        "url": "https://media.rightmove.co.uk/dir/19k/18654/124999760/18654_11600008_IMG_28_0000_max_620x414.jpeg",
+        "thumbnailUrl": "https://media.rightmove.co.uk/dir/19k/18654/124999760/18654_11600008_IMG_28_0000_max_200x138.jpeg",
+        "type": "Master Photo Image",
+        "caption": "MASTER BEDROOM..."
+      },
+      {
+        "identifier": -1871749706,
+        "order": 31,
+        "url": "https://media.rightmove.co.uk/dir/19k/18654/124999760/18654_11600008_IMG_29_0000_max_620x414.jpeg",
+        "thumbnailUrl": "https://media.rightmove.co.uk/dir/19k/18654/124999760/18654_11600008_IMG_29_0000_max_200x138.jpeg",
+        "type": "Master Photo Image",
+        "caption": "EN SUITE BATHROOM"
+      },
+      {
+        "identifier": -1871749703,
+        "order": 32,
+        "url": "https://media.rightmove.co.uk/dir/19k/18654/124999760/18654_11600008_IMG_30_0000_max_620x414.jpeg",
+        "thumbnailUrl": "https://media.rightmove.co.uk/dir/19k/18654/124999760/18654_11600008_IMG_30_0000_max_200x138.jpeg",
+        "type": "Master Photo Image",
+        "caption": "EN SUITE BATHROOM"
+      },
+      {
+        "identifier": -1871749700,
+        "order": 33,
+        "url": "https://media.rightmove.co.uk/dir/19k/18654/124999760/18654_11600008_IMG_31_0000_max_620x414.jpeg",
+        "thumbnailUrl": "https://media.rightmove.co.uk/dir/19k/18654/124999760/18654_11600008_IMG_31_0000_max_200x138.jpeg",
+        "type": "Master Photo Image",
+        "caption": "FIRST FLOOR LA..."
+      },
+      {
+        "identifier": -1871749697,
+        "order": 34,
+        "url": "https://media.rightmove.co.uk/dir/19k/18654/124999760/18654_11600008_IMG_32_0000_max_620x414.jpeg",
+        "thumbnailUrl": "https://media.rightmove.co.uk/dir/19k/18654/124999760/18654_11600008_IMG_32_0000_max_200x138.jpeg",
+        "type": "Master Photo Image",
+        "caption": "FIRST FLOOR FA..."
+      },
+      {
+        "identifier": -1871749694,
+        "order": 35,
+        "url": "https://media.rightmove.co.uk/dir/19k/18654/124999760/18654_11600008_IMG_33_0000_max_620x414.jpeg",
+        "thumbnailUrl": "https://media.rightmove.co.uk/dir/19k/18654/124999760/18654_11600008_IMG_33_0000_max_200x138.jpeg",
+        "type": "Master Photo Image",
+        "caption": "FAMILY BATHROOM"
+      },
+      {
+        "identifier": -1871749691,
+        "order": 36,
+        "url": "https://media.rightmove.co.uk/dir/19k/18654/124999760/18654_11600008_IMG_34_0000_max_620x414.jpeg",
+        "thumbnailUrl": "https://media.rightmove.co.uk/dir/19k/18654/124999760/18654_11600008_IMG_34_0000_max_200x138.jpeg",
+        "type": "Master Photo Image",
+        "caption": "BEDROOM ONE"
+      },
+      {
+        "identifier": -1871749688,
+        "order": 37,
+        "url": "https://media.rightmove.co.uk/dir/19k/18654/124999760/18654_11600008_IMG_35_0000_max_620x414.jpeg",
+        "thumbnailUrl": "https://media.rightmove.co.uk/dir/19k/18654/124999760/18654_11600008_IMG_35_0000_max_200x138.jpeg",
+        "type": "Master Photo Image",
+        "caption": "BEDROOM ONE"
+      },
+      {
+        "identifier": -1871749685,
+        "order": 38,
+        "url": "https://media.rightmove.co.uk/dir/19k/18654/124999760/18654_11600008_IMG_36_0000_max_620x414.jpeg",
+        "thumbnailUrl": "https://media.rightmove.co.uk/dir/19k/18654/124999760/18654_11600008_IMG_36_0000_max_200x138.jpeg",
+        "type": "Master Photo Image",
+        "caption": "BEDROOM ONE"
+      },
+      {
+        "identifier": -1871749682,
+        "order": 39,
+        "url": "https://media.rightmove.co.uk/dir/19k/18654/124999760/18654_11600008_IMG_37_0000_max_620x414.jpeg",
+        "thumbnailUrl": "https://media.rightmove.co.uk/dir/19k/18654/124999760/18654_11600008_IMG_37_0000_max_200x138.jpeg",
+        "type": "Master Photo Image",
+        "caption": "BEDROOM ONE"
+      },
+      {
+        "identifier": -1871749679,
+        "order": 40,
+        "url": "https://media.rightmove.co.uk/dir/19k/18654/124999760/18654_11600008_IMG_38_0000_max_620x414.jpeg",
+        "thumbnailUrl": "https://media.rightmove.co.uk/dir/19k/18654/124999760/18654_11600008_IMG_38_0000_max_200x138.jpeg",
+        "type": "Master Photo Image",
+        "caption": "BEDROOM TWO"
+      },
+      {
+        "identifier": -1871749676,
+        "order": 41,
+        "url": "https://media.rightmove.co.uk/dir/19k/18654/124999760/18654_11600008_IMG_39_0000_max_620x414.jpeg",
+        "thumbnailUrl": "https://media.rightmove.co.uk/dir/19k/18654/124999760/18654_11600008_IMG_39_0000_max_200x138.jpeg",
+        "type": "Master Photo Image",
+        "caption": "BEDROOM TWO"
+      },
+      {
+        "identifier": -1871749673,
+        "order": 42,
+        "url": "https://media.rightmove.co.uk/dir/19k/18654/124999760/18654_11600008_IMG_40_0000_max_620x414.jpeg",
+        "thumbnailUrl": "https://media.rightmove.co.uk/dir/19k/18654/124999760/18654_11600008_IMG_40_0000_max_200x138.jpeg",
+        "type": "Master Photo Image",
+        "caption": "BEDROOM TWO"
+      },
+      {
+        "identifier": -1871749670,
+        "order": 43,
+        "url": "https://media.rightmove.co.uk/dir/19k/18654/124999760/18654_11600008_IMG_41_0000_max_620x414.jpeg",
+        "thumbnailUrl": "https://media.rightmove.co.uk/dir/19k/18654/124999760/18654_11600008_IMG_41_0000_max_200x138.jpeg",
+        "type": "Master Photo Image",
+        "caption": "BEDROOM TWO EN..."
+      },
+      {
+        "identifier": -1871749667,
+        "order": 44,
+        "url": "https://media.rightmove.co.uk/dir/19k/18654/124999760/18654_11600008_IMG_42_0000_max_620x414.jpeg",
+        "thumbnailUrl": "https://media.rightmove.co.uk/dir/19k/18654/124999760/18654_11600008_IMG_42_0000_max_200x138.jpeg",
+        "type": "Master Photo Image",
+        "caption": "BEDROOM THREE"
+      },
+      {
+        "identifier": -1871749664,
+        "order": 45,
+        "url": "https://media.rightmove.co.uk/dir/19k/18654/124999760/18654_11600008_IMG_43_0000_max_620x414.jpeg",
+        "thumbnailUrl": "https://media.rightmove.co.uk/dir/19k/18654/124999760/18654_11600008_IMG_43_0000_max_200x138.jpeg",
+        "type": "Master Photo Image",
+        "caption": "BEDROOM THREE"
+      },
+      {
+        "identifier": -1871749661,
+        "order": 46,
+        "url": "https://media.rightmove.co.uk/dir/19k/18654/124999760/18654_11600008_IMG_44_0000_max_620x414.jpeg",
+        "thumbnailUrl": "https://media.rightmove.co.uk/dir/19k/18654/124999760/18654_11600008_IMG_44_0000_max_200x138.jpeg",
+        "type": "Master Photo Image",
+        "caption": "BEDROOM FOUR"
+      },
+      {
+        "identifier": -1871749658,
+        "order": 47,
+        "url": "https://media.rightmove.co.uk/dir/19k/18654/124999760/18654_11600008_IMG_45_0000_max_620x414.jpeg",
+        "thumbnailUrl": "https://media.rightmove.co.uk/dir/19k/18654/124999760/18654_11600008_IMG_45_0000_max_200x138.jpeg",
+        "type": "Master Photo Image",
+        "caption": "BEDROOM FOUR"
+      },
+      {
+        "identifier": -1871749655,
+        "order": 48,
+        "url": "https://media.rightmove.co.uk/dir/19k/18654/124999760/18654_11600008_IMG_46_0000_max_620x414.jpeg",
+        "thumbnailUrl": "https://media.rightmove.co.uk/dir/19k/18654/124999760/18654_11600008_IMG_46_0000_max_200x138.jpeg",
+        "type": "Master Photo Image",
+        "caption": "BEDROOM FIVE"
+      },
+      {
+        "identifier": -1871749652,
+        "order": 49,
+        "url": "https://media.rightmove.co.uk/dir/19k/18654/124999760/18654_11600008_IMG_47_0000_max_620x414.jpeg",
+        "thumbnailUrl": "https://media.rightmove.co.uk/dir/19k/18654/124999760/18654_11600008_IMG_47_0000_max_200x138.jpeg",
+        "type": "Master Photo Image",
+        "caption": "BEDROOM FIVE"
+      },
+      {
+        "identifier": -1871749649,
+        "order": 50,
+        "url": "https://media.rightmove.co.uk/dir/19k/18654/124999760/18654_11600008_IMG_48_0000_max_620x414.jpeg",
+        "thumbnailUrl": "https://media.rightmove.co.uk/dir/19k/18654/124999760/18654_11600008_IMG_48_0000_max_200x138.jpeg",
+        "type": "Master Photo Image",
+        "caption": "DECKED PATIO"
+      },
+      {
+        "identifier": -1871749646,
+        "order": 51,
+        "url": "https://media.rightmove.co.uk/dir/19k/18654/124999760/18654_11600008_IMG_49_0000_max_620x414.jpeg",
+        "thumbnailUrl": "https://media.rightmove.co.uk/dir/19k/18654/124999760/18654_11600008_IMG_49_0000_max_200x138.jpeg",
+        "type": "Master Photo Image",
+        "caption": "OFFICE/OUTSIDE..."
+      },
+      {
+        "identifier": -1871749643,
+        "order": 52,
+        "url": "https://media.rightmove.co.uk/dir/19k/18654/124999760/18654_11600008_IMG_50_0000_max_620x414.jpeg",
+        "thumbnailUrl": "https://media.rightmove.co.uk/dir/19k/18654/124999760/18654_11600008_IMG_50_0000_max_200x138.jpeg",
+        "type": "Master Photo Image",
+        "caption": "REAR GARDEN"
+      },
+      {
+        "identifier": -1871749640,
+        "order": 53,
+        "url": "https://media.rightmove.co.uk/dir/19k/18654/124999760/18654_11600008_IMG_51_0000_max_620x414.jpeg",
+        "thumbnailUrl": "https://media.rightmove.co.uk/dir/19k/18654/124999760/18654_11600008_IMG_51_0000_max_200x138.jpeg",
+        "type": "Master Photo Image",
+        "caption": "REAR VIEW"
+      }
+    ],
+    "floorplans": [],
+    "epcGraphs": [],
+    "epcs": [],
+    "features": [
+      {
+        "identifier": 790177676,
+        "sequence": 1,
+        "featureDescription": "A EXCEPTIONAL EXTENDED SEMI DETACHED HOUSE OFFERED OVER THREE FLOORS  *  SIX BEDROOMS  *  TWO RECEPTION ROOMS  *  CONSERVATORY  *  WELL FITTED HAND CRAFTED BASE AND EYE LEVEL UNITS  *  DOWNSTAIR..."
+      }
+    ],
+    "agentRef": "11600008",
+    "fullDescription": "This exceptional SIX BEDROOM extended semi detached home is finished to a very high standard throughout with quality fixtures and fittings with contemporary and luxury finish.  The property has been the subject of a comprehensive program of extension, remodelling and refurbishment, resulting in a generously proportioned home offering stunning accommodation throughout.  The immaculately presented accommodation extends to six bedrooms, three bathrooms with an open plan stupendous Kitchen/Dining Area and has been designed to create a modern family living.  An Reception Hallway leads to the impressive bay fronted lounge incorporating a &#39;Cast Iron Multi Fuel Burner&#39; and the Kitchen/Diner comprises a range of &#39;Handcrafted&#39; solid wood base and eye level units enhanced by granite work surfaces and incorporates an Island/Breakfast Bar.  This superb living space enjoys excellent levels of natural light throughout the property and eludicates features of charm and character throughout this dazzling property benefiting UPVC double glazing and a gas central heating system.&nbsp; &nbsp;In brief the layout comprises of:-Entrance Porch&nbsp; *&nbsp; Reception Hallway with a feature staircase and &#39;Minton&#39; flooring&nbsp; *&nbsp; Bay Fronted Lounge & cast iron multi fuel burner&nbsp; *&nbsp; Rear Facing Family Room&nbsp; *&nbsp; Conservatory&nbsp; *&nbsp; Striking Well Fitted Kitchen/Diner&nbsp; *&nbsp; Rear Hallway&nbsp; *&nbsp; Downstairs Cloaks/W.C.&nbsp; *&nbsp; Utility Room&nbsp; *&nbsp; Stairs to First Floor&nbsp; *&nbsp; First Floor Landing&nbsp; *&nbsp; Four Double Bedrooms (Bedroom Two having the benefit of an En Suite Shower Room)&nbsp; *&nbsp; Inner Landing Area&nbsp; *&nbsp; Bedroom Five&nbsp; *&nbsp; Dazzling Family Bathroom&nbsp; *&nbsp; Stairs to Top Floor&nbsp; *&nbsp; Master Bedroom & En Suite Luxury Bathroom&nbsp; *&nbsp; Outside to the front of the property there can be found a Generous Imprinted Concrete Driveway providing parking for 3/4 vehicles if so required or alternatively for the parking of a Caravan/Motorhome&nbsp; *&nbsp; Attached Brick Workshop&nbsp; *&nbsp; Landscaped Attractive Rear Garden offering plentiful flagged patio areas a lawn garden plot & a raised decked patio/sitting out area with the added benefit of a covered pergola&nbsp; *&nbsp; Outside Office/Family Room&nbsp; *&nbsp; An early appointment to view this stylish and stunning property is highly recommended to appreciate the exceptional layout and accommodation on offer within&nbsp; *&nbsp; Conveniently located close to reputable local schools and excellent road links&nbsp; *&nbsp; OFFERS IN EXCESS OF &pound;315,000<br /><br /><strong>ENTRANCE PORCH</strong>&nbsp;<br />UPVC double glazed leaded double opening doors to front, upvc double glazed arched panels to either side<br /><br /><strong>RECEPTION HALLWAY</strong>&nbsp;<br />feature solid wood entrance door to front with feature stained  leaded inset, stained leaded inset panels to either side, wood panelling to lower walls, door off to: Understaris Storage Cupboard, panelled radiator, stairs off to first floor, &#39;Minton&#39; tiled flooring   <br /><br /><strong>LOUNGE</strong>&nbsp;<br />16&#39; 2&#39;&#39; x 13&#39; 4&#39;&#39; (4.92m x 4.06m)<br />UPVC double glazed bay window to front, panelled radiator, telephone point, pine solid flooring, inset cast iron multi fuel burner, coved ceiling<br /><br /><strong>SITTING ROOM</strong>&nbsp;<br />16&#39; 5&#39;&#39; x 13&#39; 4&#39;&#39; measured to extremes (5.00m x 4.06m)<br />opening double opening doors to rear, coved ceiling, ceiling rose, pine solid flooring, panelled radiator, feature solid wood fireplace surround, inset &#39;Living Flame&#39; effect gas fire fitted<br /><br /><strong>CONSERVATORY</strong>&nbsp;<br />12&#39; 9&#39;&#39; x 10&#39; 10&#39;&#39; (3.88m x 3.30m)<br />UPVC double glazed double opening french doors to side and UPVC double glazed panels to side and rear, tiled flooring<br /><br /><strong>&#39;L&#39; SHAPED KITCHEN/DINER</strong>&nbsp;<br />21&#39; 0&#39;&#39; x 16&#39; 11&#39;&#39; (6.40m x 5.15m)<br />KITCHEN AREA - UPVC double glazed window to rear, inset &#39;Belfast&#39; sink feature tap over, double cupboard beneath, range of &#39;Handcrafted&#39; solid wood base and eye level units, granite work surfaces, pelmet mood lighting, wall mounted feature plate rack, built in wine cooler, freestanding feature &#39;Island/Breakfast Bar&#39; granite work top, gas cooker point, designer style horizontal radiator, space for tall fridge freezer, stable door to side DINING AREA - wall mounted plasma style electric fire fitted, tiled flooring, designer style horizontal radiator, space for dining table and chairs<br /><br /><strong>REAR HALLWAY</strong>&nbsp;<br />solid wood entrance door to rear, quartz tiled flooring<br /><br /><strong>DOWNSTAIRS CLOAKS/W.C.</strong>&nbsp;<br />double glazed window to rear, vanity unit, close coupled WC., quartz tiled flooring, wall mounted chrome effect heated towel rail<br /><br /><strong>UTILITY ROOM</strong>&nbsp;<br />plumbing for washing machine, space for tumble dryer with work surface above, feature wall unit, <br /><br /><strong>FIRST FLOOR LANDING</strong>&nbsp;<br />coved ceiling, pine solid flooring doors off to:<br /><br /><strong>BEDROOM ONE</strong>&nbsp;<br />16&#39; 4&#39;&#39; x 13&#39; 0&#39;&#39; into bay  (4.97m x 3.96m)<br />UPVC double glazed bay window to front, panelled radiator, pine solid flooring, coved ceiling, cast iron feature fireplace surround<br /><br /><strong>BEDROOM TWO</strong>&nbsp;<br />17&#39; 9&#39;&#39; x 13&#39; 9&#39;&#39; (5.41m x 4.19m)<br />UPVC double glazed window to rear, panelled radiator, coved ceiling, loft access, pine solid flooring<br /><br /><strong>EN SUITE SHOWER ROOM</strong>&nbsp;<br />corner raised enclosed shower unit with sliding doors, pedestal wash hand basin, close coupled W. C. feature tiled flooring, wall mounted chrome effect heated towel rail<br /><br /><strong>BEDROOM THREE</strong>&nbsp;<br />13&#39; 6&#39;&#39; x 13&#39; 2&#39;&#39; measured to extremes (4.11m x 4.01m)<br />UPVC double glazed window to rear, panelled radiator, wooden flooring, feature cast iron fireplace surround <br /><br /><strong>BEDROOM FOUR</strong>&nbsp;<br />10&#39; 2&#39;&#39; x 9&#39; 4&#39;&#39; (3.10m x 2.84m)<br />UPVC double glazed window to front, panelled radiator, built in range of mirror fronted sliding fitted wardrobes, pine solid flooring<br /><br /><strong>INNER LANDING </strong>&nbsp;<br />UPVC stain leaded window to side, horizontal designer style radiator, pine solid flooring, stairs to top floor, double glazed skylight fitted, built in storage cupboard and door off to:<br /><br /><strong>BEDROOM FIVE</strong>&nbsp;<br />7&#39; 6&#39;&#39; x 6&#39; 7&#39;&#39; (2.28m x 2.01m)<br />UPVC double glazed window to front,  panelled radiator, pine solid flooring<br /><br /><strong>LUXURY FAMILY BATHROOM</strong>&nbsp;<br /><br /><strong>TOP FLOOR MASTER BEDROOM</strong>&nbsp;<br />UPVC double glazed window to rear, feature radiator, beamed ceiling, built in range of mirror fronted sliding fitted wardrobes, built in useful storage units, solid herringbone wood flooring, door off to:<br /><br /><strong>EN SUITE LUXURY BATHROOM</strong>&nbsp;<br />double glazed skylight fitted, freestanding roll top bath, chrome effect mixer shower, wall mounted glass feature wash hand basin, inset W. C. designer style heated towel rail, tiled flooring, split face tiling to one wall, door off to: Built in Storage Cupboard<br /><br /><strong>OUTSIDE </strong>&nbsp;<br />to the front of the property there can be found a large sweeping imprinted concrete driveway providing generous off road parking for the parking of a caravan/motorhome if so required<br /><br /><strong>WORKSHOP</strong>&nbsp;<br />UPVC double glazed double opening doors to front<br /><br /><strong>REAR GARDEN</strong>&nbsp;<br />generous flagged patio area, lawn garden plot beyond, raised decked patio area, pergola, brick built barbeque, walling and hedging to the rear, further flagged patio area, raised border stocked with a variety of plants and shrubs, apple, pear and plum trees<br /><br /><strong>BRICK BUILT GARDEN ROOM</strong>&nbsp;<br />triple double glazed bi-folding doors, two separate double glazed skylights fitted<br /><br /><strong>EPC RATING - T B C</strong>&nbsp;<br /><br /><strong>DRAFT DETAILS AWAITING VENDORS APPROVAL</strong>&nbsp;<br /><br />",
+    "publicsiteUrl": "https://www.rightmove.co.uk/property-for-sale/property-124999760.html",
+    "soldPricesUrl": "https://www.rightmove.co.uk/house-prices/st6-7hd.html?referrer=propertyDetails&referrerPropertyId=124999760",
+    "marketInfoUrl": "https://www.rightmove.co.uk/property-for-sale/market-information/property-124999760.html",
+    "schoolCheckerUrl": "https://www.rightmove.co.uk/property-for-sale/nearby-schools/property-124999760.html",
+    "zoomLevel": 13,
+    "mobileVirtualToursUrl": "https://www.rightmove.co.uk/property-for-sale/mobile-virtualtour/property-124999760.html",
+    "mobileStreetViewUrl": "https://www.rightmove.co.uk/apps/streetview.html?propertyId=124999760",
+    "mobilePropertyMapViewUrl": "https://www.rightmove.co.uk/apps/property-mapview.html?propertyId=124999760",
+    "mobileVirtualToursNum": 0,
+    "virtualTours": [],
+    "outcode": "ST6",
+    "googleAnalyticsLabel": "semidetached 6 beds",
+    "stations": [
+      {
+        "station": "Longport",
+        "distance": 1.5,
+        "type": "1"
+      },
+      {
+        "station": "Kidsgrove",
+        "distance": 2.7,
+        "type": "1"
+      },
+      {
+        "station": "Stoke-on-Trent",
+        "distance": 3.6,
+        "type": "1"
+      }
+    ],
+    "tenureType": null,
+    "streetViewLatitude": 53.060074,
+    "streetViewLongitude": -2.195828,
+    "streetViewHeading": null,
+    "streetViewPitch": null,
+    "streetViewZoom": null,
+    "propertyContentHidden": false
+  }
+}

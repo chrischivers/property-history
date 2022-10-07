@@ -1,0 +1,17 @@
+.idea
+env/dev.local.sh
+dev.env.local.sh
+project/target
+target
+.ensime
+.ensime_cache/
+project/ensime.sbt
+*.bk
+docker-volumes
+.DS_Store
+.metals
+.bsp/
+.vscode/
+.java-version
+secret*
+.bloop

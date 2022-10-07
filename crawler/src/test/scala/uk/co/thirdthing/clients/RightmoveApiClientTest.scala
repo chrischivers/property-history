@@ -1,0 +1,66 @@
+package uk.co.thirdthing.clients
+
+import cats.effect.IO
+import fs2.io.file.{Path => Fs2Path}
+import uk.co.thirdthing.Rightmove.{ListingId, Price}
+import org.http4s.client.Client
+import org.http4s.dsl.io._
+import org.http4s.{HttpRoutes, QueryParamDecoder, StaticFile, Status, Uri}
+import uk.co.thirdthing.clients.RightmoveApiClient.ListingDetails
+import uk.co.thirdthing.model.Model.TransactionType
+
+class RightmoveApiClientTest extends munit.CatsEffectSuite {
+
+  val listingId: ListingId = ListingId(12345678)
+
+  test("Decode the api success response") {
+
+    val expectedListingDetails = ListingDetails(
+      price = Price(315000),
+      transactionTypeId = TransactionType.Sale,
+      visible = true,
+      status = None,
+      sortDate = Some(1657875302000L),
+      rentFrequency = None,
+      publicsiteUrl = Uri.unsafeFromString("https://www.rightmove.co.uk/property-for-sale/property-124999760.html"),
+      latitude = 53.060074,
+      longitude = -2.195828
+    )
+
+    assertIO(apiClient("/rightmove-api-success-response.json").listingDetails(listingId), Some(expectedListingDetails))
+  }
+
+  test("Decode the api failure response") {
+    assertIO(apiClient("/rightmove-api-failure-response.json").listingDetails(listingId), None)
+  }
+
+  test("Decode the api 500 response") {
+    assertIO(apiClient("/rightmove-api-500-response.json", status = InternalServerError).listingDetails(listingId), None)
+  }
+
+  ///api/propertyDetails?propertyId=108238283&apiApplication=IPAD
+
+  def apiClient(responsePath: String, status: Status = Status.Ok): RightmoveApiClient[IO] = {
+
+    implicit val yearQueryParamDecoder: QueryParamDecoder[ListingId] = QueryParamDecoder[Long].map(ListingId.apply)
+    object ListingIdQueryParamMatcher      extends QueryParamDecoderMatcher[ListingId]("propertyId")
+    object ApiApplicationQueryParamMatcher extends QueryParamDecoderMatcher[String]("apiApplication")
+
+    RightmoveApiClient.apply[IO](
+      Client.fromHttpApp[IO](
+        HttpRoutes
+          .of[IO] {
+            case request @ GET -> Root / "api" / "propertyDetails" :? ListingIdQueryParamMatcher(_) :? ApiApplicationQueryParamMatcher("IPAD") =>
+              val response = StaticFile
+                .fromPath(Fs2Path(getClass.getResource(responsePath).getPath), Some(request))
+                .getOrElseF(NotFound())
+
+              response.map(_.copy(status = status))
+          }
+          .orNotFound
+      ),
+      Uri.unsafeFromString("/")
+    )
+  }
+
+}
