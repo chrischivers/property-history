@@ -29,7 +29,10 @@ trait DynamoIntegration extends munit.CatsEffectSuite {
 
   private def deletePropertiesTable(dynamoDbAsyncClient: DynamoDbAsyncClient) = {
     Client.apply[IO](dynamoDbAsyncClient).deleteTable("properties").attempt.void
+  }
 
+  private def deleteJobsTable(dynamoDbAsyncClient: DynamoDbAsyncClient) = {
+    Client.apply[IO](dynamoDbAsyncClient).deleteTable("crawler-jobs").attempt.void
   }
 
   private def createPropertiesTable(dynamoDbAsyncClient: DynamoDbAsyncClient) =
@@ -56,12 +59,36 @@ trait DynamoIntegration extends munit.CatsEffectSuite {
         )
       )
 
+  private def createJobsTable(dynamoDbAsyncClient: DynamoDbAsyncClient) =
+    Client
+      .apply[IO](dynamoDbAsyncClient)
+      .createPartitionKeyTable(
+        tableName = "crawler-jobs",
+        partitionKeyDef = KeyDef[ListingId]("jobId", DynamoDbType.N),
+        billingMode = BillingMode.PAY_PER_REQUEST,
+        attributeDefinition = Map(
+          "jobId" -> DynamoDbType.N,
+          "type" -> DynamoDbType.S,
+          "to" -> DynamoDbType.N
+        ),
+        globalSecondaryIndexes = Set(
+          GlobalSecondaryIndex.builder()
+            .indexName("jobsByToDate-GSI")
+            .keySchema(
+              KeySchemaElement.builder().attributeName("type").keyType(KeyType.HASH).build(),
+              KeySchemaElement.builder().attributeName("to").keyType(KeyType.RANGE).build()
+            )
+            .projection(Projection.builder().projectionType(ProjectionType.ALL).build())
+            .build()
+        )
+      )
+
   private def populateTable(dynamoDbAsyncClient: DynamoDbAsyncClient, propertiesRecords: List[PropertiesRecord]) = {
     val client = Client.apply[IO](dynamoDbAsyncClient)
       propertiesRecords.traverse(record => client.put[PropertiesRecord]("properties", record)).void
   }
 
-  def withDynamoClient(existingRecords: List[PropertiesRecord] = List.empty) = {
+  def withDynamoClient(existingPropertyRecords: List[PropertiesRecord] = List.empty) = {
     val dummyCreds = AwsBasicCredentials.create("dummy-access-key", "dummy-secret-key")
     Resource
       .fromAutoCloseable(
@@ -76,7 +103,9 @@ trait DynamoIntegration extends munit.CatsEffectSuite {
       )
       .evalTap(deletePropertiesTable)
       .evalTap(createPropertiesTable)
-      .evalTap(populateTable(_, existingRecords))
+      .evalTap(deleteJobsTable)
+      .evalTap(createJobsTable)
+      .evalTap(populateTable(_, existingPropertyRecords))
   }
 
 }

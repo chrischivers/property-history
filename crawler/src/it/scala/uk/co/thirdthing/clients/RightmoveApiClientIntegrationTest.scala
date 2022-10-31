@@ -20,13 +20,14 @@ class RightmoveApiClientIntegrationTest extends munit.CatsEffectSuite {
     val expectedListingDetails = ListingDetails(
       price = Price(315000),
       transactionTypeId = TransactionType.Sale,
-      visible = true,
+      visible = false,
       status = None,
-      sortDate = Some(1657875302000L),
+      sortDate = 1657875302000L.some,
+      updateDate = 1663688404000L,
       rentFrequency = None,
       publicsiteUrl = Uri.unsafeFromString("https://www.rightmove.co.uk/property-for-sale/property-124999760.html"),
-      latitude = 53.060074,
-      longitude = -2.195828
+      latitude = 53.05996,
+      longitude = -2.195873
     )
 
     buildClient(client => assertIO(client.listingDetails(ListingId(124999760)), Some(expectedListingDetails)))
@@ -39,7 +40,7 @@ class RightmoveApiClientIntegrationTest extends munit.CatsEffectSuite {
   test("Conduct random bulk test") {
     val listingIds = (0 to 100).toList.map(_ => Random.nextInt(108238283)).map(ListingId(_))
 
-    buildClient(client => assertIO(listingIds.traverse(listingId => client.listingDetails(listingId)).void, ()))
+    buildClient(client => assertIO(listingIds.traverse(client.listingDetails).void, ()))
   }
 
   def buildClient(f: RightmoveApiClient[IO] => IO[Unit]) =

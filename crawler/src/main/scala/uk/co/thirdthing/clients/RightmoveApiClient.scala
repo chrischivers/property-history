@@ -29,6 +29,7 @@ object RightmoveApiClient {
                              visible: Boolean,
                              status: Option[ListingStatus],
                              sortDate: Option[Long],
+                             updateDate: Long,
                              rentFrequency: Option[String],
                              publicsiteUrl: Uri,
                              latitude: Double,
@@ -50,7 +51,7 @@ object RightmoveApiClient {
 
   def apply[F[_] : Async](client: Client[F], baseUrl: Uri) = new RightmoveApiClient[F] {
 
-    implicit def logger = Slf4jLogger.getLogger[F]
+    implicit val logger = Slf4jLogger.getLogger[F]
 
     implicit private val entityDecoder: EntityDecoder[F, ResultWrapper] = jsonOf[F, ResultWrapper]
 

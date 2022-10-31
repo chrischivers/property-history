@@ -29,7 +29,7 @@ object DynamoPropertyListingStore {
     implicit val listingIdEncoder: Encoder[PropertyId] = Encoder.instance(_.value.asAttributeValue)
     val index = SecondaryCompositeIndex[F, PropertyId, Long](
       "properties",
-      "propertyId-LSI",
+      "propertyId-GSI",
       KeyDef[PropertyId]("propertyId", DynamoDbType.N),
       KeyDef[Long]("dateAdded", DynamoDbType.N),
       client

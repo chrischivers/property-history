@@ -1,6 +1,7 @@
 package uk.co.thirdthing.clients
 
 import cats.effect.IO
+import cats.syntax.all._
 import fs2.io.file.{Path => Fs2Path}
 import uk.co.thirdthing.Rightmove.{ListingId, Price}
 import org.http4s.client.Client
@@ -20,7 +21,8 @@ class RightmoveApiClientTest extends munit.CatsEffectSuite {
       transactionTypeId = TransactionType.Sale,
       visible = true,
       status = None,
-      sortDate = Some(1657875302000L),
+      sortDate = 1657875302000L.some,
+      updateDate = 1658237961000L,
       rentFrequency = None,
       publicsiteUrl = Uri.unsafeFromString("https://www.rightmove.co.uk/property-for-sale/property-124999760.html"),
       latitude = 53.060074,
@@ -37,8 +39,6 @@ class RightmoveApiClientTest extends munit.CatsEffectSuite {
   test("Decode the api 500 response") {
     assertIO(apiClient("/rightmove-api-500-response.json", status = InternalServerError).listingDetails(listingId), None)
   }
-
-  ///api/propertyDetails?propertyId=108238283&apiApplication=IPAD
 
   def apiClient(responsePath: String, status: Status = Status.Ok): RightmoveApiClient[IO] = {
 
