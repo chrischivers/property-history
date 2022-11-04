@@ -5,10 +5,10 @@ import cats.kernel.Order
 import uk.co.thirdthing.Rightmove.ListingId
 import uk.co.thirdthing.model.Model.{CrawlerJob, JobId, JobState}
 import cats.syntax.all._
+import org.typelevel.log4cats.slf4j.Slf4jLogger
 import uk.co.thirdthing.clients.RightmoveApiClient
 import uk.co.thirdthing.config.JobSeederConfig
 import uk.co.thirdthing.store.JobStore
-
 
 trait JobSeeder[F[_]] {
   def seed: F[Unit]
@@ -17,6 +17,8 @@ trait JobSeeder[F[_]] {
 object JobSeeder {
 
   def apply[F[_]: Sync](rightmoveApiClient: RightmoveApiClient[F], jobStore: JobStore[F], config: JobSeederConfig) = new JobSeeder[F] {
+
+    implicit val logger = Slf4jLogger.getLogger[F]
 
     private def getLatestListingIdFrom(from: ListingId): F[Option[ListingId]] = {
       def helper(lastFoundListing: Option[ListingId], nextToTry: ListingId, emptyRecordsSince: Int): F[Option[ListingId]] =
@@ -33,8 +35,7 @@ object JobSeeder {
     private def getLatestListingFor(lastJob: CrawlerJob): F[Option[ListingId]] =
       getLatestListingIdFrom(lastJob.to)
 
-
-    private def jobsToCreate(from: ListingId, to: ListingId): List[CrawlerJob] = {
+    private def jobsToCreate(from: ListingId, to: ListingId): List[CrawlerJob] =
       (from.value to to.value).foldLeft(List.empty[CrawlerJob]) {
         case (agg, id) =>
           if (id % config.jobChunkSize == 0) {
@@ -42,15 +43,21 @@ object JobSeeder {
             agg :+ CrawlerJob(jobId, ListingId(id), ListingId(id + config.jobChunkSize), None, JobState.NeverRun)
           } else agg
       }
-    }
 
     override def seed: F[Unit] =
-      jobStore.getLatestJob
-        .flatMap {
-          case None      => jobsToCreate(ListingId(0), ListingId(config.startingMaxListingIdForFirstRun)).pure[F]
-          case Some(job) => getLatestListingFor(job).map(_.fold(List.empty[CrawlerJob])(jobsToCreate(job.to, _)))
-        }
-        .flatMap(jobs => fs2.Stream.emits(jobs).through(jobStore.streamPut).compile.drain)
+      logger.info("Running job seed") *>
+        jobStore.getLatestJob
+          .flatMap {
+            case None =>
+              logger.info(s"No latest job retrieved. Creating from scratch") *>
+                jobsToCreate(ListingId(0), ListingId(config.startingMaxListingIdForFirstRun)).pure[F]
+            case Some(job) =>
+              logger.info(s"Retrieved latest job: $job") *>
+                getLatestListingFor(job).map(_.fold(List.empty[CrawlerJob])(jobsToCreate(job.to, _)))
+          }
+          .flatTap(jobs => logger.info(s"${jobs.size} jobs retrieved for adding"))
+          .flatMap(jobs => fs2.Stream.emits(jobs).through(jobStore.streamPut).compile.drain)
+          .flatTap(_ => logger.info("Job insertion complete"))
 
   }
 

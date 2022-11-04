@@ -2,17 +2,21 @@ package uk.co.thirdthing.consumer
 
 import cats.effect.Sync
 import cats.syntax.all._
+import io.circe.Json
 import org.typelevel.log4cats.slf4j.Slf4jLogger
 import uk.co.thirdthing.service.JobSeeder
 import uk.co.thirdthing.sqs.SqsConsumer
 
 
-class JobSeedRequestConsumer[F[_]: Sync](jobSeeder: JobSeeder[F]) extends SqsConsumer[F, Unit] {
+object JobSeedRequestConsumer {
 
-  implicit val logger = Slf4jLogger.getLogger[F]
+  def apply[F[_] : Sync](jobSeeder: JobSeeder[F]) = new SqsConsumer[F, Json] {
 
-  override def handle(msg: Unit): F[Unit] = {
-    logger.info("Received seed request") *>
-    jobSeeder.seed
+    implicit val logger = Slf4jLogger.getLogger[F]
+
+    override def handle(msg: Json): F[Unit] = {
+      logger.info("Received seed request") *>
+        jobSeeder.seed
+    }
   }
 }

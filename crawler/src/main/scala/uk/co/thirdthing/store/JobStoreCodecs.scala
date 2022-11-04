@@ -21,7 +21,8 @@ object JobStoreCodecs {
       "from"    -> job.from.value.asAttributeValue,
       "to"      -> job.to.value.asAttributeValue,
       "lastRun" -> job.lastRun.asAttributeValue,
-      "type"    -> "JOB".asAttributeValue
+      "type"    -> "JOB".asAttributeValue,
+      "state"   -> job.state.entryName.asAttributeValue
     ).asAttributeValue
   }
 

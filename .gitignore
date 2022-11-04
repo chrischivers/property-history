@@ -13,5 +13,5 @@ docker-volumes
 .bsp/
 .vscode/
 .java-version
-secret*
+secret
 .bloop

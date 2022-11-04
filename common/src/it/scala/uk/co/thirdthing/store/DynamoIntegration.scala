@@ -107,5 +107,4 @@ trait DynamoIntegration extends munit.CatsEffectSuite {
       .evalTap(createJobsTable)
       .evalTap(populateTable(_, existingPropertyRecords))
   }
-
 }

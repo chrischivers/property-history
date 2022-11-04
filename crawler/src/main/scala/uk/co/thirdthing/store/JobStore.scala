@@ -3,20 +3,17 @@ package uk.co.thirdthing.store
 import cats.effect.Async
 import cats.effect.kernel.Sync
 import fs2.Pipe
-import meteor.{Client, Expression, Query, SortKeyQuery}
 import meteor.api.hi._
 import software.amazon.awssdk.core.retry.backoff.BackoffStrategy
 import software.amazon.awssdk.services.dynamodb.model.{AttributeValue, QueryRequest}
 import uk.co.thirdthing.model.Model.{CrawlerJob, JobId}
 
-import java.time.Instant
 import scala.concurrent.duration.DurationInt
 //import meteor.codec.Codec.dynamoCodecFromEncoderAndDecoder
+import cats.syntax.all._
 import meteor.{DynamoDbType, KeyDef}
 import software.amazon.awssdk.services.dynamodb.DynamoDbAsyncClient
-import uk.co.thirdthing.Rightmove.ListingId
-import uk.co.thirdthing.model.Model.Property
-import cats.syntax.all._
+
 import scala.jdk.CollectionConverters._
 
 trait JobStore[F[_]] {

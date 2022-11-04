@@ -16,7 +16,7 @@ object Dependencies {
     val meteor                = "1.0.18"
     val newtype               = "0.2.3"
     val enumeration           = "1.7.0"
-    val awsSqs                = "2.18.5"
+    val aws                = "2.18.10"
   }
 
   private val munit = Seq(
@@ -66,11 +66,15 @@ object Dependencies {
     "com.beachape" %% "enumeratum-circe" % Versions.enumeration
   )
   private val awsSqs = Seq(
-    "software.amazon.awssdk" % "sqs" % Versions.awsSqs
+    "software.amazon.awssdk" % "sqs" % Versions.aws
+  )
+
+  private val awsSecretsMAnager = Seq(
+    "software.amazon.awssdk" % "secretsmanager" % Versions.aws
   )
   private val test = munit.map(_ % "test,it")
 
-  val commonDependencies: Seq[ModuleID]    = http4s ++ refined ++ circe ++ logging ++ metor ++ newtype ++ awsSqs ++ test
+  val commonDependencies: Seq[ModuleID]    = http4s ++ refined ++ circe ++ logging ++ metor ++ newtype ++ awsSqs ++ awsSecretsMAnager ++ test
   val publicApiDependencies: Seq[ModuleID] = http4s ++ refined ++ circe ++ logging ++ metor ++ newtype ++ test
   val crawlerDependencies: Seq[ModuleID]   = http4s ++ refined ++ circe ++ logging ++ metor ++ newtype ++ enumeration ++ test
 }
