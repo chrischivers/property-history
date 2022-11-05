@@ -21,15 +21,21 @@ object JobSeeder {
     implicit val logger = Slf4jLogger.getLogger[F]
 
     private def getLatestListingIdFrom(from: ListingId): F[Option[ListingId]] = {
-      def helper(lastFoundListing: Option[ListingId], nextToTry: ListingId, emptyRecordsSince: Int): F[Option[ListingId]] =
+      def helper(lastFoundListing: Option[ListingId], nextToTry: ListingId, emptyRecordsSince: Long): F[Option[ListingId]] =
         if (emptyRecordsSince >= config.emptyRecordsToDetermineLatest) lastFoundListing.pure
         else {
           rightmoveApiClient.listingDetails(nextToTry).flatMap {
-            case None    => helper(lastFoundListing, ListingId(nextToTry.value + 1), emptyRecordsSince + 1)
-            case Some(_) => helper(nextToTry.some, ListingId(nextToTry.value + 1), emptyRecordsSince = 0)
+            case None =>
+              (if (emptyRecordsSince % 100 == 0) logger.info(s"Empty records since last record found: $emptyRecordsSince") else ().pure[F]) *>
+                helper(lastFoundListing, ListingId(nextToTry.value + 1), emptyRecordsSince + 1)
+            case Some(_) =>
+              logger.info(s"Found listing for ${nextToTry.value}. Continuing to scan") *>
+                helper(nextToTry.some, ListingId(nextToTry.value + 1), emptyRecordsSince = 0)
           }
         }
-      helper(None, ListingId(from.value + 1), 0)
+      logger
+        .info(s"Attempting to get latest listing id, starting at ${from.value}. Empty records required ${config.emptyRecordsToDetermineLatest}") *>
+        helper(None, ListingId(from.value + 1), 0)
     }
 
     private def getLatestListingFor(lastJob: CrawlerJob): F[Option[ListingId]] =

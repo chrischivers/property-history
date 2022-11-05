@@ -86,7 +86,7 @@ object RightmoveApiClient {
     private def handleErrorResponse(response: Response[F], listingId: ListingId): F[Option[ListingDetails]] = {
       response.as[String].flatMap { errorResponse =>
         if (errorResponse.contains("Something went wrong"))
-          logger.warn(s"500 returned from API with 'something went wrong' message for id $listingId").as(None)
+          logger.debug(s"500 returned from API with 'something went wrong' message for id $listingId").as(None)
         else MonadThrow[F].raiseError(new RuntimeException(s"Unexpected 500 response from API $errorResponse for listing id $listingId"))
       }
     }
