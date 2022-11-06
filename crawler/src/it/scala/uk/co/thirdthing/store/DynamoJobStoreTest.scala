@@ -4,6 +4,7 @@ import cats.effect.IO
 import meteor.api.hi.SimpleTable
 import meteor.{DynamoDbType, KeyDef}
 import uk.co.thirdthing.Rightmove.ListingId
+import uk.co.thirdthing.model.Model.CrawlerJob.LastRunCompleted
 import uk.co.thirdthing.model.Model.{CrawlerJob, JobId, JobState}
 
 import java.time.Instant
@@ -12,10 +13,26 @@ import java.time.temporal.ChronoUnit
 class DynamoJobStoreTest extends munit.CatsEffectSuite with DynamoIntegrationCrawler {
   import JobStoreCodecs._
 
-  private val crawlerJob1 = CrawlerJob(JobId(123), ListingId(333), ListingId(444), None, JobState.NeverRun)
-  private val crawlerJob2 = CrawlerJob(JobId(234), ListingId(444), ListingId(555), Some(Instant.now().truncatedTo(ChronoUnit.MILLIS)), JobState.Pending)
+  private val crawlerJob1 = CrawlerJob(JobId(123), ListingId(333), ListingId(444), JobState.NeverRun, None, None, None)
+  private val crawlerJob2 = CrawlerJob(
+    JobId(234),
+    ListingId(444),
+    ListingId(555),
+    JobState.Pending,
+    None,
+    Some(LastRunCompleted(Instant.now().truncatedTo(ChronoUnit.MILLIS))),
+    None
+  )
   private val crawlerJob3 =
-    CrawlerJob(JobId(345), ListingId(222), ListingId(333), Some(Instant.now().plus(1, ChronoUnit.DAYS).truncatedTo(ChronoUnit.MILLIS)), JobState.Completed)
+    CrawlerJob(
+      JobId(345),
+      ListingId(222),
+      ListingId(333),
+      JobState.Completed,
+      None,
+      Some(LastRunCompleted(Instant.now().plus(1, ChronoUnit.DAYS).truncatedTo(ChronoUnit.MILLIS))),
+      None
+    )
 
   test("Put a single job") {
     withDynamoStoresAndClient() { (stores, client) =>
@@ -41,7 +58,7 @@ class DynamoJobStoreTest extends munit.CatsEffectSuite with DynamoIntegrationCra
     }
   }
 
-  test("Retrieve the job with the highest 'to' value") {
+  test("Retrieve the latest job (the job with the highest 'to' value)") {
     withDynamoStoresAndClient() { (stores, _) =>
       val result =
         stores.dynamoJobStore.streamPut(fs2.Stream.emits[IO, CrawlerJob](Seq(crawlerJob1, crawlerJob2, crawlerJob3))).compile.drain.flatMap { _ =>
@@ -55,6 +72,16 @@ class DynamoJobStoreTest extends munit.CatsEffectSuite with DynamoIntegrationCra
     withDynamoStoresAndClient() { (stores, _) =>
       val result = stores.dynamoJobStore.getLatestJob
       assertIO(result, None)
+    }
+  }
+
+  test("Stream all jobs") {
+    withDynamoStoresAndClient() { (stores, _) =>
+      val result =
+        stores.dynamoJobStore.streamPut(fs2.Stream.emits[IO, CrawlerJob](Seq(crawlerJob1, crawlerJob2, crawlerJob3))).compile.drain.flatMap { _ =>
+          stores.dynamoJobStore.streamGet.compile.toList
+        }
+      assertIO(result, List(crawlerJob1, crawlerJob2, crawlerJob3))
     }
   }
 

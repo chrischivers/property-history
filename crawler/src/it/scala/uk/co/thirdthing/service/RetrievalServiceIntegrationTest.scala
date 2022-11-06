@@ -29,7 +29,7 @@ class RetrievalServiceIntegrationTest extends munit.CatsEffectSuite {
         price = Price(315000),
         transactionTypeId = TransactionType.Sale,
         visible = false,
-        status = ListingStatus.Deleted,
+        status = ListingStatus.Hidden,
         rentFrequency = None,
         latitude = 53.05996,
         longitude = -2.195873

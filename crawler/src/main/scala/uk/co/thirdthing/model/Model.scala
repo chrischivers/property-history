@@ -3,10 +3,12 @@ package uk.co.thirdthing.model
 import enumeratum.EnumEntry.Lowercase
 import enumeratum._
 import enumeratum.values._
-import io.circe.Decoder
+import io.circe.generic.semiauto.deriveCodec
+import io.circe.{Codec, Decoder}
 import monix.newtypes.NewtypeWrapped
 import monix.newtypes.integrations.DerivedCirceCodec
 import uk.co.thirdthing.Rightmove.{DateAdded, ListingId, Price, PropertyId}
+import uk.co.thirdthing.model.Model.CrawlerJob._
 
 import java.time.Instant
 
@@ -53,31 +55,53 @@ object Model {
   final case class Property(listingId: ListingId, propertyId: PropertyId, dateAdded: DateAdded, details: PropertyDetails)
 
   final case class PropertyDetails(
-                              price: Price,
-                              transactionTypeId: TransactionType,
-                              visible: Boolean,
-                              status: ListingStatus,
-                              rentFrequency: Option[String],
-                              latitude: Double,
-                              longitude: Double
-                            )
+    price: Price,
+    transactionTypeId: TransactionType,
+    visible: Boolean,
+    status: ListingStatus,
+    rentFrequency: Option[String],
+    latitude: Double,
+    longitude: Double
+  )
 
   type JobId = JobId.Type
   object JobId extends NewtypeWrapped[Long] with DerivedCirceCodec
 
-
-  sealed abstract class JobState extends EnumEntry with Lowercase
+  sealed abstract class JobState(val schedulable: Boolean) extends EnumEntry with Lowercase
 
   object JobState extends Enum[JobState] {
-    final case object NeverRun extends JobState
-    final case object Pending extends JobState
-    final case object Completed extends JobState
+    final case object NeverRun  extends JobState(schedulable = true)
+    final case object Pending   extends JobState(schedulable = false)
+    final case object Completed extends JobState(schedulable = true)
 
     override def values: IndexedSeq[JobState] = findValues
   }
 
+  final case class CrawlerJob(
+    jobId: JobId,
+    from: ListingId,
+    to: ListingId,
+    state: JobState,
+    lastRunScheduled: Option[LastRunScheduled],
+    lastRunCompleted: Option[LastRunCompleted],
+    lastDataChange: Option[LastDataChange]
+  )
 
-  final case class CrawlerJob(jobId: JobId, from: ListingId, to: ListingId, lastRun: Option[Instant], state: JobState)
+  object CrawlerJob {
+    type LastRunScheduled = LastRunScheduled.Type
+    object LastRunScheduled extends NewtypeWrapped[Instant] with DerivedCirceCodec
 
+    type LastRunCompleted = LastRunCompleted.Type
+    object LastRunCompleted extends NewtypeWrapped[Instant] with DerivedCirceCodec
+
+    type LastDataChange = LastDataChange.Type
+    object LastDataChange extends NewtypeWrapped[Instant] with DerivedCirceCodec
+  }
+
+  final case class RunJobCommand(jobId: JobId)
+
+  object RunJobCommand {
+    implicit val codec: Codec[RunJobCommand] = deriveCodec
+  }
 
 }

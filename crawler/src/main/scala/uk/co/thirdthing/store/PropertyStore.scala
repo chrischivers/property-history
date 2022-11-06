@@ -14,6 +14,8 @@ import uk.co.thirdthing.model.Model.Property
 
 trait PropertyStore[F[_]] {
   def put(property: Property): F[Unit]
+  def get(listingId: ListingId): F[Option[Property]]
+  def delete(listingId: ListingId): F[Unit]
   def streamPut: Pipe[F, Property, Unit]
 }
 
@@ -31,6 +33,10 @@ object DynamoPropertyStore  {
          table.batchPutUnordered[Property](maxBatchWait = 30.seconds, parallelism = 4, BackoffStrategy.defaultStrategy())
 
       }
+
+      override def get(listingId: ListingId): F[Option[Property]] = table.get[Property](listingId, consistentRead = false)
+
+      override def delete(listingId: ListingId): F[Unit] = table.delete(listingId)
     }
   }
 }

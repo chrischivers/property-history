@@ -2,9 +2,7 @@ package uk.co.thirdthing.store
 
 import cats.effect.IO
 import meteor.api.hi.SimpleTable
-import meteor.codec.Encoder
-import meteor.syntax.RichWriteAttributeValue
-import meteor.{Client, DynamoDbType, KeyDef, PartitionKeyTable}
+import meteor.{DynamoDbType, KeyDef}
 import uk.co.thirdthing.Rightmove.{DateAdded, ListingId, Price, PropertyId}
 import uk.co.thirdthing.model.Model.{ListingStatus, Property, PropertyDetails, TransactionType}
 

@@ -16,7 +16,8 @@ object Dependencies {
     val meteor                = "1.0.18"
     val newtype               = "0.2.3"
     val enumeration           = "1.7.0"
-    val aws                = "2.18.10"
+    val aws                   = "2.18.10"
+    val diffx                 = "0.8.1"
   }
 
   private val munit = Seq(
@@ -72,9 +73,13 @@ object Dependencies {
   private val awsSecretsMAnager = Seq(
     "software.amazon.awssdk" % "secretsmanager" % Versions.aws
   )
+
+  private val diffx = Seq(
+    "com.softwaremill.diffx" %% "diffx-cats" % Versions.diffx
+  )
   private val test = munit.map(_ % "test,it")
 
   val commonDependencies: Seq[ModuleID]    = http4s ++ refined ++ circe ++ logging ++ metor ++ newtype ++ awsSqs ++ awsSecretsMAnager ++ test
   val publicApiDependencies: Seq[ModuleID] = http4s ++ refined ++ circe ++ logging ++ metor ++ newtype ++ test
-  val crawlerDependencies: Seq[ModuleID]   = http4s ++ refined ++ circe ++ logging ++ metor ++ newtype ++ enumeration ++ test
+  val crawlerDependencies: Seq[ModuleID]   = http4s ++ refined ++ circe ++ logging ++ metor ++ newtype ++ enumeration ++ diffx ++ test
 }

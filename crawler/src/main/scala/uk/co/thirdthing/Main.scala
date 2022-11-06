@@ -8,11 +8,12 @@ import software.amazon.awssdk.services.dynamodb.DynamoDbAsyncClient
 import software.amazon.awssdk.services.secretsmanager.SecretsManagerClient
 import software.amazon.awssdk.services.sqs.SqsAsyncClient
 import uk.co.thirdthing.clients.RightmoveApiClient
-import uk.co.thirdthing.config.JobSeederConfig
-import uk.co.thirdthing.consumer.JobSeedRequestConsumer
+import uk.co.thirdthing.config.{JobSchedulerConfig, JobSeederConfig}
+import uk.co.thirdthing.consumer.{JobScheduleTriggerConsumer, JobSeedTriggerConsumer}
+import uk.co.thirdthing.model.Model.RunJobCommand
 import uk.co.thirdthing.secrets.{AmazonSecretsManager, SecretsManager}
-import uk.co.thirdthing.service.JobSeeder
-import uk.co.thirdthing.sqs.{SqsConfig, SqsProcessingStream}
+import uk.co.thirdthing.service.{JobScheduler, JobSeeder}
+import uk.co.thirdthing.sqs.{SqsConfig, SqsProcessingStream, SqsPublisher}
 import uk.co.thirdthing.store.DynamoJobStore
 
 import scala.concurrent.duration._
@@ -28,28 +29,53 @@ object Main extends IOApp {
 
   override def run(args: List[String]): IO[ExitCode] = resources.use { r =>
     val secretsManager = AmazonSecretsManager(r.secretsManagerClient)
-    startJobSeederRequestProcessingStream(r.httpClient, r.dynamoClient, r.sqsClient, secretsManager).compile.drain.as(ExitCode.Success)
+    startJobSeedTriggerProcessingStream(r.httpClient, r.dynamoClient, r.sqsClient, secretsManager)
+      .concurrently(startJobScheduleTriggerProcessingStream(r.dynamoClient, r. sqsClient, secretsManager))
+      .compile.drain.as(ExitCode.Success)
   }
 
-  private def startJobSeederRequestProcessingStream(
-    httpClient: Client[IO],
-    dynamoClient: DynamoDbAsyncClient,
-    sqsClient: SqsAsyncClient,
-    secretsManager: SecretsManager
-  ): fs2.Stream[IO, Unit] =
-    fs2.Stream.eval(secretsManager.secretFor("job-seeder-queue-url")).flatMap { queueUrl =>
-      val consumer  = buildJobSeedRequestConsumer(httpClient, dynamoClient)
-      val sqsConfig = SqsConfig(queueUrl, 20.seconds, 5.minutes, 1.minute, 10.seconds, 1.minute, 5)
-      new SqsProcessingStream[IO](sqsClient, sqsConfig).startStream(consumer)
-    }
 
-  private def buildJobSeedRequestConsumer(httpClient: Client[IO], dynamoClient: DynamoDbAsyncClient) = {
+
+  private def buildJobSeedTriggerConsumer(httpClient: Client[IO], dynamoClient: DynamoDbAsyncClient) = {
     val jobStore           = DynamoJobStore[IO](dynamoClient)
     val jobSederConfig     = JobSeederConfig.default
     val rightmoveApiClient = RightmoveApiClient(httpClient, Uri.unsafeFromString("https://api.rightmove.co.uk"))
     val jobSeeder          = JobSeeder[IO](rightmoveApiClient, jobStore, jobSederConfig)
-    JobSeedRequestConsumer(jobSeeder)
+    JobSeedTriggerConsumer(jobSeeder)
   }
+
+  private def startJobSeedTriggerProcessingStream(
+                                                     httpClient: Client[IO],
+                                                     dynamoClient: DynamoDbAsyncClient,
+                                                     sqsClient: SqsAsyncClient,
+                                                     secretsManager: SecretsManager
+                                                   ): fs2.Stream[IO, Unit] =
+    fs2.Stream.eval(secretsManager.secretFor("job-seeder-queue-url")).flatMap { queueUrl =>
+      val consumer  = buildJobSeedTriggerConsumer(httpClient, dynamoClient)
+      val sqsConfig = SqsConfig(queueUrl, 20.seconds, 5.minutes, 1.minute, 10.seconds, 1.minute, 5)
+      new SqsProcessingStream[IO](sqsClient, sqsConfig).startStream(consumer)
+    }
+
+  private def buildJobScheduleTriggerConsumer(sqsClient: SqsAsyncClient, dynamoClient: DynamoDbAsyncClient, runJobCommandQueueUrl: String) = {
+    val jobStore     = DynamoJobStore[IO](dynamoClient)
+    val jobSchedulerConfig = JobSchedulerConfig.default
+    val publisher    = new SqsPublisher[IO, RunJobCommand](sqsClient)(runJobCommandQueueUrl)
+    val jobScheduler = JobScheduler[IO](jobStore, publisher, jobSchedulerConfig)
+    JobScheduleTriggerConsumer(jobScheduler)
+  }
+
+  private def startJobScheduleTriggerProcessingStream(
+                                                     dynamoClient: DynamoDbAsyncClient,
+                                                     sqsClient: SqsAsyncClient,
+                                                     secretsManager: SecretsManager
+                                                   ): fs2.Stream[IO, Unit] =
+    fs2.Stream.eval(secretsManager.secretFor("run-job-commands-queue-url")).flatMap { runJobCommandQueueUrl =>
+      fs2.Stream.eval(secretsManager.secretFor("job-schedule-trigger-queue-url")).flatMap { jobScheduleTriggerQueueUrl =>
+        val consumer = buildJobScheduleTriggerConsumer(sqsClient, dynamoClient, runJobCommandQueueUrl)
+        val sqsConfig = SqsConfig(jobScheduleTriggerQueueUrl, 20.seconds, 5.minutes, 1.minute, 10.seconds, 1.minute, 5)
+        new SqsProcessingStream[IO](sqsClient, sqsConfig).startStream(consumer)
+      }
+    }
 
   private def resources: Resource[IO, Resources] =
     for {

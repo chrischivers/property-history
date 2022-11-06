@@ -46,7 +46,7 @@ object JobSeeder {
         case (agg, id) =>
           if (id % config.jobChunkSize == 0) {
             val jobId = JobId(id / config.jobChunkSize + 1)
-            agg :+ CrawlerJob(jobId, ListingId(id), ListingId(id + config.jobChunkSize), None, JobState.NeverRun)
+            agg :+ CrawlerJob(jobId, ListingId(id), ListingId(id + config.jobChunkSize), JobState.NeverRun, None, None, None)
           } else agg
       }
 

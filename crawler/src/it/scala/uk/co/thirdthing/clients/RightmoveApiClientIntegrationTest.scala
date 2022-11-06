@@ -23,7 +23,7 @@ class RightmoveApiClientIntegrationTest extends munit.CatsEffectSuite {
       visible = false,
       status = None,
       sortDate = 1657875302000L.some,
-      updateDate = 1663688404000L,
+      updateDate = 1665419375000L,
       rentFrequency = None,
       publicsiteUrl = Uri.unsafeFromString("https://www.rightmove.co.uk/property-for-sale/property-124999760.html"),
       latitude = 53.05996,
