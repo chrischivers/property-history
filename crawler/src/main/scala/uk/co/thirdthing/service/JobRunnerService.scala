@@ -45,7 +45,7 @@ object JobRunnerService {
           case result if result.exists(_.value) =>
             logger.info(s"${result.count(_.value)} of ${result.size} records updated for crawler job ${job.jobId.value}") *>
               updateJobStoreWhenDataChanges(job)
-          case result =>
+          case _ =>
             logger.info(s"No records updated for crawler job ${job.jobId.value}") *>
               updateJobStoreWhenNoDataChanges(job)
 

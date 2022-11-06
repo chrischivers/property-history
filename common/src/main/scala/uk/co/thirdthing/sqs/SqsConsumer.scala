@@ -24,7 +24,7 @@ abstract class SqsConsumer[F[_], A: Decoder] {
   def handle(msg: A): F[Unit]
 }
 
-class SqsProcessingStream[F[_]: Async](sqsClient: SqsAsyncClient, sqsConfig: SqsConfig) {
+class SqsProcessingStream[F[_]: Async](sqsClient: SqsAsyncClient, sqsConfig: SqsConfig, consumerName: String) {
 
   private implicit val logger = Slf4jLogger.getLogger[F]
 
@@ -38,7 +38,7 @@ class SqsProcessingStream[F[_]: Async](sqsClient: SqsAsyncClient, sqsConfig: Sqs
     .build()
 
   def startStream[A: Decoder](consumer: SqsConsumer[F, A]): fs2.Stream[F, Unit] =
-    fs2.Stream.eval(logger.info(s"Consumer started")) >>
+    fs2.Stream.eval(logger.info(s"Consumer $consumerName started")) >>
       messageStream
         .evalMap(msg => Sync[F].fromEither(decodeMessage(msg)).map(_ -> msg.receiptHandle()))
         .parEvalMap(sqsConfig.processingParallelism) {
@@ -53,7 +53,7 @@ class SqsProcessingStream[F[_]: Async](sqsClient: SqsAsyncClient, sqsConfig: Sqs
   private def messageStream: fs2.Stream[F, Message] =
     fs2.Stream
       .repeatEval(poll)
-      .evalTap(msgs => if (msgs.nonEmpty) logger.info(s"Retrieved ${msgs.size} messages") else ().pure[F])
+      .evalTap(msgs => if (msgs.nonEmpty) logger.info(s"$consumerName Retrieved ${msgs.size} messages") else ().pure[F])
       .metered(sqsConfig.streamThrottlingRate)
       .flatMap(fs2.Stream.emits)
 
@@ -84,13 +84,13 @@ class SqsProcessingStream[F[_]: Async](sqsClient: SqsAsyncClient, sqsConfig: Sqs
   }
 
   private def poll: F[List[Message]] =
-    logger.debug("Polling for sqs messages") *>
+    logger.debug(s"$consumerName polling for sqs messages") *>
       Async[F]
         .fromFuture(Sync[F].delay(sqsClient.receiveMessage(request).asScala))
         .map(_.messages().asScala.toList)
         .recoverWith {
           case NonFatal(t) =>
-            logger.error(t)(s"Got error polling queue ${sqsConfig.queueUrl} - sleeping for ${sqsConfig.retrySleepTime}") *>
+            logger.error(t)(s"$consumerName got error polling queue ${sqsConfig.queueUrl} - sleeping for ${sqsConfig.retrySleepTime}") *>
               Sync[F].sleep(sqsConfig.retrySleepTime).as(List.empty)
         }
 }

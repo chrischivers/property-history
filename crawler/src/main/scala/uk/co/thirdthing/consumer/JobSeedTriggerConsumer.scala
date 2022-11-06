@@ -16,7 +16,8 @@ object JobSeedTriggerConsumer {
 
     override def handle(msg: Json): F[Unit] = {
       logger.info("Received seed trigger request") *>
-        jobSeeder.seed
+        jobSeeder.seed *>
+        logger.info("Completed seed trigger request")
     }
   }
 }

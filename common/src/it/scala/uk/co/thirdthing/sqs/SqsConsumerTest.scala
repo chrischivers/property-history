@@ -31,7 +31,7 @@ class SqsConsumerTest extends munit.CatsEffectSuite {
       .use {
         case (consumedMessagesRef, client) =>
           val consumer = stubConsumer(consumedMessagesRef)
-          val stream   = new SqsProcessingStream[IO](client, config)
+          val stream   = new SqsProcessingStream[IO](client, config, "name")
 
           sendMessage(client, testMessage.asJson.spaces2) *>
             stream.startStream(consumer).compile.drain.timeout(5.seconds).attempt.void *>
@@ -51,7 +51,7 @@ class SqsConsumerTest extends munit.CatsEffectSuite {
       .use {
         case (consumedMessagesRef, client) =>
           val consumer = stubConsumer(consumedMessagesRef)
-          val stream   = new SqsProcessingStream[IO](client, config)
+          val stream   = new SqsProcessingStream[IO](client, config, "name")
 
           testMessages.traverse(msg => sendMessage(client, msg.asJson.spaces2)) *>
             stream.startStream(consumer).compile.drain.timeout(5.seconds).attempt.void *>
@@ -68,7 +68,7 @@ class SqsConsumerTest extends munit.CatsEffectSuite {
       .use {
         case (consumedMessagesRef, client) =>
           val consumer = stubConsumer(consumedMessagesRef, 10.seconds.some)
-          val stream   = new SqsProcessingStream[IO](client, config)
+          val stream   = new SqsProcessingStream[IO](client, config, "name")
 
           sendMessage(client, testMessage.asJson.spaces2) *>
             stream.startStream(consumer).compile.drain.timeout(12.seconds).attempt.void *>
@@ -91,7 +91,7 @@ class SqsConsumerTest extends munit.CatsEffectSuite {
               IO.sleep(Random.nextInt(1000).milliseconds) *> consumedMessagesRef.update(_ :+ msg)
           }
 
-          val stream = new SqsProcessingStream[IO](client, config)
+          val stream = new SqsProcessingStream[IO](client, config, "name")
           testMessages.parTraverse(msg => sendMessage(client, msg.asJson.spaces2)) *>
             stream.startStream(randomDelayConsumer).compile.drain.timeout(25.seconds).attempt.void *>
             consumedMessagesRef.get

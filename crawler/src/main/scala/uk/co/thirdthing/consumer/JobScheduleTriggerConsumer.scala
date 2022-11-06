@@ -16,7 +16,8 @@ object JobScheduleTriggerConsumer {
 
     override def handle(msg: Json): F[Unit] = {
       logger.info("Received job schedule trigger request") *>
-        jobScheduler.scheduleJobs
+        jobScheduler.scheduleJobs *>
+        logger.info("Completed job schedule trigger request")
     }
   }
 }
