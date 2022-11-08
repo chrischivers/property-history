@@ -1,34 +1,27 @@
 package uk.co.thirdthing.store
 
-import cats.effect.IO
-import meteor.api.hi.SimpleTable
-import meteor.{DynamoDbType, KeyDef}
-import uk.co.thirdthing.Rightmove.{DateAdded, ListingId, Price, PropertyId}
-import uk.co.thirdthing.model.Model.{ListingStatus, Property, PropertyDetails, TransactionType}
+import uk.co.thirdthing.Rightmove.{DateAdded, ListingId, PropertyId}
+import uk.co.thirdthing.model.Model.ListingSnapshot.ListingSnapshotId
+import uk.co.thirdthing.model.Model.Property
+import uk.co.thirdthing.utils.Hasher.Hash
 
 import java.time.Instant
 
 class DynamoPropertyStoreTest extends munit.CatsEffectSuite with DynamoIntegrationCrawler {
-  import PropertyStoreCodecs._
 
-  val listingId  = ListingId(12345678)
-  val propertyId = PropertyId(987654321)
-  val dateAdded  = DateAdded(Instant.ofEpochMilli(1658264481000L))
+  val listingId         = ListingId(12345678)
+  val propertyId        = PropertyId(987654321)
+  val dateAdded         = DateAdded(Instant.ofEpochMilli(1658264481000L))
+  val listingSnapshotId = ListingSnapshotId("142352")
 
-  val details = PropertyDetails(Price(100000), TransactionType.Sale, visible = true, ListingStatus.SoldSTC, Some("weekly"), 100.5, 90.1)
+  val detailsHash = Hash("123546")
 
-  val property = Property(listingId, propertyId, dateAdded, details)
+  val property = Property(listingId, propertyId, dateAdded, listingSnapshotId, detailsHash)
 
   test("Store a property, and retrieve it again") {
-    withDynamoStoresAndClient() { (stores, client) =>
-
-      val result = stores.dynamoPropertyStore.put(property).flatMap { _ =>
-        SimpleTable[IO, ListingId]("properties", partitionKeyDef = KeyDef[ListingId]("listingId", DynamoDbType.N), client)
-          .get[Property](listingId, consistentRead = true)
-        }
+    withDynamoStoresAndClient() { (stores, _) =>
+      val result = stores.dynamoPropertyStore.put(property).flatMap(_ => stores.dynamoPropertyStore.get(listingId))
       assertIO(result, Some(property))
-
-
 
     }
   }

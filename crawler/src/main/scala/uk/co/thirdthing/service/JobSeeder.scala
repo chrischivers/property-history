@@ -62,7 +62,7 @@ object JobSeeder {
                 getLatestListingFor(job).map(_.fold(List.empty[CrawlerJob])(jobsToCreate(job.to, _)))
           }
           .flatTap(jobs => logger.info(s"${jobs.size} jobs retrieved for adding"))
-          .flatMap(jobs => fs2.Stream.emits(jobs).through(jobStore.streamPut).compile.drain)
+          .flatMap(jobs => fs2.Stream.emits(jobs).through(jobStore.putStream).compile.drain)
           .flatTap(_ => logger.info("Job insertion complete"))
 
   }

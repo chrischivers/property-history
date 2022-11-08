@@ -5,7 +5,7 @@ import meteor.codec.{Decoder, Encoder}
 import meteor.errors.DecoderError
 import meteor.syntax._
 import uk.co.thirdthing.Rightmove.{DateAdded, ListingId, Price, PropertyId}
-import uk.co.thirdthing.model.Model.CrawlerJob.{LastDataChange, LastRunCompleted, LastRunScheduled}
+import uk.co.thirdthing.model.Model.CrawlerJob.{LastChange, LastRunCompleted, LastRunScheduled}
 import uk.co.thirdthing.model.Model._
 
 import java.time.Instant
@@ -13,8 +13,6 @@ import java.time.Instant
 object JobStoreCodecs {
 
   implicit val jobIdEncoder: Encoder[JobId] = Encoder.instance(_.value.asAttributeValue)
-
-  implicit val listingIdEncoder: Encoder[ListingId] = Encoder.instance(_.value.asAttributeValue)
 
   implicit val crawlerJobEncoder: Encoder[CrawlerJob] = Encoder.instance { job =>
     Map(
@@ -25,7 +23,7 @@ object JobStoreCodecs {
       "lastRunScheduled" -> job.lastRunScheduled.map(_.value).asAttributeValue,
       "type"             -> "JOB".asAttributeValue,
       "state"            -> job.state.entryName.asAttributeValue,
-      "lastDataChange"   -> job.lastDataChange.map(_.value).asAttributeValue
+      "lastChange"       -> job.lastChange.map(_.value).asAttributeValue
     ).asAttributeValue
   }
 
@@ -36,7 +34,7 @@ object JobStoreCodecs {
       to               <- job.getAs[Long]("to").map(ListingId(_))
       lastRunScheduled <- job.getOpt[Instant]("lastRunScheduled")
       lastRunCompleted <- job.getOpt[Instant]("lastRunCompleted")
-      lastDataChange   <- job.getOpt[Instant]("lastDataChange")
+      lastChange       <- job.getOpt[Instant]("lastChange")
       jobState         <- job.getAs[String]("state").flatMap(JobState.withNameEither(_).leftMap(err => DecoderError("Unable to decode state", err.some)))
     } yield CrawlerJob(
       jobId,
@@ -45,7 +43,7 @@ object JobStoreCodecs {
       jobState,
       lastRunScheduled.map(LastRunScheduled(_)),
       lastRunCompleted.map(LastRunCompleted(_)),
-      lastDataChange.map(LastDataChange(_))
+      lastChange.map(LastChange(_))
     )
   }
 

@@ -7,8 +7,11 @@ import io.circe.generic.semiauto.deriveCodec
 import io.circe.{Codec, Decoder}
 import monix.newtypes.NewtypeWrapped
 import monix.newtypes.integrations.DerivedCirceCodec
+import org.apache.commons.lang3.RandomStringUtils
 import uk.co.thirdthing.Rightmove.{DateAdded, ListingId, Price, PropertyId}
 import uk.co.thirdthing.model.Model.CrawlerJob._
+import uk.co.thirdthing.model.Model.ListingSnapshot.ListingSnapshotId
+import uk.co.thirdthing.utils.Hasher.Hash
 
 import java.time.Instant
 
@@ -52,7 +55,7 @@ object Model {
     }
   }
 
-  final case class Property(listingId: ListingId, propertyId: PropertyId, dateAdded: DateAdded, details: PropertyDetails)
+  final case class Property(listingId: ListingId, propertyId: PropertyId, dateAdded: DateAdded, listingSnapshotId: ListingSnapshotId, detailsChecksum: Hash)
 
   final case class PropertyDetails(
     price: Price,
@@ -60,9 +63,13 @@ object Model {
     visible: Boolean,
     status: ListingStatus,
     rentFrequency: Option[String],
-    latitude: Double,
-    longitude: Double
+    latitude: BigDecimal,
+    longitude: BigDecimal
   )
+
+  object PropertyDetails {
+    implicit val codec: Codec[PropertyDetails] = deriveCodec
+  }
 
   type JobId = JobId.Type
   object JobId extends NewtypeWrapped[Long] with DerivedCirceCodec
@@ -78,13 +85,13 @@ object Model {
   }
 
   final case class CrawlerJob(
-    jobId: JobId,
-    from: ListingId,
-    to: ListingId,
-    state: JobState,
-    lastRunScheduled: Option[LastRunScheduled],
-    lastRunCompleted: Option[LastRunCompleted],
-    lastDataChange: Option[LastDataChange]
+                               jobId: JobId,
+                               from: ListingId,
+                               to: ListingId,
+                               state: JobState,
+                               lastRunScheduled: Option[LastRunScheduled],
+                               lastRunCompleted: Option[LastRunCompleted],
+                               lastChange: Option[LastChange]
   )
 
   object CrawlerJob {
@@ -94,8 +101,8 @@ object Model {
     type LastRunCompleted = LastRunCompleted.Type
     object LastRunCompleted extends NewtypeWrapped[Instant] with DerivedCirceCodec
 
-    type LastDataChange = LastDataChange.Type
-    object LastDataChange extends NewtypeWrapped[Instant] with DerivedCirceCodec
+    type LastChange = LastChange.Type
+    object LastChange extends NewtypeWrapped[Instant] with DerivedCirceCodec
   }
 
   final case class RunJobCommand(jobId: JobId)
@@ -104,4 +111,13 @@ object Model {
     implicit val codec: Codec[RunJobCommand] = deriveCodec
   }
 
+
+  final case class ListingSnapshot(listingId: ListingId, lastChange: LastChange, propertyId: PropertyId, dateAdded: DateAdded, listingSnapshotId: ListingSnapshotId, details: Option[PropertyDetails])
+
+  object ListingSnapshot {
+    type ListingSnapshotId = ListingSnapshotId.Type
+    object ListingSnapshotId extends NewtypeWrapped[String] with DerivedCirceCodec {
+      def generate: ListingSnapshotId = ListingSnapshotId(RandomStringUtils.randomAlphanumeric(12))
+    }
+  }
 }

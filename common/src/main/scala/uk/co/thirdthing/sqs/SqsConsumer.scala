@@ -53,7 +53,7 @@ class SqsProcessingStream[F[_]: Async](sqsClient: SqsAsyncClient, sqsConfig: Sqs
   private def messageStream: fs2.Stream[F, Message] =
     fs2.Stream
       .repeatEval(poll)
-      .evalTap(msgs => if (msgs.nonEmpty) logger.info(s"$consumerName Retrieved ${msgs.size} messages") else ().pure[F])
+      .evalTap(msgs => if (msgs.nonEmpty) logger.info(s"$consumerName retrieved ${msgs.size} messages") else ().pure[F])
       .metered(sqsConfig.streamThrottlingRate)
       .flatMap(fs2.Stream.emits)
 

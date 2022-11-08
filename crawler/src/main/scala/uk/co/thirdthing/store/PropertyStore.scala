@@ -16,12 +16,14 @@ trait PropertyStore[F[_]] {
   def put(property: Property): F[Unit]
   def get(listingId: ListingId): F[Option[Property]]
   def delete(listingId: ListingId): F[Unit]
-  def streamPut: Pipe[F, Property, Unit]
+  def putStream: Pipe[F, Property, Unit]
 }
 
 object DynamoPropertyStore  {
 
+  import CommonCodecs._
   import PropertyStoreCodecs._
+
   def apply[F[_]: Async](client: DynamoDbAsyncClient): PropertyStore[F] = {
 
     val table                                         = SimpleTable[F, ListingId]("properties", KeyDef[ListingId]("listingId", DynamoDbType.N), client)
@@ -29,7 +31,7 @@ object DynamoPropertyStore  {
       override def put(property: Property): F[Unit] =
         table.put[Property](property)
 
-      override def streamPut: Pipe[F, Property, Unit] = {
+      override def putStream: Pipe[F, Property, Unit] = {
          table.batchPutUnordered[Property](maxBatchWait = 30.seconds, parallelism = 4, BackoffStrategy.defaultStrategy())
 
       }

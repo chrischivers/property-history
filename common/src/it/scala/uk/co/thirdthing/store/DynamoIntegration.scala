@@ -8,7 +8,6 @@ import meteor.syntax._
 import software.amazon.awssdk.auth.credentials.{AwsBasicCredentials, StaticCredentialsProvider}
 import software.amazon.awssdk.regions.Region
 import software.amazon.awssdk.services.dynamodb.DynamoDbAsyncClient
-import software.amazon.awssdk.services.dynamodb.model._
 import uk.co.thirdthing.Rightmove.{DateAdded, ListingId, PropertyId}
 
 import java.net.URI
@@ -19,73 +18,23 @@ trait DynamoIntegration extends munit.CatsEffectSuite {
 
   implicit private val encoder: Encoder[PropertiesRecord] = Encoder.instance { pr =>
     Map(
-      "listingId" -> pr.listingId.value.asAttributeValue,
-      "dateAdded" -> pr.dateAdded.value.asAttributeValue,
+      "listingId"  -> pr.listingId.value.asAttributeValue,
+      "dateAdded"  -> pr.dateAdded.value.asAttributeValue,
       "propertyId" -> pr.propertyId.value.asAttributeValue,
-      "url" -> pr.url.asAttributeValue
+      "url"        -> pr.url.asAttributeValue
     ).asAttributeValue
 
   }
 
-  private def deletePropertiesTable(dynamoDbAsyncClient: DynamoDbAsyncClient) = {
+  private def deletePropertiesTable(dynamoDbAsyncClient: DynamoDbAsyncClient) =
     Client.apply[IO](dynamoDbAsyncClient).deleteTable("properties").attempt.void
-  }
 
-  private def deleteJobsTable(dynamoDbAsyncClient: DynamoDbAsyncClient) = {
+  private def deleteJobsTable(dynamoDbAsyncClient: DynamoDbAsyncClient) =
     Client.apply[IO](dynamoDbAsyncClient).deleteTable("crawler-jobs").attempt.void
-  }
-
-  private def createPropertiesTable(dynamoDbAsyncClient: DynamoDbAsyncClient) =
-    Client
-      .apply[IO](dynamoDbAsyncClient)
-      .createPartitionKeyTable(
-        tableName = "properties",
-        partitionKeyDef = KeyDef[ListingId]("listingId", DynamoDbType.N),
-        billingMode = BillingMode.PAY_PER_REQUEST,
-        attributeDefinition = Map(
-          "propertyId" -> DynamoDbType.N,
-          "listingId" -> DynamoDbType.N,
-          "dateAdded" -> DynamoDbType.N
-        ),
-        globalSecondaryIndexes = Set(
-          GlobalSecondaryIndex.builder()
-            .indexName("propertyId-LSI")
-            .keySchema(
-              KeySchemaElement.builder().attributeName("propertyId").keyType(KeyType.HASH).build(),
-              KeySchemaElement.builder().attributeName("dateAdded").keyType(KeyType.RANGE).build()
-            )
-            .projection(Projection.builder().projectionType(ProjectionType.ALL).build())
-            .build()
-        )
-      )
-
-  private def createJobsTable(dynamoDbAsyncClient: DynamoDbAsyncClient) =
-    Client
-      .apply[IO](dynamoDbAsyncClient)
-      .createPartitionKeyTable(
-        tableName = "crawler-jobs",
-        partitionKeyDef = KeyDef[ListingId]("jobId", DynamoDbType.N),
-        billingMode = BillingMode.PAY_PER_REQUEST,
-        attributeDefinition = Map(
-          "jobId" -> DynamoDbType.N,
-          "type" -> DynamoDbType.S,
-          "to" -> DynamoDbType.N
-        ),
-        globalSecondaryIndexes = Set(
-          GlobalSecondaryIndex.builder()
-            .indexName("jobsByToDate-GSI")
-            .keySchema(
-              KeySchemaElement.builder().attributeName("type").keyType(KeyType.HASH).build(),
-              KeySchemaElement.builder().attributeName("to").keyType(KeyType.RANGE).build()
-            )
-            .projection(Projection.builder().projectionType(ProjectionType.ALL).build())
-            .build()
-        )
-      )
 
   private def populateTable(dynamoDbAsyncClient: DynamoDbAsyncClient, propertiesRecords: List[PropertiesRecord]) = {
     val client = Client.apply[IO](dynamoDbAsyncClient)
-      propertiesRecords.traverse(record => client.put[PropertiesRecord]("properties", record)).void
+    propertiesRecords.traverse(record => client.put[PropertiesRecord]("properties", record)).void
   }
 
   def withDynamoClient(existingPropertyRecords: List[PropertiesRecord] = List.empty) = {
@@ -102,9 +51,8 @@ trait DynamoIntegration extends munit.CatsEffectSuite {
         )
       )
       .evalTap(deletePropertiesTable)
-      .evalTap(createPropertiesTable)
       .evalTap(deleteJobsTable)
-      .evalTap(createJobsTable)
+      .evalTap(Initializer.createTablesIfNotExisting[IO])
       .evalTap(populateTable(_, existingPropertyRecords))
   }
 }

@@ -47,7 +47,7 @@ class DynamoJobStoreTest extends munit.CatsEffectSuite with DynamoIntegrationCra
 
   test("Batch put multiple jobs") {
     withDynamoStoresAndClient() { (stores, client) =>
-      val result = stores.dynamoJobStore.streamPut(fs2.Stream.emits[IO, CrawlerJob](Seq(crawlerJob1, crawlerJob2))).compile.drain.flatMap { _ =>
+      val result = stores.dynamoJobStore.putStream(fs2.Stream.emits[IO, CrawlerJob](Seq(crawlerJob1, crawlerJob2))).compile.drain.flatMap { _ =>
         val table = SimpleTable[IO, JobId]("crawler-jobs", partitionKeyDef = KeyDef[JobId]("jobId", DynamoDbType.N), client)
         table.get[CrawlerJob](crawlerJob1.jobId, consistentRead = true).flatMap { job1Result =>
           table.get[CrawlerJob](crawlerJob2.jobId, consistentRead = true).map(Seq(job1Result, _))
@@ -61,7 +61,7 @@ class DynamoJobStoreTest extends munit.CatsEffectSuite with DynamoIntegrationCra
   test("Retrieve the latest job (the job with the highest 'to' value)") {
     withDynamoStoresAndClient() { (stores, _) =>
       val result =
-        stores.dynamoJobStore.streamPut(fs2.Stream.emits[IO, CrawlerJob](Seq(crawlerJob1, crawlerJob2, crawlerJob3))).compile.drain.flatMap { _ =>
+        stores.dynamoJobStore.putStream(fs2.Stream.emits[IO, CrawlerJob](Seq(crawlerJob1, crawlerJob2, crawlerJob3))).compile.drain.flatMap { _ =>
           stores.dynamoJobStore.getLatestJob
         }
       assertIO(result, Some(crawlerJob2))
@@ -78,8 +78,8 @@ class DynamoJobStoreTest extends munit.CatsEffectSuite with DynamoIntegrationCra
   test("Stream all jobs") {
     withDynamoStoresAndClient() { (stores, _) =>
       val result =
-        stores.dynamoJobStore.streamPut(fs2.Stream.emits[IO, CrawlerJob](Seq(crawlerJob1, crawlerJob2, crawlerJob3))).compile.drain.flatMap { _ =>
-          stores.dynamoJobStore.streamGet.compile.toList
+        stores.dynamoJobStore.putStream(fs2.Stream.emits[IO, CrawlerJob](Seq(crawlerJob1, crawlerJob2, crawlerJob3))).compile.drain.flatMap { _ =>
+          stores.dynamoJobStore.getStream.compile.toList
         }
       assertIO(result, List(crawlerJob1, crawlerJob2, crawlerJob3))
     }

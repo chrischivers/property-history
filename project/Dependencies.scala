@@ -18,6 +18,7 @@ object Dependencies {
     val enumeration           = "1.7.0"
     val aws                   = "2.18.10"
     val diffx                 = "0.8.1"
+    val apacheCommonsLang = "3.12.0"
   }
 
   private val munit = Seq(
@@ -77,9 +78,13 @@ object Dependencies {
   private val diffx = Seq(
     "com.softwaremill.diffx" %% "diffx-cats" % Versions.diffx
   )
+
+  private val apacheCommonsLang = Seq(
+    "org.apache.commons" % "commons-lang3" % Versions.apacheCommonsLang
+  )
   private val test = munit.map(_ % "test,it")
 
   val commonDependencies: Seq[ModuleID]    = http4s ++ refined ++ circe ++ logging ++ metor ++ newtype ++ awsSqs ++ awsSecretsMAnager ++ test
   val publicApiDependencies: Seq[ModuleID] = http4s ++ refined ++ circe ++ logging ++ metor ++ newtype ++ test
-  val crawlerDependencies: Seq[ModuleID]   = http4s ++ refined ++ circe ++ logging ++ metor ++ newtype ++ enumeration ++ diffx ++ test
+  val crawlerDependencies: Seq[ModuleID]   = http4s ++ refined ++ circe ++ logging ++ metor ++ newtype ++ enumeration ++ diffx ++ apacheCommonsLang ++ test
 }

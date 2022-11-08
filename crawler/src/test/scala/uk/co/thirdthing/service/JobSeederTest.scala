@@ -9,6 +9,7 @@ import uk.co.thirdthing.Rightmove.ListingId
 import uk.co.thirdthing.clients.RightmoveApiClient
 import uk.co.thirdthing.config.JobSeederConfig
 import uk.co.thirdthing.model.Model.{CrawlerJob, JobId, JobState}
+import uk.co.thirdthing.utils.MockJobStore
 
 class JobSeederTest extends munit.CatsEffectSuite {
 

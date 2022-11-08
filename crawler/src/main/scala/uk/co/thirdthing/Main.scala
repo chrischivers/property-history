@@ -1,6 +1,7 @@
 package uk.co.thirdthing
 
 import cats.effect.{ExitCode, IO, IOApp, Resource}
+import cats.syntax.all._
 import org.http4s.Uri
 import org.http4s.client.Client
 import org.http4s.ember.client.EmberClientBuilder
@@ -14,7 +15,7 @@ import uk.co.thirdthing.model.Model.RunJobCommand
 import uk.co.thirdthing.secrets.{AmazonSecretsManager, SecretsManager}
 import uk.co.thirdthing.service.{JobRunnerService, JobScheduler, JobSeeder, RetrievalService}
 import uk.co.thirdthing.sqs.{SqsConfig, SqsProcessingStream, SqsPublisher}
-import uk.co.thirdthing.store.{DynamoJobStore, DynamoPropertyStore}
+import uk.co.thirdthing.store.{DynamoJobStore, DynamoListingHistoryStore, DynamoPropertyStore, Initializer}
 
 import scala.concurrent.duration._
 
@@ -29,13 +30,15 @@ object Main extends IOApp {
 
   override def run(args: List[String]): IO[ExitCode] = resources.use { r =>
     val secretsManager = AmazonSecretsManager(r.secretsManagerClient)
-    startJobSeedTriggerProcessingStream(r.httpClient, r.dynamoClient, r.sqsClient, secretsManager)
-      .concurrently(startJobScheduleTriggerProcessingStream(r.dynamoClient, r.sqsClient, secretsManager))
-      .concurrently(startJobRunnerProcessingStream(r.sqsClient, r.httpClient, r.dynamoClient, secretsManager))
-      .compile
-      .drain
-      .as(ExitCode.Success)
+    Initializer.createTablesIfNotExisting[IO](r.dynamoClient) *>
+      startJobSeedTriggerProcessingStream(r.httpClient, r.dynamoClient, r.sqsClient, secretsManager)
+        .concurrently(startJobScheduleTriggerProcessingStream(r.dynamoClient, r.sqsClient, secretsManager))
+        .concurrently(startJobRunnerProcessingStream(r.sqsClient, r.httpClient, r.dynamoClient, secretsManager))
+        .compile
+        .drain
+        .as(ExitCode.Success)
   }
+
 
   private def buildJobSeedTriggerConsumer(httpClient: Client[IO], dynamoClient: DynamoDbAsyncClient) = {
     val jobStore           = DynamoJobStore[IO](dynamoClient)
@@ -81,10 +84,11 @@ object Main extends IOApp {
   private def buildJobRunnerConsumer(httpClient: Client[IO], dynamoClient: DynamoDbAsyncClient) = {
     val jobStore            = DynamoJobStore[IO](dynamoClient)
     val propertyStore       = DynamoPropertyStore[IO](dynamoClient)
+    val listingHistoryStore = DynamoListingHistoryStore[IO](dynamoClient)
     val rightmoveApiClient  = RightmoveApiClient(httpClient, Uri.unsafeFromString("https://api.rightmove.co.uk"))
     val rightmoveHtmlClient = RightmoveHtmlClient(httpClient, Uri.unsafeFromString("https://www.rightmove.co.uk"))
     val retrievalService    = RetrievalService[IO](rightmoveApiClient, rightmoveHtmlClient)
-    val jobRunnerService    = JobRunnerService[IO](jobStore, propertyStore, retrievalService)
+    val jobRunnerService    = JobRunnerService[IO](jobStore, propertyStore, listingHistoryStore, retrievalService)
     JobRunnerConsumer(jobRunnerService)
   }
 
@@ -96,7 +100,7 @@ object Main extends IOApp {
   ): fs2.Stream[IO, Unit] =
     fs2.Stream.eval(secretsManager.secretFor("run-job-commands-queue-url")).flatMap { runJobCommandQueueUrl =>
       val consumer  = buildJobRunnerConsumer(httpClient, dynamoClient)
-      val sqsConfig = SqsConfig(runJobCommandQueueUrl, 20.seconds, 5.minutes, 1.minute, 10.seconds, 1.minute, 5)
+      val sqsConfig = SqsConfig(runJobCommandQueueUrl, 20.seconds, 5.minutes, 1.minute, 10.seconds, 100.milliseconds, 10)
       new SqsProcessingStream[IO](sqsClient, sqsConfig, "Job Runner").startStream(consumer)
     }
 

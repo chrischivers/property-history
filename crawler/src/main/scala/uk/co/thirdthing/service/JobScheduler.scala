@@ -22,34 +22,34 @@ object JobScheduler {
   private type TimeSinceLastDataChange = FiniteDuration
   private type TimeBetweenRuns         = FiniteDuration
 
-  def apply[F[_]: Sync: Clock](jobStore: JobStore[F], publisher: SqsPublisher[F, RunJobCommand], config: JobSchedulerConfig) = new JobScheduler[F] {
+  def apply[F[_]: Sync](jobStore: JobStore[F], publisher: SqsPublisher[F, RunJobCommand], config: JobSchedulerConfig)(implicit clock: Clock[F]) = new JobScheduler[F] {
 
     private val timeBetweenRuns: TimeSinceLastDataChange => TimeBetweenRuns = _ / config.timeBetweenRunsFactor
 
     override def scheduleJobs: F[Unit] =
-      jobStore.streamGet
+      jobStore.getStream
         .evalMap(job => shouldSchedule(job).map(_ -> job))
         .collect { case (shouldSchedule, job) if shouldSchedule => job }
         .evalTap(job => publisher.publish(RunJobCommand(job.jobId)))
         .evalMap(updateScheduledJob)
-        .through(jobStore.streamPut)
+        .through(jobStore.putStream)
         .compile
         .drain
 
     private def updateScheduledJob(job: CrawlerJob): F[CrawlerJob] =
-      Clock[F].realTimeInstant.map(now => job.copy(state = JobState.Pending, lastRunScheduled = LastRunScheduled(now).some))
+      clock.realTimeInstant.map(now => job.copy(state = JobState.Pending, lastRunScheduled = LastRunScheduled(now).some))
 
     private def shouldSchedule(crawlerJob: CrawlerJob): F[Boolean] =
-      Clock[F].realTimeInstant.map { now =>
+      clock.realTimeInstant.map { now =>
         val pendingJobExpiredCutoff = now.minusMillis(config.jobExpiryTimeSinceScheduled.toMillis)
         if (crawlerJob.state.schedulable || crawlerJob.lastRunScheduled.exists(_.value.isBefore(pendingJobExpiredCutoff))) {
-          crawlerJob.lastRunCompleted.flatMap(lr => crawlerJob.lastDataChange.map(lr -> _)).fold(true) {
+          crawlerJob.lastRunCompleted.flatMap(lr => crawlerJob.lastChange.map(lr -> _)).fold(true) {
             case (lastRun, lastDataChange) =>
               val nowMillis               = now.toEpochMilli
               val timeSinceLastDataChange = nowMillis - lastDataChange.value.toEpochMilli
               val timeSinceLastRun        = nowMillis - lastRun.value.toEpochMilli
               val requiredTimeBetweenRuns = timeBetweenRuns(timeSinceLastDataChange.millis)
-              timeSinceLastRun > requiredTimeBetweenRuns.toMillis
+              timeSinceLastRun >= requiredTimeBetweenRuns.toMillis
           }
         } else false
 

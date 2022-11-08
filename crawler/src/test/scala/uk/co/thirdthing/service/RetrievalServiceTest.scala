@@ -9,6 +9,7 @@ import org.http4s.{HttpRoutes, StaticFile, Uri}
 import uk.co.thirdthing.Rightmove.{DateAdded, ListingId, Price, PropertyId}
 import uk.co.thirdthing.clients.{RightmoveApiClient, RightmoveHtmlClient}
 import uk.co.thirdthing.model.Model.{ListingStatus, Property, PropertyDetails, TransactionType}
+import uk.co.thirdthing.service.RetrievalService.RetrievalResult
 
 import java.time.Instant
 
@@ -18,11 +19,11 @@ class RetrievalServiceTest extends munit.CatsEffectSuite {
 
   test("Scrape the data from the client successfully") {
 
-    val expectedResult = Property(
+    val expectedResult = RetrievalResult(
       listingId = listingId,
       propertyId = PropertyId(72291262),
       dateAdded = DateAdded(Instant.ofEpochMilli(1657875302000L)),
-      details = PropertyDetails(
+      propertyDetails = PropertyDetails(
         price = Price(315000),
         transactionTypeId = TransactionType.Sale,
         visible = true,

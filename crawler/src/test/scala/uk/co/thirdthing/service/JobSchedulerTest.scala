@@ -1,25 +1,41 @@
 package uk.co.thirdthing.service
 
+import cats.Applicative
+import cats.effect.kernel.Clock
 import cats.effect.{IO, Ref}
+import cats.syntax.all._
 import uk.co.thirdthing.MockSqsPublisher
 import uk.co.thirdthing.Rightmove.ListingId
 import uk.co.thirdthing.config.JobSchedulerConfig
-import uk.co.thirdthing.model.Model.CrawlerJob.{LastDataChange, LastRunCompleted, LastRunScheduled}
+import uk.co.thirdthing.model.Model.CrawlerJob.{LastChange, LastRunCompleted, LastRunScheduled}
 import uk.co.thirdthing.model.Model.{CrawlerJob, JobId, JobState, RunJobCommand}
+import uk.co.thirdthing.utils.MockJobStore
 
 import java.time.Instant
 import java.time.temporal.ChronoUnit
+import scala.concurrent.duration._
 
 class JobSchedulerTest extends munit.CatsEffectSuite {
 
   val config = JobSchedulerConfig.default
 
   private val crawlerJob1 = CrawlerJob(JobId(1), ListingId(0), ListingId(10), JobState.NeverRun, None, None, None)
-  private val now         = Instant.now()
+  private val now         = Instant.now().truncatedTo(ChronoUnit.MILLIS)
+  private val staticClock = new Clock[IO] {
+    override def applicative: Applicative[IO] = implicitly
+
+    override def monotonic: IO[FiniteDuration] = now.toEpochMilli.millis.pure[IO]
+
+    override def realTime: IO[FiniteDuration] = now.toEpochMilli.millis.pure[IO]
+  }
 
   test("Schedule an run job successfully") {
 
-    testWith(Set(crawlerJob1), Set(crawlerJob1.copy(state = JobState.Pending)), List(RunJobCommand(crawlerJob1.jobId)))
+    testWith(
+      Set(crawlerJob1),
+      Set(crawlerJob1.copy(state = JobState.Pending, lastRunScheduled = LastRunScheduled(now).some)),
+      List(RunJobCommand(crawlerJob1.jobId))
+    )
   }
 
   test("Don't schedule jobs when there are no jobs") {
@@ -30,7 +46,7 @@ class JobSchedulerTest extends munit.CatsEffectSuite {
   test("Schedule a job that has was run recently but no data change value") {
 
     val job = crawlerJob1.copy(lastRunCompleted = Some(LastRunCompleted(now)))
-    testWith(Set(job), Set(job.copy(state = JobState.Pending)), List(RunJobCommand(job.jobId)))
+    testWith(Set(job), Set(job.copy(state = JobState.Pending, lastRunScheduled = LastRunScheduled(now).some)), List(RunJobCommand(job.jobId)))
 
   }
 
@@ -39,7 +55,7 @@ class JobSchedulerTest extends munit.CatsEffectSuite {
     val job = crawlerJob1.copy(
       state = JobState.Pending,
       lastRunCompleted = Some(LastRunCompleted(now)),
-      lastDataChange = Some(LastDataChange(now)),
+      lastChange = Some(LastChange(now)),
       lastRunScheduled = Some(LastRunScheduled(now.minus(20, ChronoUnit.DAYS)))
     )
     testWith(Set(job), Set(job), List.empty)
@@ -49,27 +65,27 @@ class JobSchedulerTest extends munit.CatsEffectSuite {
 
     val job = crawlerJob1.copy(
       state = JobState.Pending,
-      lastRunCompleted = Some(LastRunCompleted(now)),
-      lastDataChange = Some(LastDataChange(now)),
+      lastRunCompleted = Some(LastRunCompleted(now.minus(50, ChronoUnit.DAYS))),
+      lastChange = Some(LastChange(now.minus(50, ChronoUnit.DAYS))),
       lastRunScheduled = Some(LastRunScheduled(now.minus(40, ChronoUnit.DAYS)))
     )
-    testWith(Set(job), Set(job), List(RunJobCommand(job.jobId)))
+    testWith(Set(job), Set(job.copy(lastRunScheduled = LastRunScheduled(now).some)), List(RunJobCommand(job.jobId)))
   }
 
   test("Schedule a job that has a recent data change value, but was not run recently") {
 
-    val job = crawlerJob1.copy(lastDataChange = Some(LastDataChange(now)))
-    testWith(Set(job), Set(job.copy(state = JobState.Pending)), List(RunJobCommand(job.jobId)))
+    val job = crawlerJob1.copy(lastChange = Some(LastChange(now)))
+    testWith(Set(job), Set(job.copy(state = JobState.Pending, lastRunScheduled = LastRunScheduled(now).some)), List(RunJobCommand(job.jobId)))
   }
 
   test("Schedule a job that was run recently but data has been changed recently") {
 
     val job = crawlerJob1.copy(
       lastRunCompleted = Some(LastRunCompleted(now.minus(2, ChronoUnit.HOURS))),
-      lastDataChange = Some(LastDataChange(now.minus(24, ChronoUnit.HOURS)))
+      lastChange = Some(LastChange(now.minus(24, ChronoUnit.HOURS)))
     )
 
-    testWith(Set(job), Set(job), List(RunJobCommand(job.jobId)))
+    testWith(Set(job), Set(job.copy(lastRunScheduled = LastRunScheduled(now).some, state = JobState.Pending)), List(RunJobCommand(job.jobId)))
 
   }
 
@@ -77,7 +93,7 @@ class JobSchedulerTest extends munit.CatsEffectSuite {
 
     val job = crawlerJob1.copy(
       lastRunCompleted = Some(LastRunCompleted(now.minus(1, ChronoUnit.HOURS))),
-      lastDataChange = Some(LastDataChange(now.minus(24, ChronoUnit.HOURS)))
+      lastChange = Some(LastChange(now.minus(24, ChronoUnit.HOURS)))
     )
     testWith(Set(job), Set(job), List.empty)
 
@@ -87,7 +103,7 @@ class JobSchedulerTest extends munit.CatsEffectSuite {
 
     val job = crawlerJob1.copy(
       lastRunCompleted = Some(LastRunCompleted(now.minus(24, ChronoUnit.HOURS))),
-      lastDataChange = Some(LastDataChange(now.minus(200, ChronoUnit.DAYS)))
+      lastChange = Some(LastChange(now.minus(200, ChronoUnit.DAYS)))
     )
 
     testWith(Set(job), Set(job), List.empty)
@@ -111,19 +127,15 @@ class JobSchedulerTest extends munit.CatsEffectSuite {
     } yield (jobs, msgs)
 
     assertIO(
-      result.map { case (jobs, _) => jobs },
-      expectedJobs
+      result,
+      (expectedJobs, expectedMessages)
     )
 
-    assertIO(
-      result.map { case (_, msgs) => msgs },
-      expectedMessages
-    )
   }
 
   def service(initialJobsRef: Ref[IO, Map[JobId, CrawlerJob]], messagesRef: Ref[IO, List[RunJobCommand]]): IO[JobScheduler[IO]] = {
     val publisher = MockSqsPublisher[RunJobCommand](messagesRef)
-    MockJobStore(initialJobsRef).map(jobStore => JobScheduler.apply[IO](jobStore, publisher, config))
+    MockJobStore(initialJobsRef).map(jobStore => JobScheduler.apply[IO](jobStore, publisher, config)(implicitly, staticClock))
   }
 
 }

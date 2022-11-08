@@ -19,8 +19,8 @@ import scala.jdk.CollectionConverters._
 trait JobStore[F[_]] {
   def put(job: CrawlerJob): F[Unit]
   def get(jobId: JobId): F[Option[CrawlerJob]]
-  def streamPut: Pipe[F, CrawlerJob, Unit]
-  def streamGet: fs2.Stream[F, CrawlerJob]
+  def putStream: Pipe[F, CrawlerJob, Unit]
+  def getStream: fs2.Stream[F, CrawlerJob]
   def getLatestJob: F[Option[CrawlerJob]]
 
 }
@@ -40,7 +40,7 @@ object DynamoJobStore {
       override def put(job: CrawlerJob): F[Unit] =
         table.put[CrawlerJob](job)
 
-      override def streamPut: Pipe[F, CrawlerJob, Unit] =
+      override def putStream: Pipe[F, CrawlerJob, Unit] =
         table.batchPutUnordered[CrawlerJob](maxBatchWait = 30.seconds, parallelism = 4, BackoffStrategy.defaultStrategy())
 
       override def getLatestJob: F[Option[CrawlerJob]] =
@@ -64,7 +64,7 @@ object DynamoJobStore {
           .map(_.items().asScala.toList.headOption)
           .flatMap(itemOpt => itemOpt.fold(Option.empty[CrawlerJob].pure[F])(item => Sync[F].fromEither(crawlerJobDecoder.read(item).map(_.some))))
 
-      override def streamGet: fs2.Stream[F, CrawlerJob] = meteorClient.scan[CrawlerJob](tableName, consistentRead = false, parallelism = 2)
+      override def getStream: fs2.Stream[F, CrawlerJob] = meteorClient.scan[CrawlerJob](tableName, consistentRead = false, parallelism = 2)
 
       override def get(jobId: JobId): F[Option[CrawlerJob]] = table.get[CrawlerJob](jobId, consistentRead = false)
     }
