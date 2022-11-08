@@ -6,7 +6,7 @@ import uk.co.thirdthing.model.Model.RightmoveListing
 import java.time.Instant
 import java.time.temporal.ChronoUnit
 
-class DynamoPropertyListingStoreTest extends munit.CatsEffectSuite with DynamoIntegrationPublicApi {
+class DynamoPropertyListingStoreIntegrationTest extends munit.CatsEffectSuite with DynamoIntegrationPublicApi {
 
   val listingId = ListingId(12345678)
   val propertyId = PropertyId(987654321)

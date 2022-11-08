@@ -4,7 +4,7 @@ import uk.co.thirdthing.Rightmove.{DateAdded, ListingId, PropertyId}
 
 import java.time.Instant
 
-class DynamoPropertyIdStoreTest extends munit.CatsEffectSuite with DynamoIntegrationPublicApi {
+class DynamoPropertyIdStoreIntegrationTest extends munit.CatsEffectSuite with DynamoIntegrationPublicApi {
 
   val listingId = ListingId(12345678)
   val propertyId = PropertyId(987654321)

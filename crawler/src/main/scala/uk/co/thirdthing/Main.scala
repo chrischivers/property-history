@@ -1,7 +1,6 @@
 package uk.co.thirdthing
 
 import cats.effect.{ExitCode, IO, IOApp, Resource}
-import cats.syntax.all._
 import org.http4s.Uri
 import org.http4s.client.Client
 import org.http4s.ember.client.EmberClientBuilder
@@ -15,7 +14,7 @@ import uk.co.thirdthing.model.Model.RunJobCommand
 import uk.co.thirdthing.secrets.{AmazonSecretsManager, SecretsManager}
 import uk.co.thirdthing.service.{JobRunnerService, JobScheduler, JobSeeder, RetrievalService}
 import uk.co.thirdthing.sqs.{SqsConfig, SqsProcessingStream, SqsPublisher}
-import uk.co.thirdthing.store.{DynamoJobStore, DynamoListingHistoryStore, DynamoPropertyStore, Initializer}
+import uk.co.thirdthing.store.{DynamoJobStore, DynamoPropertyListingStore, Initializer, PropertyListingStore}
 
 import scala.concurrent.duration._
 
@@ -38,7 +37,6 @@ object Main extends IOApp {
         .drain
         .as(ExitCode.Success)
   }
-
 
   private def buildJobSeedTriggerConsumer(httpClient: Client[IO], dynamoClient: DynamoDbAsyncClient) = {
     val jobStore           = DynamoJobStore[IO](dynamoClient)
@@ -82,13 +80,12 @@ object Main extends IOApp {
     }
 
   private def buildJobRunnerConsumer(httpClient: Client[IO], dynamoClient: DynamoDbAsyncClient) = {
-    val jobStore            = DynamoJobStore[IO](dynamoClient)
-    val propertyStore       = DynamoPropertyStore[IO](dynamoClient)
-    val listingHistoryStore = DynamoListingHistoryStore[IO](dynamoClient)
-    val rightmoveApiClient  = RightmoveApiClient(httpClient, Uri.unsafeFromString("https://api.rightmove.co.uk"))
-    val rightmoveHtmlClient = RightmoveHtmlClient(httpClient, Uri.unsafeFromString("https://www.rightmove.co.uk"))
-    val retrievalService    = RetrievalService[IO](rightmoveApiClient, rightmoveHtmlClient)
-    val jobRunnerService    = JobRunnerService[IO](jobStore, propertyStore, listingHistoryStore, retrievalService)
+    val jobStore             = DynamoJobStore[IO](dynamoClient)
+    val propertyListingStore = DynamoPropertyListingStore[IO](dynamoClient)
+    val rightmoveApiClient   = RightmoveApiClient(httpClient, Uri.unsafeFromString("https://api.rightmove.co.uk"))
+    val rightmoveHtmlClient  = RightmoveHtmlClient(httpClient, Uri.unsafeFromString("https://www.rightmove.co.uk"))
+    val retrievalService     = RetrievalService[IO](rightmoveApiClient, rightmoveHtmlClient)
+    val jobRunnerService     = JobRunnerService[IO](jobStore, propertyListingStore, retrievalService)
     JobRunnerConsumer(jobRunnerService)
   }
 

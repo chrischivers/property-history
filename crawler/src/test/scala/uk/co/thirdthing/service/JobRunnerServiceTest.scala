@@ -9,7 +9,7 @@ import uk.co.thirdthing.model.Model.ListingSnapshot.ListingSnapshotId
 import uk.co.thirdthing.model.Model._
 import uk.co.thirdthing.service.RetrievalService.RetrievalResult
 import uk.co.thirdthing.utils.Hasher.Hash
-import uk.co.thirdthing.utils.{Hasher, MockJobStore, MockListingHistoryStore, MockPropertyStore}
+import uk.co.thirdthing.utils.{Hasher, MockJobStore, MockPropertyListingStore}
 
 import java.time.Instant
 import java.time.temporal.ChronoUnit
@@ -139,9 +139,8 @@ class JobRunnerServiceTest extends munit.CatsEffectSuite {
 
     for {
       jobStore            <- MockJobStore(jobStoreRef)
-      propertyStore       <- MockPropertyStore(propertyStoreRef)
-      listingHistoryStore <- MockListingHistoryStore(listingHistoryStoreRef)
-    } yield JobRunnerService.apply(jobStore, propertyStore, listingHistoryStore, mockRetrievalService)(implicitly, staticClock)
+      propertyListingStore <- MockPropertyListingStore(propertyStoreRef, listingHistoryStoreRef)
+    } yield JobRunnerService.apply(jobStore, propertyListingStore, mockRetrievalService)(implicitly, staticClock)
   }
 
 }

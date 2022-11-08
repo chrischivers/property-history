@@ -4,7 +4,7 @@ import cats.implicits.{catsSyntaxOptionId, toBifunctorOps}
 import meteor.codec.{Decoder, Encoder}
 import meteor.errors.DecoderError
 import meteor.syntax._
-import uk.co.thirdthing.Rightmove.{DateAdded, ListingId, Price, PropertyId}
+import uk.co.thirdthing.Rightmove.ListingId
 import uk.co.thirdthing.model.Model.CrawlerJob.{LastChange, LastRunCompleted, LastRunScheduled}
 import uk.co.thirdthing.model.Model._
 

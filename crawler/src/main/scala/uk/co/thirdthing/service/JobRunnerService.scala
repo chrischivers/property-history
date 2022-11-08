@@ -7,9 +7,9 @@ import org.typelevel.log4cats.slf4j.Slf4jLogger
 import uk.co.thirdthing.Rightmove.ListingId
 import uk.co.thirdthing.model.Model.CrawlerJob.{LastChange, LastRunCompleted}
 import uk.co.thirdthing.model.Model.ListingSnapshot.ListingSnapshotId
-import uk.co.thirdthing.model.Model.{CrawlerJob, JobId, JobState, ListingSnapshot, Property}
+import uk.co.thirdthing.model.Model._
 import uk.co.thirdthing.service.RetrievalService.RetrievalResult
-import uk.co.thirdthing.store.{JobStore, ListingHistoryStore, PropertyStore}
+import uk.co.thirdthing.store.{JobStore, PropertyListingStore}
 import uk.co.thirdthing.utils.Hasher
 import uk.co.thirdthing.utils.Hasher.Hash
 
@@ -25,8 +25,7 @@ object JobRunnerService {
 
   def apply[F[_]: Sync](
     jobStore: JobStore[F],
-    propertyStore: PropertyStore[F],
-    listingHistoryStore: ListingHistoryStore[F],
+    propertyListingStore: PropertyListingStore[F],
     retrievalService: RetrievalService[F]
   )(implicit clock: Clock[F]) =
     new JobRunnerService[F] {
@@ -74,7 +73,7 @@ object JobRunnerService {
         clock.realTimeInstant.flatMap(now => jobStore.put(job.copy(lastRunCompleted = LastRunCompleted(now).some, state = JobState.Completed)))
 
       private def runAndUpdate(listingId: ListingId): F[Option[UpdateTimestamp]] =
-        propertyStore.get(listingId).flatMap { existingPropertyRecord =>
+        propertyListingStore.get(listingId).flatMap { existingPropertyRecord =>
           retrievalService.retrieve(listingId).flatMap { retrievedRecord =>
             (existingPropertyRecord, retrievedRecord) match {
               case (None, None) =>
@@ -108,9 +107,7 @@ object JobRunnerService {
           val snapshotToUpdate =
             ListingSnapshot(existingRecord.listingId, LastChange(now), existingRecord.propertyId, existingRecord.dateAdded, listingSnapshotId, None)
           logger.debug(s"Previously existing listing ${existingRecord.listingId.value} no longer exists. Deleting from store.") *>
-            //TODO make transactional
-            propertyStore.delete(existingRecord.listingId) *>
-            listingHistoryStore.put(snapshotToUpdate) *>
+            propertyListingStore.delete(snapshotToUpdate) *>
             UpdateTimestamp(now).pure[F]
         }
 
@@ -121,9 +118,7 @@ object JobRunnerService {
           val listingSnapshot =
             ListingSnapshot(result.listingId, LastChange(now), result.propertyId, result.dateAdded, listingSnapshotId, result.propertyDetails.some)
 
-          //TODO make transactional
-          propertyStore.put(propertyRecord) *>
-            listingHistoryStore.put(listingSnapshot) *>
+          propertyListingStore.put(propertyRecord, listingSnapshot) *>
             UpdateTimestamp(now).pure[F]
         }
 
