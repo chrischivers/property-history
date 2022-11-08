@@ -21,32 +21,43 @@ object JobSeeder {
     implicit val logger = Slf4jLogger.getLogger[F]
 
     private def getLatestListingIdFrom(from: ListingId): F[Option[ListingId]] = {
-      def helper(lastFoundListing: Option[ListingId], nextToTry: ListingId, emptyRecordsSince: Long): F[Option[ListingId]] =
+
+      def helper(
+        lastFoundListing: Option[ListingId],
+        nextToTry: ListingId,
+        chunkStartedAt: ListingId,
+        emptyRecordsSince: Long
+      ): F[Option[ListingId]] =
         if (emptyRecordsSince >= config.emptyRecordsToDetermineLatest) lastFoundListing.pure
         else {
           rightmoveApiClient.listingDetails(nextToTry).flatMap {
             case None =>
-              (if (emptyRecordsSince % 100 == 0) logger.info(s"Empty records since last record found: $emptyRecordsSince") else ().pure[F]) *>
-                helper(lastFoundListing, ListingId(nextToTry.value + 1), emptyRecordsSince + 1)
+              (if (emptyRecordsSince % 100 == 0) logger.info(s"Empty records since last record found: $emptyRecordsSince") else ().pure[F]) *> {
+                val next = nextToTry.value + 1
+                val chunkStart = if (next % config.jobChunkSize == 0) ListingId(next) else chunkStartedAt
+                helper(lastFoundListing, ListingId(next), chunkStart, emptyRecordsSince + 1)
+              }
             case Some(_) =>
-              logger.info(s"Found listing for ${nextToTry.value}. Continuing to scan") *>
-                helper(nextToTry.some, ListingId(nextToTry.value + 1), emptyRecordsSince = 0)
+              logger.info(s"Found listing for ${nextToTry.value}. Continuing to scan") *> {
+                val nextChunk = ListingId(chunkStartedAt.value + config.jobChunkSize)
+                helper(nextToTry.some, nextChunk, nextChunk, emptyRecordsSince = 0)
+              }
           }
         }
       logger
         .info(s"Attempting to get latest listing id, starting at ${from.value}. Empty records required ${config.emptyRecordsToDetermineLatest}") *>
-        helper(None, ListingId(from.value + 1), 0)
+        helper(None, ListingId(from.value), ListingId(from.value), 0)
     }
 
     private def getLatestListingFor(lastJob: CrawlerJob): F[Option[ListingId]] =
-      getLatestListingIdFrom(lastJob.to)
+      getLatestListingIdFrom(ListingId(lastJob.to.value + 1))
 
     private def jobsToCreate(from: ListingId, to: ListingId): List[CrawlerJob] =
       (from.value to to.value).foldLeft(List.empty[CrawlerJob]) {
         case (agg, id) =>
-          if (id % config.jobChunkSize == 0) {
-            val jobId = JobId(id / config.jobChunkSize + 1)
-            agg :+ CrawlerJob(jobId, ListingId(id), ListingId(id + config.jobChunkSize), JobState.NeverRun, None, None, None)
+          if ((id - 1) % config.jobChunkSize == 0) {
+            val jobId = JobId((id - 1) / config.jobChunkSize + 1)
+            agg :+ CrawlerJob(jobId, ListingId(id), ListingId(id + (config.jobChunkSize - 1)), JobState.NeverRun, None, None, None)
           } else agg
       }
 
@@ -56,10 +67,12 @@ object JobSeeder {
           .flatMap {
             case None =>
               logger.info(s"No latest job retrieved. Creating from scratch") *>
-                jobsToCreate(ListingId(0), ListingId(config.startingMaxListingIdForFirstRun)).pure[F]
+                jobsToCreate(ListingId(1), ListingId(config.startingMaxListingIdForFirstRun)).pure[F]
             case Some(job) =>
               logger.info(s"Retrieved latest job: $job") *>
-                getLatestListingFor(job).map(_.fold(List.empty[CrawlerJob])(jobsToCreate(job.to, _)))
+                getLatestListingFor(job)
+                  .map(_.fold(List.empty[CrawlerJob])(jobsToCreate(job.to, _)))
+                  .flatTap(jobs => logger.info("Jobs to create: " + jobs))
           }
           .flatTap(jobs => logger.info(s"${jobs.size} jobs retrieved for adding"))
           .flatMap(jobs => fs2.Stream.emits(jobs).through(jobStore.putStream).compile.drain)

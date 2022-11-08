@@ -23,8 +23,8 @@ class JobSeederTest extends munit.CatsEffectSuite {
       config = config,
       apiClientSuccessfulIds = Set.empty,
       expectedJobs =
-        (0 to 10).toList.map(i => CrawlerJob(JobId(i + 1), ListingId(i * 10), ListingId((i + 1) * 10), JobState.NeverRun, None, None, None)).toSet,
-      expectedSize = 11
+        (0 until 10).toList.map(i => CrawlerJob(JobId(i + 1), ListingId((i * 10) + 1), ListingId((i + 1) * 10), JobState.NeverRun, None, None, None)).toSet,
+      expectedSize = 10
     )
   }
 
@@ -33,13 +33,13 @@ class JobSeederTest extends munit.CatsEffectSuite {
     val config = JobSeederConfig(jobChunkSize = 10, startingMaxListingIdForFirstRun = 100, emptyRecordsToDetermineLatest = 5)
     testWith(
       initialJobs = Set(
-        CrawlerJob(JobId(1), ListingId(0), ListingId(10), JobState.NeverRun, None, None, None),
-        CrawlerJob(JobId(2), ListingId(10), ListingId(20), JobState.NeverRun, None, None, None)
+        CrawlerJob(JobId(1), ListingId(1), ListingId(10), JobState.NeverRun, None, None, None),
+        CrawlerJob(JobId(2), ListingId(11), ListingId(20), JobState.NeverRun, None, None, None)
       ),
       config = config,
       apiClientSuccessfulIds = Set(ListingId(21)),
       expectedJobs =
-        (0 to 2).toList.map(i => CrawlerJob(JobId(i + 1), ListingId(i * 10), ListingId((i + 1) * 10), JobState.NeverRun, None, None, None)).toSet,
+        (0 to 2).toList.map(i => CrawlerJob(JobId(i + 1), ListingId((i * 10) + 1), ListingId((i + 1) * 10), JobState.NeverRun, None, None, None)).toSet,
       expectedSize = 3
     )
 
@@ -50,14 +50,14 @@ class JobSeederTest extends munit.CatsEffectSuite {
     val config = JobSeederConfig(jobChunkSize = 10, startingMaxListingIdForFirstRun = 100, emptyRecordsToDetermineLatest = 5)
     testWith(
       initialJobs = Set(
-        CrawlerJob(JobId(1), ListingId(0), ListingId(10), JobState.NeverRun, None, None, None),
-        CrawlerJob(JobId(2), ListingId(10), ListingId(20), JobState.NeverRun, None, None, None)
+        CrawlerJob(JobId(1), ListingId(1), ListingId(10), JobState.NeverRun, None, None, None),
+        CrawlerJob(JobId(2), ListingId(11), ListingId(20), JobState.NeverRun, None, None, None)
       ),
       config = config,
       apiClientSuccessfulIds = Set.empty,
       expectedJobs = Set(
-        CrawlerJob(JobId(1), ListingId(0), ListingId(10), JobState.NeverRun, None, None, None),
-        CrawlerJob(JobId(2), ListingId(10), ListingId(20), JobState.NeverRun, None, None, None)
+        CrawlerJob(JobId(1), ListingId(1), ListingId(10), JobState.NeverRun, None, None, None),
+        CrawlerJob(JobId(2), ListingId(11), ListingId(20), JobState.NeverRun, None, None, None)
       ),
       expectedSize = 2
     )
