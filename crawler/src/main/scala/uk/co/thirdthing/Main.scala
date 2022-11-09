@@ -2,8 +2,8 @@ package uk.co.thirdthing
 
 import cats.effect.{ExitCode, IO, IOApp, Resource}
 import org.http4s.Uri
+import org.http4s.blaze.client.BlazeClientBuilder
 import org.http4s.client.Client
-import org.http4s.ember.client.EmberClientBuilder
 import software.amazon.awssdk.services.dynamodb.DynamoDbAsyncClient
 import software.amazon.awssdk.services.secretsmanager.SecretsManagerClient
 import software.amazon.awssdk.services.sqs.SqsAsyncClient
@@ -14,7 +14,7 @@ import uk.co.thirdthing.model.Model.RunJobCommand
 import uk.co.thirdthing.secrets.{AmazonSecretsManager, SecretsManager}
 import uk.co.thirdthing.service.{JobRunnerService, JobScheduler, JobSeeder, RetrievalService}
 import uk.co.thirdthing.sqs.{SqsConfig, SqsProcessingStream, SqsPublisher}
-import uk.co.thirdthing.store.{DynamoJobStore, DynamoPropertyListingStore, Initializer, PropertyListingStore}
+import uk.co.thirdthing.store.{DynamoJobStore, DynamoPropertyListingStore, Initializer}
 
 import scala.concurrent.duration._
 
@@ -97,13 +97,13 @@ object Main extends IOApp {
   ): fs2.Stream[IO, Unit] =
     fs2.Stream.eval(secretsManager.secretFor("run-job-commands-queue-url")).flatMap { runJobCommandQueueUrl =>
       val consumer  = buildJobRunnerConsumer(httpClient, dynamoClient)
-      val sqsConfig = SqsConfig(runJobCommandQueueUrl, 20.seconds, 5.minutes, 1.minute, 10.seconds, 100.milliseconds, 10)
+      val sqsConfig = SqsConfig(runJobCommandQueueUrl, 20.seconds, 5.minutes, 1.minute, 10.seconds, 10.seconds, 1)
       new SqsProcessingStream[IO](sqsClient, sqsConfig, "Job Runner").startStream(consumer)
     }
 
   private def resources: Resource[IO, Resources] =
     for {
-      httpClient           <- EmberClientBuilder.default[IO].build
+      httpClient           <- BlazeClientBuilder[IO].resource
       dynamoClient         <- Resource.fromAutoCloseable[IO, DynamoDbAsyncClient](IO(DynamoDbAsyncClient.builder().build()))
       sqsClient            <- Resource.fromAutoCloseable[IO, SqsAsyncClient](IO(SqsAsyncClient.builder().build()))
       secretsManagerClient <- Resource.fromAutoCloseable[IO, SecretsManagerClient](IO(SecretsManagerClient.builder().build()))

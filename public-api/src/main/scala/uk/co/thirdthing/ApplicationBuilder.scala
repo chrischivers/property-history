@@ -2,7 +2,7 @@ package uk.co.thirdthing
 
 import cats.effect.{IO, Resource}
 import org.http4s.HttpApp
-import org.http4s.ember.server.EmberServerBuilder
+import org.http4s.blaze.server.BlazeServerBuilder
 import org.http4s.implicits._
 import org.http4s.server.Router
 import uk.co.thirdthing.routes.ApiRoute
@@ -23,8 +23,7 @@ object ApplicationBuilder {
   def router(historyService: HistoryService[IO]) = Router("/api" -> ApiRoute.routes[IO](historyService)).orNotFound
 
   def serverResource(httpApp: HttpApp[IO]) =
-    EmberServerBuilder
-      .default[IO]
+    BlazeServerBuilder.apply[IO]
       .withHttpApp(httpApp)
-      .build
+      .resource
 }

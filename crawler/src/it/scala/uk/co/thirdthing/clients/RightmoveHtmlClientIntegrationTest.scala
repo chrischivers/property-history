@@ -3,11 +3,9 @@ package uk.co.thirdthing.clients
 import cats.effect.IO
 import cats.implicits._
 import org.http4s.Uri
-import org.http4s.ember.client.EmberClientBuilder
-import uk.co.thirdthing.Rightmove.{ListingId, Price, PropertyId}
-import uk.co.thirdthing.clients.RightmoveApiClient.ListingDetails
+import org.http4s.blaze.client.BlazeClientBuilder
+import uk.co.thirdthing.Rightmove.{ListingId, PropertyId}
 import uk.co.thirdthing.clients.RightmoveHtmlClient.RightmoveHtmlScrapeResult
-import uk.co.thirdthing.model.Model.TransactionType
 
 import scala.concurrent.duration._
 import scala.util.Random
@@ -29,9 +27,8 @@ class RightmoveHtmlClientIntegrationTest extends munit.CatsEffectSuite {
   }
 
   def buildClient(f: RightmoveHtmlClient[IO] => IO[Unit]) =
-    EmberClientBuilder
-      .default[IO]
-      .build
+    BlazeClientBuilder[IO]
+      .resource
       .map(client => RightmoveHtmlClient.apply[IO](client, Uri.unsafeFromString("https://www.rightmove.co.uk")))
       .use(f)
 

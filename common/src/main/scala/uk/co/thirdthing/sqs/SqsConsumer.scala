@@ -53,8 +53,8 @@ class SqsProcessingStream[F[_]: Async](sqsClient: SqsAsyncClient, sqsConfig: Sqs
   private def messageStream: fs2.Stream[F, Message] =
     fs2.Stream
       .repeatEval(poll)
-      .evalTap(msgs => if (msgs.nonEmpty) logger.info(s"$consumerName retrieved ${msgs.size} messages") else ().pure[F])
       .meteredStartImmediately(sqsConfig.streamThrottlingRate)
+      .evalTap(msgs => if (msgs.nonEmpty) logger.info(s"$consumerName retrieved ${msgs.size} messages") else ().pure[F])
       .flatMap(fs2.Stream.emits)
 
   private def updateVisibilityTimeoutStream(messageReceiptHandle: String) =

@@ -74,6 +74,7 @@ object RightmoveApiClient {
         case ResultWrapper("SUCCESS", Some(details), _) => details.some.pure[F]
         case ResultWrapper("SUCCESS", _, _) =>
           logger.warn(s"Received status SUCCESS but no property details for listingID $listingId").as(None)
+        case ResultWrapper("FAILURE", _, Some("Property not found")) => Option.empty[ListingDetails].pure[F]
         case ResultWrapper("FAILURE", _, Some(errorInfo)) =>
           logger.warn(s"Received status FAILURE for listingID $listingId. Error Info [$errorInfo]").as(None)
         case ResultWrapper("FAILURE", _, None) =>

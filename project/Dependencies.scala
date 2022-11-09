@@ -3,13 +3,13 @@ import sbt._
 object Dependencies {
 
   object Versions {
-    val http4s                = "0.23.13"
+    val http4s                = "0.23.12"
     val munit                 = "0.7.29"
     val munitCatsEffect       = "1.0.7"
     val munitScalaCheckEffect = "1.0.4"
-    val http4sMunit           = "0.11.0"
+    val http4sMunit           = "0.14.0"
     val refined               = "0.9.29"
-    val circe                 = "0.14.1"
+    val circe                 = "0.14.3"
     val typesafeLogging       = "3.9.5"
     val log4cats              = "2.4.0"
     val logbackClassic        = "1.2.11"
@@ -17,8 +17,8 @@ object Dependencies {
     val newtype               = "0.2.3"
     val enumeration           = "1.7.0"
     val aws                   = "2.18.10"
-    val diffx                 = "0.8.1"
-    val apacheCommonsLang = "3.12.0"
+    val diffx                 = "0.8.2"
+    val apacheCommonsLang     = "3.12.0"
   }
 
   private val munit = Seq(
@@ -33,8 +33,8 @@ object Dependencies {
   private val http4s = Seq(
     "org.http4s" %% "http4s-dsl"          % Versions.http4s,
     "org.http4s" %% "http4s-circe"        % Versions.http4s,
-    "org.http4s" %% "http4s-ember-server" % Versions.http4s,
-    "org.http4s" %% "http4s-ember-client" % Versions.http4s
+    "org.http4s" %% "http4s-blaze-server" % Versions.http4s,
+    "org.http4s" %% "http4s-blaze-client" % Versions.http4s
   )
 
   private val refined = Seq(
@@ -86,5 +86,6 @@ object Dependencies {
 
   val commonDependencies: Seq[ModuleID]    = http4s ++ refined ++ circe ++ logging ++ metor ++ newtype ++ awsSqs ++ awsSecretsMAnager ++ test
   val publicApiDependencies: Seq[ModuleID] = http4s ++ refined ++ circe ++ logging ++ metor ++ newtype ++ test
-  val crawlerDependencies: Seq[ModuleID]   = http4s ++ refined ++ circe ++ logging ++ metor ++ newtype ++ enumeration ++ diffx ++ apacheCommonsLang ++ test
+  val crawlerDependencies: Seq[ModuleID] =
+    http4s ++ refined ++ circe ++ logging ++ metor ++ newtype ++ enumeration ++ diffx ++ apacheCommonsLang ++ test
 }
