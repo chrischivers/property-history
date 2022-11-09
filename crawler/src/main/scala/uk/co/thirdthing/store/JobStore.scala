@@ -41,7 +41,7 @@ object DynamoJobStore {
         table.put[CrawlerJob](job)
 
       override def putStream: Pipe[F, CrawlerJob, Unit] =
-        table.batchPutUnordered[CrawlerJob](maxBatchWait = 30.seconds, parallelism = 4, BackoffStrategy.defaultStrategy())
+        table.batchPut[CrawlerJob](maxBatchWait = 30.seconds, BackoffStrategy.defaultStrategy())
 
       override def getLatestJob: F[Option[CrawlerJob]] =
         Async[F]

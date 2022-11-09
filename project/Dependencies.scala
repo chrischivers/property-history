@@ -13,7 +13,7 @@ object Dependencies {
     val typesafeLogging       = "3.9.5"
     val log4cats              = "2.4.0"
     val logbackClassic        = "1.2.11"
-    val meteor                = "1.0.18"
+    val meteor                = "1.0.31"
     val newtype               = "0.2.3"
     val enumeration           = "1.7.0"
     val aws                   = "2.18.10"

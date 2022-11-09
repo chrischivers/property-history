@@ -1,8 +1,9 @@
 package uk.co.thirdthing.service
 
-import cats.effect.Sync
+import cats.effect.{Async, Sync}
 import cats.syntax.all._
 import cats.effect.kernel.Clock
+import fs2.Pipe
 import software.amazon.awssdk.services.sqs.SqsAsyncClient
 import uk.co.thirdthing.config.JobSchedulerConfig
 import uk.co.thirdthing.model.Model.CrawlerJob.LastRunScheduled
@@ -22,7 +23,7 @@ object JobScheduler {
   private type TimeSinceLastDataChange = FiniteDuration
   private type TimeBetweenRuns         = FiniteDuration
 
-  def apply[F[_]: Sync](jobStore: JobStore[F], publisher: SqsPublisher[F, RunJobCommand], config: JobSchedulerConfig)(implicit clock: Clock[F]) = new JobScheduler[F] {
+  def apply[F[_]: Async](jobStore: JobStore[F], publisher: SqsPublisher[F, RunJobCommand], config: JobSchedulerConfig)(implicit clock: Clock[F]) = new JobScheduler[F] {
 
     private val timeBetweenRuns: TimeSinceLastDataChange => TimeBetweenRuns = _ / config.timeBetweenRunsFactor
 
@@ -30,13 +31,15 @@ object JobScheduler {
       jobStore.getStream
         .evalMap(job => shouldSchedule(job).map(_ -> job))
         .collect { case (shouldSchedule, job) if shouldSchedule => job }
-        .evalTap(job => publisher.publish(RunJobCommand(job.jobId)))
-        .evalMap(updateScheduledJob)
-        .through(jobStore.putStream)
+        .evalMap(updateScheduledJobState)
+        .evalTap(jobStore.put) //todo batch puts
+        .evalMap(job => publisher.publish(RunJobCommand(job.jobId)))
         .compile
         .drain
 
-    private def updateScheduledJob(job: CrawlerJob): F[CrawlerJob] =
+
+
+    private def updateScheduledJobState(job: CrawlerJob): F[CrawlerJob] =
       clock.realTimeInstant.map(now => job.copy(state = JobState.Pending, lastRunScheduled = LastRunScheduled(now).some))
 
     private def shouldSchedule(crawlerJob: CrawlerJob): F[Boolean] =
