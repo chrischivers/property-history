@@ -2,11 +2,13 @@ package uk.co.thirdthing.service
 
 import cats.data.OptionT
 import cats.effect.Sync
+import cats.syntax.all._
+import org.typelevel.log4cats.slf4j.Slf4jLogger
 import uk.co.thirdthing.Rightmove.{DateAdded, ListingId, PropertyId}
 import uk.co.thirdthing.clients.RightmoveApiClient.ListingDetails
 import uk.co.thirdthing.clients.RightmoveHtmlClient.RightmoveHtmlScrapeResult
 import uk.co.thirdthing.clients.{RightmoveApiClient, RightmoveHtmlClient}
-import uk.co.thirdthing.model.Model.{ListingStatus, Property, PropertyDetails}
+import uk.co.thirdthing.model.Model.{ListingStatus, PropertyDetails}
 import uk.co.thirdthing.service.RetrievalService.RetrievalResult
 
 import java.time.Instant
@@ -23,7 +25,11 @@ object RetrievalService {
 
   def apply[F[_]: Sync](rightmoveApiClient: RightmoveApiClient[F], rightmoveHtmlClient: RightmoveHtmlClient[F]): RetrievalService[F] =
     new RetrievalService[F] {
-      override def retrieve(listingId: ListingId): F[Option[RetrievalResult]] =
+
+      implicit val logger = Slf4jLogger.getLogger[F]
+
+      override def retrieve(listingId: ListingId): F[Option[RetrievalResult]] = {
+        logger.debug(s"Handling retrieval request for listing ${listingId.value}") *>
         OptionT(rightmoveApiClient.listingDetails(listingId)).flatMap { listingDetails =>
           OptionT.liftF(rightmoveHtmlClient.scrapeDetails(listingId)).flatMap { scrapeResult =>
             OptionT.fromOption(scrapeResult.propertyId).map { propertyId =>
@@ -44,6 +50,7 @@ object RetrievalService {
             }
           }
         }.value
+      }
     }
   private def listingStatusFrom(htmlPageResult: RightmoveHtmlScrapeResult, listingDetails: ListingDetails): ListingStatus = {
 

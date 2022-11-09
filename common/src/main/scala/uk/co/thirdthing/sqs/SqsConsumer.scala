@@ -34,7 +34,7 @@ class SqsProcessingStream[F[_]: Async](sqsClient: SqsAsyncClient, sqsConfig: Sqs
     .visibilityTimeout(sqsConfig.visibilityTimeout.toSeconds.toInt)
     .attributeNames(List(QueueAttributeName.ALL).asJavaCollection)
     .messageAttributeNames(List("ALL").asJavaCollection)
-    .maxNumberOfMessages(10)
+    .maxNumberOfMessages(sqsConfig.processingParallelism)
     .build()
 
   def startStream[A: Decoder](consumer: SqsConsumer[F, A]): fs2.Stream[F, Unit] =

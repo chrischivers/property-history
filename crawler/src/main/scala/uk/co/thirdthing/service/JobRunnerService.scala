@@ -1,6 +1,7 @@
 package uk.co.thirdthing.service
 
-import cats.effect.kernel.{Clock, Sync}
+import cats.Parallel
+import cats.effect.kernel.{Async, Clock, Sync}
 import cats.syntax.all._
 import monix.newtypes.NewtypeWrapped
 import org.typelevel.log4cats.slf4j.Slf4jLogger
@@ -23,7 +24,7 @@ object JobRunnerService {
   private type UpdateTimestamp = UpdateTimestamp.Type
   private object UpdateTimestamp extends NewtypeWrapped[Instant]
 
-  def apply[F[_]: Sync](
+  def apply[F[_]: Async](
     jobStore: JobStore[F],
     propertyListingStore: PropertyListingStore[F],
     retrievalService: RetrievalService[F]
@@ -45,24 +46,33 @@ object JobRunnerService {
       }
 
       private def runJob(job: CrawlerJob): F[Unit] =
-        (job.from.value to job.to.value).map(ListingId(_)).toList.traverse(runAndUpdate).flatMap {
-          case Nil =>
-            val error = s"No listings in range for crawler job $job"
-            logger.error(error) *>
-              new IllegalStateException(s"No listings in range for crawler job ${job.jobId.value}").raiseError[F, Unit]
-          case result =>
-            val updateTimestamps = result.collect {
-              case Some(timestamp) => timestamp
-            }
-            if (updateTimestamps.isEmpty) {
-              logger.info(s"No records updated for crawler job ${job.jobId.value}") *>
-                updateJobStoreWhenNoDataChanges(job)
-            } else {
-              logger.info(s"${updateTimestamps.size} of ${job.to.value - job.from.value} records updated for crawler job ${job.jobId.value}") *>
-                updateJobStoreWhenDataChanges(job, LastChange(updateTimestamps.maxBy(_.value).value))
-            }
+        fs2.Stream
+          .emits[F, Long](job.from.value to job.to.value)
+          .evalTap(i => if (i % 1000 == 0) logger.info(s"Handling listing $i for job ${job.jobId.value}") else ().pure[F])
+          .map(ListingId(_))
+          .parEvalMap(5)(runAndUpdate)
+          .compile
+          .toList
+          .flatMap(handleRunResults(job, _))
 
-        }
+      private def handleRunResults(job: CrawlerJob, results: List[Option[UpdateTimestamp]]) = results match {
+        case Nil =>
+          val error = s"No listings in range for crawler job ${job.jobId.value}"
+          logger.error(error) *>
+            new IllegalStateException(s"No listings in range for crawler job ${job.jobId.value}").raiseError[F, Unit]
+        case result =>
+          val updateTimestamps = result.collect {
+            case Some(timestamp) => timestamp
+          }
+          if (updateTimestamps.isEmpty) {
+            logger.info(s"No records updated for crawler job ${job.jobId.value}") *>
+              updateJobStoreWhenNoDataChanges(job)
+          } else {
+            logger.info(s"${updateTimestamps.size} of ${job.to.value - job.from.value} records updated for crawler job ${job.jobId.value}") *>
+              updateJobStoreWhenDataChanges(job, LastChange(updateTimestamps.maxBy(_.value).value))
+          }
+
+      }
 
       private def updateJobStoreWhenDataChanges(job: CrawlerJob, lastChange: LastChange): F[Unit] =
         clock.realTimeInstant.flatMap { now =>

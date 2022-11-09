@@ -16,7 +16,7 @@
     <logger name="org.http4s.server.blaze.Http1ServerStage$$anon$1" level="OFF"/>
     <logger name="org.http4s.blaze.channel.nio1.SelectorLoop" level="OFF"/>
 
-    <root level="INFO">
+    <root level="DEBUG">
         <appender-ref ref="STDOUT" />
     </root>
 </configuration>

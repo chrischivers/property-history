@@ -97,7 +97,7 @@ object Main extends IOApp {
   ): fs2.Stream[IO, Unit] =
     fs2.Stream.eval(secretsManager.secretFor("run-job-commands-queue-url")).flatMap { runJobCommandQueueUrl =>
       val consumer  = buildJobRunnerConsumer(httpClient, dynamoClient)
-      val sqsConfig = SqsConfig(runJobCommandQueueUrl, 20.seconds, 5.minutes, 1.minute, 10.seconds, 10.seconds, 1)
+      val sqsConfig = SqsConfig(runJobCommandQueueUrl, 20.seconds, 5.minutes, 1.minute, 10.seconds, 10.seconds, 2)
       new SqsProcessingStream[IO](sqsClient, sqsConfig, "Job Runner").startStream(consumer)
     }
 
