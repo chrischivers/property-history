@@ -15,8 +15,10 @@
     <logger name="org.http4s.server.blaze.Http1ServerStage" level="OFF"/>
     <logger name="org.http4s.server.blaze.Http1ServerStage$$anon$1" level="OFF"/>
     <logger name="org.http4s.blaze.channel.nio1.SelectorLoop" level="OFF"/>
+    <logger name="software.amazon.awssdk" level="INFO"/>
+    <logger name="uk.co.thirdthing" level="INFO"/>
 
-    <root level="DEBUG">
+    <root level="INFO">
         <appender-ref ref="STDOUT" />
     </root>
 </configuration>
