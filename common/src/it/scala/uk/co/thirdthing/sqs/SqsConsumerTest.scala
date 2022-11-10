@@ -18,7 +18,7 @@ import scala.util.Random
 class SqsConsumerTest extends munit.CatsEffectSuite {
 
   val queueName = "test"
-  val config    = SqsConfig("http://localhost:4566/000000000000/test", 1.seconds, 5.seconds, 4.seconds, 2.seconds, 100.milliseconds, 5)
+  val config    = SqsConfig("http://localhost:4566/000000000000/test", 1.second, 5.seconds, 4.seconds, 2.seconds, 10.milliseconds, 10)
   case class TestMessage(message: String)
   implicit val testMessageCodec: Codec[TestMessage] = deriveCodec
 
@@ -34,7 +34,7 @@ class SqsConsumerTest extends munit.CatsEffectSuite {
           val stream   = new SqsProcessingStream[IO](client, config, "name")
 
           sendMessage(client, testMessage.asJson.spaces2) *>
-            stream.startStream(consumer).compile.drain.timeout(5.seconds).attempt.void *>
+            stream.startStream(consumer).compile.drain.timeout(10.seconds).attempt.void *>
             consumedMessagesRef.get
 
       }
@@ -58,7 +58,8 @@ class SqsConsumerTest extends munit.CatsEffectSuite {
             consumedMessagesRef.get
 
       }
-    assertIO(messagesConsumed, testMessages)
+    assertIO(messagesConsumed.map(_.length), testMessages.length)
+    assertIO(messagesConsumed.map(_.toSet), testMessages.toSet)
   }
 
   test("The visibility timeout is updated for a long running job") {
@@ -80,7 +81,7 @@ class SqsConsumerTest extends munit.CatsEffectSuite {
 
   test("Bulk processing test with random delays") {
 
-    val testMessages = (0 to 100).toList.map(i => TestMessage(s"Hi - $i"))
+    val testMessages = (1 to 30).toList.map(i => TestMessage(s"Hi - $i"))
 
     val messagesConsumed = clientResource(queueName)
       .flatMap(client => Resource.eval(Ref.of[IO, List[TestMessage]](List.empty)).map(_ -> client))

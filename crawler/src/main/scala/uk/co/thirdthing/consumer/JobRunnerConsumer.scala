@@ -15,7 +15,7 @@ object JobRunnerConsumer {
     implicit val logger = Slf4jLogger.getLogger[F]
 
     override def handle(msg: RunJobCommand): F[Unit] = {
-      logger.info(s"Received run jon command for job ${msg.jobId.value}") *>
+      logger.info(s"Received run job command for job ${msg.jobId.value}") *>
         jobRunnerService.run(msg.jobId) *>
         logger.info(s"Completed run job command for job ${msg.jobId.value}")
     }
