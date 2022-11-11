@@ -12,6 +12,8 @@ import org.http4s.{EntityDecoder, Response, Status, Uri}
 import org.typelevel.log4cats.slf4j.Slf4jLogger
 import uk.co.thirdthing.clients.RightmoveApiClient.ListingDetails
 import uk.co.thirdthing.model.Model.{ListingStatus, TransactionType}
+import uk.co.thirdthing.utils.CatsEffectUtils._
+import scala.concurrent.duration._
 
 trait RightmoveApiClient[F[_]] {
 
@@ -62,9 +64,9 @@ object RightmoveApiClient {
           case Status(200) => handleSuccessfulResponse(response, listingId)
           case Status(500) => handleErrorResponse(response, listingId)
           case Status(other) =>
-            MonadThrow[F].raiseError(new RuntimeException(s"Unexpected response code $other from API for listing id ${listingId.value}"))
+            new RuntimeException(s"Unexpected response code $other from API for listing id ${listingId.value}").raiseError[F, Option[ListingDetails]]
         }
-      }
+      }.withBackoffRetry(30.seconds, 5, maxRetries = 10)
     }
 
     private def handleSuccessfulResponse(response: Response[F], listingId: ListingId): F[Option[ListingDetails]] =

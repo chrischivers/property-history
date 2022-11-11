@@ -1,6 +1,7 @@
 package uk.co.thirdthing.clients
 
 import cats.effect.Sync
+import cats.effect.kernel.Async
 import cats.syntax.all._
 import fs2.text
 import io.circe.parser._
@@ -10,6 +11,8 @@ import org.typelevel.log4cats.SelfAwareStructuredLogger
 import org.typelevel.log4cats.slf4j.Slf4jLogger
 import uk.co.thirdthing.Rightmove.{ListingId, PropertyId}
 import uk.co.thirdthing.clients.RightmoveHtmlClient.RightmoveHtmlScrapeResult
+import uk.co.thirdthing.utils.CatsEffectUtils._
+import scala.concurrent.duration._
 
 trait RightmoveHtmlClient[F[_]] {
 
@@ -20,7 +23,7 @@ trait RightmoveHtmlClient[F[_]] {
 object RightmoveHtmlClient {
   final case class RightmoveHtmlScrapeResult(statusCode: Int, propertyId: Option[PropertyId])
 
-  def apply[F[_] : Sync](client: Client[F], baseUrl: Uri): RightmoveHtmlClient[F] = new RightmoveHtmlClient[F] {
+  def apply[F[_] : Async](client: Client[F], baseUrl: Uri): RightmoveHtmlClient[F] = new RightmoveHtmlClient[F] {
 
     implicit def logger: SelfAwareStructuredLogger[F] = Slf4jLogger.getLogger[F]
 
@@ -39,6 +42,7 @@ object RightmoveHtmlClient {
         }
         .compile
         .lastOrError
+        .withBackoffRetry(30.seconds, 5, maxRetries = 10)
     }
 
     private def handleByteStream(stream: fs2.Stream[F, Byte]): fs2.Stream[F, Option[PropertyId]] = {
