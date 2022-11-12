@@ -45,15 +45,29 @@ object JobRunnerService {
         logger.error(msg) *> new IllegalStateException(msg).raiseError[F, Unit]
       }
 
-      private def runJob(job: CrawlerJob): F[Unit] =
+      private def runJob(job: CrawlerJob): F[Unit] = {
+
+        val totalJobs = job.to.value - job.from.value
+        val reportingSegments = totalJobs / 5
+
+        def handleProgressReporting(listingId: Long) = {
+          val jobNumber = listingId - job.from.value
+          if(jobNumber % reportingSegments == 0 && jobNumber != 0) {
+            val percentage = Math.round((jobNumber / totalJobs.toDouble) * 100)
+            logger.info(s"$percentage complete of job id ${job.jobId.value}")
+          }
+          else ().pure[F]
+        }
+
         fs2.Stream
           .emits[F, Long](job.from.value to job.to.value)
-          .evalTap(i => if (i % 1000 == 0) logger.info(s"Handling listing $i for job ${job.jobId.value}") else ().pure[F])
+          .evalTap(handleProgressReporting)
           .map(ListingId(_))
           .parEvalMap(5)(runAndUpdate)
           .compile
           .toList
           .flatMap(handleRunResults(job, _))
+      }
 
       private def handleRunResults(job: CrawlerJob, results: List[Option[UpdateTimestamp]]) = results match {
         case Nil =>
@@ -83,21 +97,23 @@ object JobRunnerService {
         clock.realTimeInstant.flatMap(now => jobStore.put(job.copy(lastRunCompleted = LastRunCompleted(now).some, state = JobState.Completed)))
 
       private def runAndUpdate(listingId: ListingId): F[Option[UpdateTimestamp]] =
-        propertyListingStore.get(listingId).flatMap { existingPropertyRecord =>
-          retrievalService.retrieve(listingId).flatMap { retrievedRecord =>
-            (existingPropertyRecord, retrievedRecord) match {
-              case (None, None) =>
-                logger.debug(s"No change for non-existing listing ${listingId.value}").as(Option.empty[UpdateTimestamp])
-              case (Some(existing), Some(retrieved)) =>
-                handleBothExisting(existing, retrieved)
-              case (Some(existing), None) => handleDelete(existing).map(Some(_))
-              case (None, Some(retrieved)) =>
-                logger.debug(s"New listing ${listingId.value} found. Adding to store") *>
-                  Hasher.hash(retrieved.propertyDetails).flatMap(updateStores(retrieved, _)).map(Some(_))
+        propertyListingStore
+          .get(listingId)
+          .flatMap { existingPropertyRecord =>
+            retrievalService.retrieve(listingId).flatMap[Option[UpdateTimestamp]] { retrievedRecord =>
+              (existingPropertyRecord, retrievedRecord) match {
+                case (None, None) =>
+                  logger.debug(s"No change for non-existing listing ${listingId.value}").as(none)
+                case (Some(existing), Some(retrieved)) =>
+                  handleBothExisting(existing, retrieved)
+                case (Some(existing), None) => handleDelete(existing).map(_.some)
+                case (None, Some(retrieved)) =>
+                  logger.debug(s"New listing ${listingId.value} found. Adding to store") *>
+                    Hasher.hash(retrieved.propertyDetails).flatMap(updateStores(retrieved, _)).map(_.some)
+              }
             }
-
           }
-        }
+          .handleErrorWith(err => logger.error(err)(s"Error encountered when running listing Id $listingId") *> err.raiseError)
 
       private def handleBothExisting(existingRecord: Property, retrievalResult: RetrievalResult): F[Option[UpdateTimestamp]] =
         Hasher.hash(retrievalResult.propertyDetails).flatMap { retrievalResultDetailsChecksum =>

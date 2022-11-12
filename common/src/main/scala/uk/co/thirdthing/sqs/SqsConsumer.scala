@@ -31,12 +31,16 @@ class SqsProcessingStream[F[_]: Async: Parallel](sqsClient: SqsAsyncClient, sqsC
         .evalMap { chunks =>
           chunks.parTraverse {
             case (decodedMessage, receiptHandle) =>
-              Sync[F].race(consumer.handle(decodedMessage), updateVisibilityTimeoutStream(receiptHandle)).void *>
-                deleteMesage(receiptHandle).void
+              handleThenDelete(consumer, decodedMessage, receiptHandle).recoverWith {
+                case err => logger.error(err)(s"Error processing message $decodedMessage")
+              }
           }
         }
         .unchunks
 
+  private def handleThenDelete[A](consumer: SqsConsumer[F, A], decodedMessage: A, receiptHandle: String) =
+    Sync[F].race(consumer.handle(decodedMessage), updateVisibilityTimeoutStream(receiptHandle)).void *>
+      deleteMesage(receiptHandle).void
   private def decodeMessage[A: Decoder](msg: Message): Either[circe.Error, A] =
     parse(msg.body()).flatMap(_.as[A])
 
