@@ -54,7 +54,7 @@ object JobRunnerService {
           val jobNumber = listingId - job.from.value
           if(jobNumber % reportingSegments == 0 && jobNumber != 0) {
             val percentage = Math.round((jobNumber / totalJobs.toDouble) * 100)
-            logger.info(s"$percentage complete of job id ${job.jobId.value}")
+            logger.info(s"$percentage% complete of job id ${job.jobId.value}")
           }
           else ().pure[F]
         }
