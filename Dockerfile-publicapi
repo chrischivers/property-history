@@ -1,0 +1,27 @@
+FROM eed3si9n/sbt:jdk11-alpine
+WORKDIR /app
+COPY . /app
+USER root
+ENV SERVICE_ENV="crawler"
+RUN apk update
+RUN apk upgrade
+RUN apk add openssl
+RUN echo -n | openssl s_client -connect repo.scala-sbt.org:443 | sed -ne '/-BEGIN CERTIFICATE-/,/-END CERTIFICATE-/p' > /root/scala-sbt.cert
+RUN keytool -noprompt -storepass changeit -import -cacerts -alias "scala-sbt server" -file /root/scala-sbt.cert
+RUN sbt "clean;project crawler;universal:packageBin"
+RUN unzip -o crawler/target/universal/$SERVICE_ENV*.zip
+RUN mkdir /build
+RUN mv ${SERVICE_ENV}-*-SNAPSHOT /build/app
+RUN mv /build/app/bin/${SERVICE_ENV} /build/app/bin/service
+
+FROM openjdk:11-slim
+RUN mkdir /app
+RUN adduser -D -H -S -h /app service
+COPY docker-entrypoint.sh /docker-entrypoint.sh
+RUN chmod +x /docker-entrypoint.sh
+RUN groupadd -g 1000 service \
+    && useradd -g service -m -s /bin/bash -u 1000 service
+USER service
+COPY --from=0 /build/app /app
+ENV JAVA_OPTS=-Xmx768m
+ENTRYPOINT [ "/docker-entrypoint.sh" ]

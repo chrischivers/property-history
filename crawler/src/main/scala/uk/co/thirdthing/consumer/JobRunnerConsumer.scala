@@ -19,7 +19,7 @@ object JobRunnerConsumer {
         logger.info(s"Received run job command for job ${msg.jobId.value}") *>
           jobRunnerService.run(msg.jobId) *>
           Clock[F].realTime.flatMap { finishedAt =>
-            logger.info(s"Completed run job command for job ${msg.jobId.value} in ${finishedAt - startedAt}")
+            logger.info(s"Completed run job command for job ${msg.jobId.value} in ${(finishedAt - startedAt).toMinutes} minutes")
           }
       }
     }
