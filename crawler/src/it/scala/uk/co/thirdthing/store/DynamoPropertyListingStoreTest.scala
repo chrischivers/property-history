@@ -25,7 +25,7 @@ class DynamoPropertyListingStoreTest extends munit.CatsEffectSuite with DynamoIn
   val dateAdded         = DateAdded(lastChange.value.minus(1, ChronoUnit.DAYS))
   val listingSnapshotId = ListingSnapshotId("142352")
 
-  val details = PropertyDetails(Price(100000), TransactionType.Sale, visible = true, ListingStatus.SoldSTC, Some("weekly"), 100.5, 90.1)
+  val details = PropertyDetails(Price(100000), TransactionType.Sale, visible = true, ListingStatus.SoldSTC, Some("weekly"), 100.5.some, 90.1.some)
 
   val listingSnapshot1 = ListingSnapshot(listingId, lastChange, propertyId, dateAdded, listingSnapshotId, details.some)
   val listingSnapshot2 =

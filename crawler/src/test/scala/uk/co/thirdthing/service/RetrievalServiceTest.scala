@@ -29,8 +29,8 @@ class RetrievalServiceTest extends munit.CatsEffectSuite {
         visible = true,
         status = ListingStatus.Unknown,
         rentFrequency = None,
-        latitude = 53.060074,
-        longitude = -2.195828
+        latitude = 53.060074.some,
+        longitude = -2.195828.some
       )
     )
 

@@ -26,8 +26,8 @@ class RightmoveApiClientIntegrationTest extends munit.CatsEffectSuite {
       updateDate = 1665419375000L,
       rentFrequency = None,
       publicsiteUrl = Uri.unsafeFromString("https://www.rightmove.co.uk/property-for-sale/property-124999760.html"),
-      latitude = 53.05996,
-      longitude = -2.195873
+      latitude = 53.05996.some,
+      longitude = -2.195873.some
     )
 
     buildClient(client => assertIO(client.listingDetails(ListingId(124999760)), Some(expectedListingDetails)))

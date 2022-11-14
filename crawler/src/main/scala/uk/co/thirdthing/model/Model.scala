@@ -63,8 +63,8 @@ object Model {
     visible: Boolean,
     status: ListingStatus,
     rentFrequency: Option[String],
-    latitude: BigDecimal,
-    longitude: BigDecimal
+    latitude: Option[Double],
+    longitude: Option[Double]
   )
 
   object PropertyDetails {

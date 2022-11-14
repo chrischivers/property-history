@@ -44,7 +44,7 @@ class JobRunnerServiceTest extends munit.CatsEffectSuite {
     listingId,
     propertyId,
     DateAdded(Instant.now.truncatedTo(ChronoUnit.MILLIS)),
-    PropertyDetails(Price(100000), TransactionType.Sale, visible = true, ListingStatus.SoldSTC, Some("weekly"), 100.5, 90.1)
+    PropertyDetails(Price(100000), TransactionType.Sale, visible = true, ListingStatus.SoldSTC, Some("weekly"), 100.5.some, 90.1.some)
   )
   private val detailsHash = Hasher.hash[IO, PropertyDetails](retrievalResult1.propertyDetails).unsafeRunSync()
 

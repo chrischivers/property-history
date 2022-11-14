@@ -32,8 +32,8 @@ object RightmoveApiClient {
     updateDate: Long,
     rentFrequency: Option[String],
     publicsiteUrl: Uri,
-    latitude: Double,
-    longitude: Double
+    latitude: Option[Double],
+    longitude: Option[Double]
   )
 
   object ListingDetails {

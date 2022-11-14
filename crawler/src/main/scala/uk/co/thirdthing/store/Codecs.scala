@@ -56,8 +56,8 @@ object Codecs {
                      .leftMap(err => DecoderError(s"cannot map $status to listing status type"))
                  )
       rentFrequency <- av.getOpt[String]("rentFrequency")
-      latitude      <- av.getAs[Double]("latitude")
-      longitude     <- av.getAs[Double]("longitude")
+      latitude      <- av.getOpt[Double]("latitude")
+      longitude     <- av.getOpt[Double]("longitude")
     } yield PropertyDetails(price, transactionTypeId, visible, status, rentFrequency, latitude, longitude)
   }
 
