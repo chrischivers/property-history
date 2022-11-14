@@ -6,19 +6,48 @@ import org.http4s.blaze.server.BlazeServerBuilder
 import org.http4s.implicits._
 import org.http4s.server.Router
 import org.http4s.server.defaults.HttpPort
+import skunk.Session
 import uk.co.thirdthing.routes.{ApiRoute, MetaRoute}
+import uk.co.thirdthing.secrets.{AmazonSecretsManager, SecretsManager}
 import uk.co.thirdthing.service.HistoryService
-import uk.co.thirdthing.store.DynamoPropertyStore
+import natchez.Trace.Implicits.noop
+import software.amazon.awssdk.services.secretsmanager.SecretsManagerClient
+import uk.co.thirdthing.store.{PostgresPropertyStore, PropertyStore}
 
 object ApplicationBuilder {
   def build: Resource[IO, Unit] =
     for {
-      dynamoClient         <- DynamoClient.resource[IO]
-      propertyStore      = DynamoPropertyStore[IO](dynamoClient)
-      historyService       <- Resource.pure[IO, HistoryService[IO]](HistoryService.apply[IO](propertyStore))
-      httpApp              = router(historyService)
-      _                    <- serverResource(httpApp)
+      secretsManager <- buildSecretsManager
+      dbPool         <- databaseSessionPool(secretsManager)
+      propertyStore  = PostgresPropertyStore.apply[IO](dbPool)
+      historyService <- Resource.pure[IO, HistoryService[IO]](HistoryService.apply[IO](propertyStore))
+      httpApp        = router(historyService)
+      _              <- serverResource(httpApp)
     } yield ()
+
+  private def buildSecretsManager: Resource[IO, SecretsManager] =
+    Resource.fromAutoCloseable[IO, SecretsManagerClient](IO(SecretsManagerClient.builder().build())).map(AmazonSecretsManager(_))
+
+  private def databaseSessionPool(secretsManager: SecretsManager): Resource[IO, Resource[IO, Session[IO]]] = {
+    val secrets = for {
+      host     <- secretsManager.secretFor("postgres-host")
+      username <- secretsManager.secretFor("postgres-user")
+      password <- secretsManager.secretFor("postgres-password")
+    } yield (host, username, password)
+
+    Resource.eval(secrets).flatMap {
+      case (host, username, password) =>
+        Session.pooled[IO](
+          host = host,
+          port = 5432,
+          user = username,
+          database = "propertyhistory",
+          password = Some(password),
+          max = 16
+        )
+    }
+
+  }
 
   def router(historyService: HistoryService[IO]) =
     Router(

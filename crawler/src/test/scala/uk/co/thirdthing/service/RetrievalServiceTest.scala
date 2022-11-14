@@ -23,10 +23,10 @@ class RetrievalServiceTest extends munit.CatsEffectSuite {
       propertyId = PropertyId(72291262),
       dateAdded = DateAdded(Instant.ofEpochMilli(1657875302000L)),
       propertyDetails = PropertyDetails(
-        price = Price(315000),
-        transactionTypeId = TransactionType.Sale,
-        visible = true,
-        status = ListingStatus.Unknown,
+        price = Price(315000).some,
+        transactionTypeId = TransactionType.Sale.some,
+        visible = true.some,
+        status = ListingStatus.Unknown.some,
         rentFrequency = None,
         latitude = 53.060074.some,
         longitude = -2.195828.some

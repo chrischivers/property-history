@@ -12,3 +12,11 @@ services:
     volumes:
       - "${TMPDIR:-/tmp}/localstack:/tmp/localstack"
       - "/var/run/docker.sock:/var/run/docker.sock"
+  postgres:
+    image: postgres:13.4
+    ports:
+      - "5432:5432"
+    environment:
+      POSTGRES_DB: propertyhistory
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres

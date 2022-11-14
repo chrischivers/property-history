@@ -37,10 +37,10 @@ object RetrievalService {
                 propertyId,
                 DateAdded(Instant.ofEpochMilli(listingDetails.sortDate.getOrElse(listingDetails.updateDate))),
                 PropertyDetails(
-                  listingDetails.price,
-                  listingDetails.transactionTypeId,
-                  listingDetails.visible,
-                  listingStatusFrom(scrapeResult, listingDetails),
+                  listingDetails.price.some,
+                  listingDetails.transactionTypeId.some,
+                  listingDetails.visible.some,
+                  listingStatusFrom(scrapeResult, listingDetails).some,
                   listingDetails.rentFrequency,
                   listingDetails.latitude,
                   listingDetails.longitude
