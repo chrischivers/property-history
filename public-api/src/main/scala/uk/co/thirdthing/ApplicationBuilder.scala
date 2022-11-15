@@ -5,7 +5,7 @@ import org.http4s.HttpApp
 import org.http4s.blaze.server.BlazeServerBuilder
 import org.http4s.implicits._
 import org.http4s.server.Router
-import uk.co.thirdthing.routes.ApiRoute
+import uk.co.thirdthing.routes.{ApiRoute, MetaRoute}
 import uk.co.thirdthing.service.HistoryService
 import uk.co.thirdthing.store.{DynamoPropertyIdStore, DynamoPropertyListingStore}
 
@@ -20,10 +20,15 @@ object ApplicationBuilder {
       _                    <- serverResource(httpApp)
     } yield ()
 
-  def router(historyService: HistoryService[IO]) = Router("/api" -> ApiRoute.routes[IO](historyService)).orNotFound
+  def router(historyService: HistoryService[IO]) =
+    Router(
+      "/api"  -> ApiRoute.routes[IO](historyService),
+      "/meta" -> MetaRoute.routes[IO]
+    ).orNotFound
 
   def serverResource(httpApp: HttpApp[IO]) =
-    BlazeServerBuilder.apply[IO]
+    BlazeServerBuilder
+      .apply[IO]
       .withHttpApp(httpApp)
       .resource
 }
