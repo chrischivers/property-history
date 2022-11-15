@@ -30,5 +30,6 @@ object ApplicationBuilder {
     BlazeServerBuilder
       .apply[IO]
       .withHttpApp(httpApp)
+      .bindHttp()
       .resource
 }
