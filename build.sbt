@@ -19,6 +19,7 @@ lazy val publicApi = (project in file("public-api"))
   .settings(IntegrationTest / parallelExecution := false)
   .dependsOn(common % "test->test;it->test;it->it;compile->compile")
   .aggregate(common)
+  .enablePlugins(UniversalPlugin, JavaServerAppPackaging, SystemdPlugin)
 
 lazy val crawler = (project in file("crawler"))
   .settings(CompilerSettings.settings)
