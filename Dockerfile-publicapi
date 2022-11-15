@@ -24,4 +24,5 @@ RUN groupadd -g 1000 service \
 USER service
 COPY --from=0 /build/app /app
 ENV JAVA_OPTS=-Xmx768m
+EXPOSE 8080
 ENTRYPOINT [ "/docker-entrypoint.sh" ]
