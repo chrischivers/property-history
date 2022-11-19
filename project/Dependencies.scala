@@ -84,8 +84,9 @@ object Dependencies {
   )
   private val test = munit.map(_ % "test,it")
 
-  val commonDependencies: Seq[ModuleID]    = http4s ++ refined ++ circe ++ logging ++ metor ++ newtype ++ awsSqs ++ awsSecretsMAnager ++ test
+  val commonDependencies: Seq[ModuleID] =
+    http4s ++ refined ++ circe ++ logging ++ metor ++ newtype ++ awsSqs ++ awsSecretsMAnager ++ enumeration ++ apacheCommonsLang ++ test
   val publicApiDependencies: Seq[ModuleID] = http4s ++ refined ++ circe ++ logging ++ metor ++ newtype ++ test
   val crawlerDependencies: Seq[ModuleID] =
-    http4s ++ refined ++ circe ++ logging ++ metor ++ newtype ++ enumeration ++ diffx ++ apacheCommonsLang ++ test
+    http4s ++ refined ++ circe ++ logging ++ metor ++ newtype ++ diffx ++ test
 }

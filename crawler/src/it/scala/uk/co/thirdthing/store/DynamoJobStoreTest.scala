@@ -3,9 +3,9 @@ package uk.co.thirdthing.store
 import cats.effect.IO
 import meteor.api.hi.SimpleTable
 import meteor.{DynamoDbType, KeyDef}
-import uk.co.thirdthing.Rightmove.ListingId
 import uk.co.thirdthing.model.Model.CrawlerJob.LastRunCompleted
 import uk.co.thirdthing.model.Model.{CrawlerJob, JobId, JobState}
+import uk.co.thirdthing.model.Types.ListingId
 
 import java.time.Instant
 import java.time.temporal.ChronoUnit

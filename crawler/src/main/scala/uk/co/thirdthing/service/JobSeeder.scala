@@ -2,12 +2,12 @@ package uk.co.thirdthing.service
 
 import cats.effect.Sync
 import cats.kernel.Order
-import uk.co.thirdthing.Rightmove.ListingId
 import uk.co.thirdthing.model.Model.{CrawlerJob, JobId, JobState}
 import cats.syntax.all._
 import org.typelevel.log4cats.slf4j.Slf4jLogger
 import uk.co.thirdthing.clients.RightmoveApiClient
 import uk.co.thirdthing.config.JobSeederConfig
+import uk.co.thirdthing.model.Types.ListingId
 import uk.co.thirdthing.store.JobStore
 
 trait JobSeeder[F[_]] {

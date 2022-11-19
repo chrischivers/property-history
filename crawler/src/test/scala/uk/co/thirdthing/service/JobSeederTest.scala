@@ -5,10 +5,10 @@ import fs2.io.file.{Path => Fs2Path}
 import org.http4s.client.Client
 import org.http4s.dsl.io._
 import org.http4s.{HttpRoutes, StaticFile, Uri}
-import uk.co.thirdthing.Rightmove.ListingId
 import uk.co.thirdthing.clients.RightmoveApiClient
 import uk.co.thirdthing.config.JobSeederConfig
 import uk.co.thirdthing.model.Model.{CrawlerJob, JobId, JobState}
+import uk.co.thirdthing.model.Types.ListingId
 import uk.co.thirdthing.utils.MockJobStore
 
 class JobSeederTest extends munit.CatsEffectSuite {

@@ -4,7 +4,7 @@ import cats.effect.Concurrent
 import cats.implicits.toFlatMapOps
 import org.http4s.HttpRoutes
 import org.http4s.dsl.Http4sDsl
-import uk.co.thirdthing.Rightmove.ListingId
+import uk.co.thirdthing.model.Types._
 import uk.co.thirdthing.service.HistoryService
 import org.http4s.circe.CirceEntityEncoder._
 

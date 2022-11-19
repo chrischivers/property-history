@@ -9,16 +9,15 @@ import meteor.{DynamoDbType, KeyDef}
 import org.typelevel.log4cats.slf4j.Slf4jLogger
 import software.amazon.awssdk.services.dynamodb.DynamoDbAsyncClient
 import software.amazon.awssdk.services.dynamodb.model.{Delete, Put, TransactWriteItem, TransactWriteItemsRequest}
-import uk.co.thirdthing.Rightmove.ListingId
-import uk.co.thirdthing.model.Model.{ListingSnapshot, Property}
+import uk.co.thirdthing.model.Types._
 import uk.co.thirdthing.utils.CatsEffectUtils._
 
 import scala.jdk.CollectionConverters._
 import scala.jdk.FutureConverters._
 
 trait PropertyListingStore[F[_]] {
-  def put(property: Property, listingSnapshot: ListingSnapshot): F[Unit]
-  def get(listingId: ListingId): F[Option[Property]]
+  def put(property: PropertyListing, listingSnapshot: ListingSnapshot): F[Unit]
+  def get(listingId: ListingId): F[Option[PropertyListing]]
   def delete(listingSnapshot: ListingSnapshot): F[Unit]
 }
 
@@ -38,10 +37,10 @@ object DynamoPropertyListingStore {
 
     private val propertyTable = SimpleTable[F, ListingId](propertyTableName, KeyDef[ListingId](propertyTablePrimaryKey, DynamoDbType.N), client)
 
-    override def get(listingId: ListingId): F[Option[Property]] =
-      propertyTable.get[Property](listingId, consistentRead = false).retryWhenThroughputExceeded
+    override def get(listingId: ListingId): F[Option[PropertyListing]] =
+      propertyTable.get[PropertyListing](listingId, consistentRead = false).retryWhenThroughputExceeded
 
-    override def put(property: Property, listingSnapshot: ListingSnapshot): F[Unit] = {
+    override def put(property: PropertyListing, listingSnapshot: ListingSnapshot): F[Unit] = {
 
       val putListingSnaphot = TransactWriteItem
         .builder()

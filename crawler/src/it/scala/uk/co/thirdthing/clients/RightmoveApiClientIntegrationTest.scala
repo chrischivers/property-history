@@ -1,10 +1,9 @@
 package uk.co.thirdthing.clients
 
 import cats.effect.IO
-import uk.co.thirdthing.Rightmove.{ListingId, Price}
+import uk.co.thirdthing.model.Types._
 import org.http4s.Uri
 import uk.co.thirdthing.clients.RightmoveApiClient.ListingDetails
-import uk.co.thirdthing.model.Model.TransactionType
 import cats.implicits._
 import org.http4s.blaze.client.BlazeClientBuilder
 

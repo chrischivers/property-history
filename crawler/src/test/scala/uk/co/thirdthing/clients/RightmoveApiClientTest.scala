@@ -3,12 +3,11 @@ package uk.co.thirdthing.clients
 import cats.effect.IO
 import cats.syntax.all._
 import fs2.io.file.{Path => Fs2Path}
-import uk.co.thirdthing.Rightmove.{ListingId, Price}
+import uk.co.thirdthing.model.Types._
 import org.http4s.client.Client
 import org.http4s.dsl.io._
 import org.http4s.{HttpRoutes, QueryParamDecoder, StaticFile, Status, Uri}
 import uk.co.thirdthing.clients.RightmoveApiClient.ListingDetails
-import uk.co.thirdthing.model.Model.TransactionType
 
 class RightmoveApiClientTest extends munit.CatsEffectSuite {
 

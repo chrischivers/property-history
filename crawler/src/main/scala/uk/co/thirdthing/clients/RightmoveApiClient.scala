@@ -5,14 +5,14 @@ import cats.effect.Async
 import cats.implicits._
 import io.circe.generic.semiauto.{deriveDecoder, deriveEncoder}
 import io.circe.{Decoder, Encoder}
-import uk.co.thirdthing.Rightmove.{ListingId, Price}
 import org.http4s.circe._
 import org.http4s.client.Client
 import org.http4s.{EntityDecoder, Response, Status, Uri}
 import org.typelevel.log4cats.slf4j.Slf4jLogger
 import uk.co.thirdthing.clients.RightmoveApiClient.ListingDetails
-import uk.co.thirdthing.model.Model.{ListingStatus, TransactionType}
+import uk.co.thirdthing.model.Types._
 import uk.co.thirdthing.utils.CatsEffectUtils._
+
 import scala.concurrent.duration._
 
 trait RightmoveApiClient[F[_]] {

@@ -9,7 +9,7 @@ import org.http4s.client.Client
 import org.http4s.{Request, Status, Uri}
 import org.typelevel.log4cats.SelfAwareStructuredLogger
 import org.typelevel.log4cats.slf4j.Slf4jLogger
-import uk.co.thirdthing.Rightmove.{ListingId, PropertyId}
+import uk.co.thirdthing.model.Types._
 import uk.co.thirdthing.clients.RightmoveHtmlClient.RightmoveHtmlScrapeResult
 import uk.co.thirdthing.utils.CatsEffectUtils._
 import scala.concurrent.duration._

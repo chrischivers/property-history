@@ -4,7 +4,7 @@ import cats.effect.IO
 import cats.implicits._
 import org.http4s.Uri
 import org.http4s.blaze.client.BlazeClientBuilder
-import uk.co.thirdthing.Rightmove.{ListingId, PropertyId}
+import uk.co.thirdthing.model.Types._
 import uk.co.thirdthing.clients.RightmoveHtmlClient.RightmoveHtmlScrapeResult
 
 import scala.concurrent.duration._

@@ -4,9 +4,9 @@ import cats.implicits.{catsSyntaxOptionId, toBifunctorOps}
 import meteor.codec.{Decoder, Encoder}
 import meteor.errors.DecoderError
 import meteor.syntax._
-import uk.co.thirdthing.Rightmove.ListingId
-import uk.co.thirdthing.model.Model.CrawlerJob.{LastChange, LastRunCompleted, LastRunScheduled}
+import uk.co.thirdthing.model.Model.CrawlerJob.{LastRunCompleted, LastRunScheduled}
 import uk.co.thirdthing.model.Model._
+import uk.co.thirdthing.model.Types.{LastChange, ListingId}
 
 import java.time.Instant
 

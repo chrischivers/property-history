@@ -1,14 +1,13 @@
 package uk.co.thirdthing.service
 
-import cats.Parallel
-import cats.effect.kernel.{Async, Clock, Sync}
+import cats.effect.kernel.{Async, Clock}
 import cats.syntax.all._
 import monix.newtypes.NewtypeWrapped
 import org.typelevel.log4cats.slf4j.Slf4jLogger
-import uk.co.thirdthing.Rightmove.ListingId
-import uk.co.thirdthing.model.Model.CrawlerJob.{LastChange, LastRunCompleted}
-import uk.co.thirdthing.model.Model.ListingSnapshot.ListingSnapshotId
+import uk.co.thirdthing.model.Model.CrawlerJob.LastRunCompleted
 import uk.co.thirdthing.model.Model._
+import uk.co.thirdthing.model.Types.ListingSnapshot.ListingSnapshotId
+import uk.co.thirdthing.model.Types._
 import uk.co.thirdthing.service.RetrievalService.RetrievalResult
 import uk.co.thirdthing.store.{JobStore, PropertyListingStore}
 import uk.co.thirdthing.utils.Hasher
@@ -115,7 +114,7 @@ object JobRunnerService {
           }
           .handleErrorWith(err => logger.error(err)(s"Error encountered when running listing Id $listingId") *> err.raiseError)
 
-      private def handleBothExisting(existingRecord: Property, retrievalResult: RetrievalResult): F[Option[UpdateTimestamp]] =
+      private def handleBothExisting(existingRecord: PropertyListing, retrievalResult: RetrievalResult): F[Option[UpdateTimestamp]] =
         Hasher.hash(retrievalResult.propertyDetails).flatMap { retrievalResultDetailsChecksum =>
           if (existingRecord.detailsChecksum.value == retrievalResultDetailsChecksum.value) {
             logger.debug(s"No change for existing listing ${retrievalResult.listingId.value}").as(Option.empty[UpdateTimestamp])
@@ -127,7 +126,7 @@ object JobRunnerService {
           }
         }
 
-      private def handleDelete(existingRecord: Property): F[UpdateTimestamp] =
+      private def handleDelete(existingRecord: PropertyListing): F[UpdateTimestamp] =
         clock.realTimeInstant.flatMap { now =>
           val listingSnapshotId = ListingSnapshotId.generate
           val snapshotToUpdate =
@@ -140,7 +139,7 @@ object JobRunnerService {
       private def updateStores(result: RetrievalResult, detailsHash: Hash): F[UpdateTimestamp] =
         clock.realTimeInstant.flatMap { now =>
           val listingSnapshotId = ListingSnapshotId.generate
-          val propertyRecord    = Property(result.listingId, result.propertyId, result.dateAdded, listingSnapshotId, detailsHash)
+          val propertyRecord    = PropertyListing(result.listingId, result.propertyId, result.dateAdded, listingSnapshotId, detailsHash)
           val listingSnapshot =
             ListingSnapshot(result.listingId, LastChange(now), result.propertyId, result.dateAdded, listingSnapshotId, result.propertyDetails.some)
 

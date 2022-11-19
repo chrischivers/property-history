@@ -8,15 +8,14 @@ import org.http4s.server.Router
 import org.http4s.server.defaults.HttpPort
 import uk.co.thirdthing.routes.{ApiRoute, MetaRoute}
 import uk.co.thirdthing.service.HistoryService
-import uk.co.thirdthing.store.{DynamoPropertyIdStore, DynamoPropertyListingStore}
+import uk.co.thirdthing.store.DynamoPropertyStore
 
 object ApplicationBuilder {
   def build: Resource[IO, Unit] =
     for {
       dynamoClient         <- DynamoClient.resource[IO]
-      propertyIdStore      = DynamoPropertyIdStore[IO](dynamoClient)
-      propertyListingStore = DynamoPropertyListingStore[IO](dynamoClient)
-      historyService       <- Resource.pure[IO, HistoryService[IO]](HistoryService.apply[IO](propertyIdStore, propertyListingStore))
+      propertyStore      = DynamoPropertyStore[IO](dynamoClient)
+      historyService       <- Resource.pure[IO, HistoryService[IO]](HistoryService.apply[IO](propertyStore))
       httpApp              = router(historyService)
       _                    <- serverResource(httpApp)
     } yield ()

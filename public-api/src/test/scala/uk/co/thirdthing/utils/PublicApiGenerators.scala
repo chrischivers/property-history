@@ -1,18 +1,20 @@
 package uk.co.thirdthing.utils
 
 import org.scalacheck.{Arbitrary, Gen}
-import uk.co.thirdthing.model.Model.RightmoveListing
+import uk.co.thirdthing.model.Types.PropertyListing
+import uk.co.thirdthing.utils.Hasher.Hash
 
 object PublicApiGenerators {
 
-  val rightmoveListingGen: Gen[RightmoveListing] = for {
-    id <- Generators.rightmoveListingIdGen
-    url <- Gen.alphaNumStr
-    dateAdded <- Generators.rightmoveDateAddeddGen
-  } yield RightmoveListing(id, url, dateAdded)
+  val propertyListingGen: Gen[PropertyListing] = for {
+    listingId <- Generators.listingIdGen
+    propertyId <- Generators.propertyIdGen
+    dateAdded <- Generators.dateAddeddGen
+    listingSnapshotId <- Generators.listingSnapshotIdGen
+  } yield PropertyListing(listingId, propertyId, dateAdded, listingSnapshotId, Hash("blah"))
 
 
-  implicit val rightmoveListingArb: Arbitrary[RightmoveListing] = Arbitrary(rightmoveListingGen)
+  implicit val propertyListingArb: Arbitrary[PropertyListing] = Arbitrary(propertyListingGen)
 
 
 }

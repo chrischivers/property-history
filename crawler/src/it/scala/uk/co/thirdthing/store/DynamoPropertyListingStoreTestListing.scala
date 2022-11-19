@@ -5,18 +5,16 @@ import cats.syntax.all._
 import meteor.api.hi.{CompositeTable, SimpleTable}
 import meteor.{DynamoDbType, KeyDef}
 import software.amazon.awssdk.services.dynamodb.model.ScanRequest
-import uk.co.thirdthing.Rightmove.{DateAdded, ListingId, Price, PropertyId}
-import uk.co.thirdthing.model.Model.CrawlerJob.LastChange
-import uk.co.thirdthing.model.Model.ListingSnapshot.ListingSnapshotId
-import uk.co.thirdthing.model.Model.{ListingSnapshot, ListingStatus, Property, PropertyDetails, TransactionType}
+import uk.co.thirdthing.model.Types.ListingSnapshot.ListingSnapshotId
+import uk.co.thirdthing.model.Types._
 import uk.co.thirdthing.utils.Hasher.Hash
 
-import scala.jdk.FutureConverters._
-import scala.jdk.CollectionConverters._
 import java.time.Instant
 import java.time.temporal.ChronoUnit
+import scala.jdk.CollectionConverters._
+import scala.jdk.FutureConverters._
 
-class DynamoPropertyListingStoreTest extends munit.CatsEffectSuite with DynamoIntegrationCrawler {
+class DynamoPropertyListingStoreTestListing extends munit.CatsEffectSuite with DynamoIntegrationCrawler {
   import Codecs._
 
   val listingId         = ListingId(12345678)
@@ -33,8 +31,8 @@ class DynamoPropertyListingStoreTest extends munit.CatsEffectSuite with DynamoIn
 
   val detailsHash = Hash("123546")
 
-  val property1 = Property(listingId, propertyId, dateAdded, listingSnapshotId, detailsHash)
-  val property2 = Property(listingId, propertyId, dateAdded, listingSnapshotId, detailsHash)
+  val property1 = PropertyListing(listingId, propertyId, dateAdded, listingSnapshotId, detailsHash)
+  val property2 = PropertyListing(listingId, propertyId, dateAdded, listingSnapshotId, detailsHash)
 
   test("Store a listing snapshot and property, and retrieve it again") {
     withDynamoStoresAndClient() { (stores, client) =>
@@ -47,7 +45,7 @@ class DynamoPropertyListingStoreTest extends munit.CatsEffectSuite with DynamoIn
         ).get[ListingSnapshot](listingId, lastChange, consistentRead = true)
           .flatMap(listingSnapshot =>
             SimpleTable[IO, ListingId]("properties", KeyDef[ListingId]("listingId", DynamoDbType.N), client)
-              .get[Property](listingId, consistentRead = true)
+              .get[PropertyListing](listingId, consistentRead = true)
               .map(_ -> listingSnapshot)
           )
 

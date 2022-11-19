@@ -6,9 +6,8 @@ import fs2.io.file.{Path => Fs2Path}
 import org.http4s.client.Client
 import org.http4s.dsl.io._
 import org.http4s.{HttpRoutes, StaticFile, Uri}
-import uk.co.thirdthing.Rightmove.{DateAdded, ListingId, Price, PropertyId}
+import uk.co.thirdthing.model.Types._
 import uk.co.thirdthing.clients.{RightmoveApiClient, RightmoveHtmlClient}
-import uk.co.thirdthing.model.Model.{ListingStatus, Property, PropertyDetails, TransactionType}
 import uk.co.thirdthing.service.RetrievalService.RetrievalResult
 
 import java.time.Instant

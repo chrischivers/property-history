@@ -5,7 +5,7 @@ import cats.syntax.all._
 import meteor._
 import software.amazon.awssdk.services.dynamodb.DynamoDbAsyncClient
 import software.amazon.awssdk.services.dynamodb.model._
-import uk.co.thirdthing.Rightmove.ListingId
+import uk.co.thirdthing.model.Types.ListingId
 
 import java.time.Instant
 

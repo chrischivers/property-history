@@ -3,10 +3,10 @@ package uk.co.thirdthing.service
 import cats.Applicative
 import cats.effect.{Clock, IO, Ref}
 import cats.syntax.all._
-import uk.co.thirdthing.Rightmove.{DateAdded, ListingId, Price, PropertyId}
-import uk.co.thirdthing.model.Model.CrawlerJob.{LastChange, LastRunCompleted}
-import uk.co.thirdthing.model.Model.ListingSnapshot.ListingSnapshotId
+import uk.co.thirdthing.model.Model.CrawlerJob.LastRunCompleted
 import uk.co.thirdthing.model.Model._
+import uk.co.thirdthing.model.Types.ListingSnapshot.ListingSnapshotId
+import uk.co.thirdthing.model.Types._
 import uk.co.thirdthing.service.RetrievalService.RetrievalResult
 import uk.co.thirdthing.utils.Hasher.Hash
 import uk.co.thirdthing.utils.{Hasher, MockJobStore, MockPropertyListingStore}
@@ -58,7 +58,7 @@ class JobRunnerServiceTest extends munit.CatsEffectSuite {
       initialListingSnapshots = Set.empty,
       expectedJobs = Set(job1.copy(lastRunCompleted = LastRunCompleted(now).some, lastChange = LastChange(now).some, state = JobState.Completed)),
       expectedProperties =
-        Set(Property(retrievalResult1.listingId, retrievalResult1.propertyId, retrievalResult1.dateAdded, staticListingSnapshotId, detailsHash)),
+        Set(PropertyListing(retrievalResult1.listingId, retrievalResult1.propertyId, retrievalResult1.dateAdded, staticListingSnapshotId, detailsHash)),
       expectedListingSnapshots = Set(
         ListingSnapshot(
           retrievalResult1.listingId,
@@ -75,7 +75,7 @@ class JobRunnerServiceTest extends munit.CatsEffectSuite {
   test("Run a job successfully update the records for a record already existing where the hash has changed") {
 
     val existingProperty =
-      Property(retrievalResult1.listingId, retrievalResult1.propertyId, retrievalResult1.dateAdded, staticListingSnapshotId, Hash("Some hash"))
+      PropertyListing(retrievalResult1.listingId, retrievalResult1.propertyId, retrievalResult1.dateAdded, staticListingSnapshotId, Hash("Some hash"))
     val existingSnapshot = ListingSnapshot(
       retrievalResult1.listingId,
       LastChange(now.minus(1, ChronoUnit.DAYS)),
@@ -101,15 +101,15 @@ class JobRunnerServiceTest extends munit.CatsEffectSuite {
     jobId: JobId,
     retrievalServiceResults: Set[RetrievalResult],
     initialJobs: Set[CrawlerJob],
-    initialProperties: Set[Property],
+    initialProperties: Set[PropertyListing],
     initialListingSnapshots: Set[ListingSnapshot],
     expectedJobs: Set[CrawlerJob],
-    expectedProperties: Set[Property],
+    expectedProperties: Set[PropertyListing],
     expectedListingSnapshots: Set[ListingSnapshot]
   ) = {
     val result = for {
       jobsStoreRef     <- Ref.of[IO, Map[JobId, CrawlerJob]](initialJobs.map(job => job.jobId         -> job).toMap)
-      propertyStoreRef <- Ref.of[IO, Map[ListingId, Property]](initialProperties.map(p => p.listingId -> p).toMap)
+      propertyStoreRef <- Ref.of[IO, Map[ListingId, PropertyListing]](initialProperties.map(p => p.listingId -> p).toMap)
       listingHistoryStoreRef <- Ref.of[IO, Map[(ListingId, LastChange), ListingSnapshot]](
                                  initialListingSnapshots.map(ls => (ls.listingId, ls.lastChange) -> ls).toMap
                                )
@@ -129,7 +129,7 @@ class JobRunnerServiceTest extends munit.CatsEffectSuite {
   def service(
     retrievalServiceResults: Map[ListingId, RetrievalResult],
     jobStoreRef: Ref[IO, Map[JobId, CrawlerJob]],
-    propertyStoreRef: Ref[IO, Map[ListingId, Property]],
+    propertyStoreRef: Ref[IO, Map[ListingId, PropertyListing]],
     listingHistoryStoreRef: Ref[IO, Map[(ListingId, LastChange), ListingSnapshot]]
   ): IO[JobRunnerService[IO]] = {
 

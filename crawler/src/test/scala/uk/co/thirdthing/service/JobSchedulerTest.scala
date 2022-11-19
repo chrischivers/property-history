@@ -5,10 +5,10 @@ import cats.effect.kernel.Clock
 import cats.effect.{IO, Ref}
 import cats.syntax.all._
 import uk.co.thirdthing.MockSqsPublisher
-import uk.co.thirdthing.Rightmove.ListingId
 import uk.co.thirdthing.config.JobSchedulerConfig
-import uk.co.thirdthing.model.Model.CrawlerJob.{LastChange, LastRunCompleted, LastRunScheduled}
+import uk.co.thirdthing.model.Model.CrawlerJob.{LastRunCompleted, LastRunScheduled}
 import uk.co.thirdthing.model.Model.{CrawlerJob, JobId, JobState, RunJobCommand}
+import uk.co.thirdthing.model.Types.{LastChange, ListingId}
 import uk.co.thirdthing.utils.MockJobStore
 
 import java.time.Instant

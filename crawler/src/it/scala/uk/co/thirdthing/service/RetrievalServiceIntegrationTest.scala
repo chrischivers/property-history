@@ -4,9 +4,8 @@ import cats.effect.IO
 import cats.implicits._
 import org.http4s.Uri
 import org.http4s.blaze.client.BlazeClientBuilder
-import uk.co.thirdthing.Rightmove.{DateAdded, ListingId, Price, PropertyId}
 import uk.co.thirdthing.clients.{RightmoveApiClient, RightmoveHtmlClient}
-import uk.co.thirdthing.model.Model.{ListingStatus, PropertyDetails, TransactionType}
+import uk.co.thirdthing.model.Types._
 import uk.co.thirdthing.service.RetrievalService.RetrievalResult
 
 import java.time.Instant

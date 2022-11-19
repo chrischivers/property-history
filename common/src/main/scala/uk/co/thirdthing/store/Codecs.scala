@@ -4,30 +4,29 @@ import cats.implicits.{catsSyntaxOptionId, toBifunctorOps}
 import meteor.codec.{Decoder, Encoder}
 import meteor.errors.DecoderError
 import meteor.syntax._
-import uk.co.thirdthing.Rightmove.{DateAdded, ListingId, Price, PropertyId}
-import uk.co.thirdthing.model.Model.CrawlerJob.LastChange
-import uk.co.thirdthing.model.Model.ListingSnapshot.ListingSnapshotId
-import uk.co.thirdthing.model.Model._
+import uk.co.thirdthing.model.Types.ListingSnapshot.ListingSnapshotId
+import uk.co.thirdthing.model.Types._
 import uk.co.thirdthing.utils.Hasher.Hash
 
 import java.time.Instant
 
 object Codecs {
 
+  implicit val propertyIdEncoder: Encoder[PropertyId] = Encoder.instance(_.value.asAttributeValue)
   implicit val propertyIdDecoder: Decoder[PropertyId] = Decoder.instance(_.getAs[Long]("propertyId").map(PropertyId.apply))
   implicit val listingIdEncoder: Encoder[ListingId]   = Encoder.instance(_.value.asAttributeValue)
 
-  implicit val propertyDecoder: Decoder[Property] = Decoder.instance { av =>
+  implicit val propertyDecoder: Decoder[PropertyListing] = Decoder.instance { av =>
     for {
       listingId         <- av.getAs[Long]("listingId").map(ListingId(_))
       propertyId        <- av.getAs[Long]("propertyId").map(PropertyId(_))
       dateAdded         <- av.getAs[Instant]("dateAdded").map(DateAdded(_))
       listingSnapshotId <- av.getAs[String]("listingSnapshotId").map(ListingSnapshotId(_))
       detailsChecksum   <- av.getAs[String]("detailsChecksum").map(Hash(_))
-    } yield Property(listingId, propertyId, dateAdded, listingSnapshotId, detailsChecksum)
+    } yield PropertyListing(listingId, propertyId, dateAdded, listingSnapshotId, detailsChecksum)
   }
 
-  implicit val propertyEncoder: Encoder[Property] = Encoder.instance { property =>
+  implicit val propertyEncoder: Encoder[PropertyListing] = Encoder.instance { property =>
     Map(
       "listingId"         -> property.listingId.value.asAttributeValue,
       "propertyId"        -> property.propertyId.value.asAttributeValue,

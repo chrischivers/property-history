@@ -4,11 +4,10 @@ import cats.data.OptionT
 import cats.effect.Sync
 import cats.syntax.all._
 import org.typelevel.log4cats.slf4j.Slf4jLogger
-import uk.co.thirdthing.Rightmove.{DateAdded, ListingId, PropertyId}
+import uk.co.thirdthing.model.Types._
 import uk.co.thirdthing.clients.RightmoveApiClient.ListingDetails
 import uk.co.thirdthing.clients.RightmoveHtmlClient.RightmoveHtmlScrapeResult
 import uk.co.thirdthing.clients.{RightmoveApiClient, RightmoveHtmlClient}
-import uk.co.thirdthing.model.Model.{ListingStatus, PropertyDetails}
 import uk.co.thirdthing.service.RetrievalService.RetrievalResult
 
 import java.time.Instant
