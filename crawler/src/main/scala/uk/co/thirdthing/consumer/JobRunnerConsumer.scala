@@ -7,21 +7,16 @@ import uk.co.thirdthing.model.Model.RunJobCommand
 import uk.co.thirdthing.service.JobRunnerService
 import uk.co.thirdthing.sqs.SqsConsumer
 
-
 object JobRunnerConsumer {
 
-  def apply[F[_] : Sync](jobRunnerService: JobRunnerService[F]) = new SqsConsumer[F, RunJobCommand] {
+  def apply[F[_]: Sync](jobRunnerService: JobRunnerService[F]) = new SqsConsumer[F, RunJobCommand] {
 
     implicit val logger = Slf4jLogger.getLogger[F]
 
-    override def handle(msg: RunJobCommand): F[Unit] = {
-      Clock[F].realTime.flatMap { startedAt =>
-        logger.info(s"Received run job command for job ${msg.jobId.value}") *>
-          jobRunnerService.run(msg.jobId) *>
-          Clock[F].realTime.flatMap { finishedAt =>
-            logger.info(s"Completed run job command for job ${msg.jobId.value} in ${(finishedAt - startedAt).toMinutes} minutes")
-          }
-      }
-    }
+    override def handle(msg: RunJobCommand): F[Unit] =
+      logger.info(s"Received run job command for job ${msg.jobId.value}") *>
+        jobRunnerService.run(msg.jobId) *>
+        logger.info(s"Completed run job command for job")
   }
+
 }

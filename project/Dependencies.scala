@@ -71,8 +71,12 @@ object Dependencies {
     "software.amazon.awssdk" % "sqs" % Versions.aws
   )
 
-  private val awsSecretsMAnager = Seq(
+  private val awsSecretsManager = Seq(
     "software.amazon.awssdk" % "secretsmanager" % Versions.aws
+  )
+
+  private val awsSCloudwatch = Seq(
+    "software.amazon.awssdk" % "cloudwatch" % Versions.aws
   )
 
   private val diffx = Seq(
@@ -85,8 +89,8 @@ object Dependencies {
   private val test = munit.map(_ % "test,it")
 
   val commonDependencies: Seq[ModuleID] =
-    http4s ++ refined ++ circe ++ logging ++ metor ++ newtype ++ awsSqs ++ awsSecretsMAnager ++ enumeration ++ apacheCommonsLang ++ test
+    http4s ++ refined ++ circe ++ logging ++ metor ++ newtype ++ awsSqs ++ awsSecretsManager ++ enumeration ++ apacheCommonsLang ++ test
   val publicApiDependencies: Seq[ModuleID] = http4s ++ refined ++ circe ++ logging ++ metor ++ newtype ++ test
   val crawlerDependencies: Seq[ModuleID] =
-    http4s ++ refined ++ circe ++ logging ++ metor ++ newtype ++ diffx ++ test
+    http4s ++ refined ++ circe ++ logging ++ metor ++ newtype ++ awsSCloudwatch ++ diffx ++ test
 }

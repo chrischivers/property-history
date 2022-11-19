@@ -4,6 +4,7 @@ import cats.effect.kernel.{Async, Clock}
 import cats.syntax.all._
 import monix.newtypes.NewtypeWrapped
 import org.typelevel.log4cats.slf4j.Slf4jLogger
+import uk.co.thirdthing.metrics.MetricsRecorder
 import uk.co.thirdthing.model.Model.CrawlerJob.LastRunCompleted
 import uk.co.thirdthing.model.Model._
 import uk.co.thirdthing.model.Types.ListingSnapshot.ListingSnapshotId
@@ -26,7 +27,8 @@ object JobRunnerService {
   def apply[F[_]: Async](
     jobStore: JobStore[F],
     propertyListingStore: PropertyListingStore[F],
-    retrievalService: RetrievalService[F]
+    retrievalService: RetrievalService[F],
+    metricsRecorder: MetricsRecorder[F]
   )(implicit clock: Clock[F]) =
     new JobRunnerService[F] {
 
@@ -36,7 +38,18 @@ object JobRunnerService {
         jobStore.get(jobId).flatMap {
           case None                               => handleJobNotExisting(jobId)
           case Some(job) if job.state.schedulable => logger.warn(s"Job for ${jobId.value} is not in a runnable state. Ignoring")
-          case Some(job)                          => runJob(job)
+          case Some(job)                          => withDurationMetricReporting(jobId)(runJob(job))
+        }
+
+      private def withDurationMetricReporting[T](jobId: JobId)(f: F[T]): F[T] =
+        clock.realTime.flatMap { startTime =>
+          f.flatMap(r =>
+            clock.realTime.flatMap { endTime =>
+              val duration = endTime - startTime
+              logger.info(s"${jobId.value} finished in ${duration.toMinutes} minutes") *>
+                metricsRecorder.recordJobDuration(duration).as(r)
+            }
+          )
         }
 
       private def handleJobNotExisting(jobId: JobId): F[Unit] = {
@@ -46,16 +59,15 @@ object JobRunnerService {
 
       private def runJob(job: CrawlerJob): F[Unit] = {
 
-        val totalJobs = job.to.value - job.from.value
+        val totalJobs         = job.to.value - job.from.value
         val reportingSegments = totalJobs / 5
 
         def handleProgressReporting(listingId: Long) = {
           val jobNumber = listingId - job.from.value
-          if(jobNumber % reportingSegments == 0 && jobNumber != 0) {
+          if (jobNumber % reportingSegments == 0 && jobNumber != 0) {
             val percentage = Math.round((jobNumber / totalJobs.toDouble) * 100)
             logger.info(s"$percentage% complete of job id ${job.jobId.value}")
-          }
-          else ().pure[F]
+          } else ().pure[F]
         }
 
         fs2.Stream
