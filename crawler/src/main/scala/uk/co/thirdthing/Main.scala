@@ -2,7 +2,7 @@ package uk.co.thirdthing
 
 import cats.effect.{ExitCode, IO, IOApp, Resource}
 import org.http4s.Uri
-import org.http4s.blaze.client.BlazeClientBuilder
+import org.http4s.blaze.client.{BlazeClientBuilder, ParserMode}
 import org.http4s.client.Client
 import software.amazon.awssdk.services.dynamodb.DynamoDbAsyncClient
 import software.amazon.awssdk.services.secretsmanager.SecretsManagerClient
@@ -21,7 +21,8 @@ import scala.concurrent.duration._
 object Main extends IOApp {
 
   final case class Resources(
-    httpClient: Client[IO],
+    apiHttpClient: Client[IO],
+    htmlScraperHttpClient: Client[IO],
     dynamoClient: DynamoDbAsyncClient,
     sqsClient: SqsAsyncClient,
     secretsManagerClient: SecretsManagerClient
@@ -30,30 +31,30 @@ object Main extends IOApp {
   override def run(args: List[String]): IO[ExitCode] = resources.use { r =>
     val secretsManager = AmazonSecretsManager(r.secretsManagerClient)
     Initializer.createTablesIfNotExisting[IO](r.dynamoClient) *>
-      startJobSeedTriggerProcessingStream(r.httpClient, r.dynamoClient, r.sqsClient, secretsManager)
+      startJobSeedTriggerProcessingStream(r.apiHttpClient, r.dynamoClient, r.sqsClient, secretsManager)
         .concurrently(startJobScheduleTriggerProcessingStream(r.dynamoClient, r.sqsClient, secretsManager))
-        .concurrently(startJobRunnerProcessingStream(r.sqsClient, r.httpClient, r.dynamoClient, secretsManager))
+        .concurrently(startJobRunnerProcessingStream(r.sqsClient, r.apiHttpClient, r.htmlScraperHttpClient, r.dynamoClient, secretsManager))
         .compile
         .drain
         .as(ExitCode.Success)
   }
 
-  private def buildJobSeedTriggerConsumer(httpClient: Client[IO], dynamoClient: DynamoDbAsyncClient) = {
+  private def buildJobSeedTriggerConsumer(apiHttpClient: Client[IO], dynamoClient: DynamoDbAsyncClient) = {
     val jobStore           = DynamoJobStore[IO](dynamoClient)
     val jobSederConfig     = JobSeederConfig.default
-    val rightmoveApiClient = RightmoveApiClient(httpClient, Uri.unsafeFromString("https://api.rightmove.co.uk"))
+    val rightmoveApiClient = RightmoveApiClient(apiHttpClient, Uri.unsafeFromString("https://api.rightmove.co.uk"))
     val jobSeeder          = JobSeeder[IO](rightmoveApiClient, jobStore, jobSederConfig)
     JobSeedTriggerConsumer(jobSeeder)
   }
 
   private def startJobSeedTriggerProcessingStream(
-    httpClient: Client[IO],
+    apiHttpClient: Client[IO],
     dynamoClient: DynamoDbAsyncClient,
     sqsClient: SqsAsyncClient,
     secretsManager: SecretsManager
   ): fs2.Stream[IO, Unit] =
     fs2.Stream.eval(secretsManager.secretFor("job-seeder-queue-url")).flatMap { queueUrl =>
-      val consumer  = buildJobSeedTriggerConsumer(httpClient, dynamoClient)
+      val consumer  = buildJobSeedTriggerConsumer(apiHttpClient, dynamoClient)
       val sqsConfig = SqsConfig(queueUrl, 20.seconds, 5.minutes, 1.minute, 10.seconds, 1.minute, 1)
       new SqsProcessingStream[IO](sqsClient, sqsConfig, "Job Seed Trigger").startStream(consumer)
     }
@@ -79,11 +80,11 @@ object Main extends IOApp {
       }
     }
 
-  private def buildJobRunnerConsumer(httpClient: Client[IO], dynamoClient: DynamoDbAsyncClient) = {
+  private def buildJobRunnerConsumer(apiHttpClient: Client[IO], htmlHttpClient: Client[IO], dynamoClient: DynamoDbAsyncClient) = {
     val jobStore             = DynamoJobStore[IO](dynamoClient)
     val propertyListingStore = DynamoPropertyListingStore[IO](dynamoClient)
-    val rightmoveApiClient   = RightmoveApiClient(httpClient, Uri.unsafeFromString("https://api.rightmove.co.uk"))
-    val rightmoveHtmlClient  = RightmoveHtmlClient(httpClient, Uri.unsafeFromString("https://www.rightmove.co.uk"))
+    val rightmoveApiClient   = RightmoveApiClient(apiHttpClient, Uri.unsafeFromString("https://api.rightmove.co.uk"))
+    val rightmoveHtmlClient  = RightmoveHtmlClient(htmlHttpClient, Uri.unsafeFromString("https://www.rightmove.co.uk"))
     val retrievalService     = RetrievalService[IO](rightmoveApiClient, rightmoveHtmlClient)
     val jobRunnerService     = JobRunnerService[IO](jobStore, propertyListingStore, retrievalService)
     JobRunnerConsumer(jobRunnerService)
@@ -91,21 +92,30 @@ object Main extends IOApp {
 
   private def startJobRunnerProcessingStream(
     sqsClient: SqsAsyncClient,
-    httpClient: Client[IO],
+    apiHttpClient: Client[IO],
+    htmlScraperHttpClient: Client[IO],
     dynamoClient: DynamoDbAsyncClient,
     secretsManager: SecretsManager
   ): fs2.Stream[IO, Unit] =
     fs2.Stream.eval(secretsManager.secretFor("run-job-commands-queue-url")).flatMap { runJobCommandQueueUrl =>
-      val consumer  = buildJobRunnerConsumer(httpClient, dynamoClient)
+      val consumer  = buildJobRunnerConsumer(apiHttpClient, htmlScraperHttpClient, dynamoClient)
       val sqsConfig = SqsConfig(runJobCommandQueueUrl, 20.seconds, 5.minutes, 1.minute, 10.seconds, 100.milliseconds, 6)
       new SqsProcessingStream[IO](sqsClient, sqsConfig, "Job Runner").startStream(consumer)
     }
 
   private def resources: Resource[IO, Resources] =
     for {
-      httpClient           <- BlazeClientBuilder[IO].resource
+      apiHttpClient <- BlazeClientBuilder[IO].withMaxTotalConnections(20).withRequestTimeout(20.seconds).withMaxWaitQueueLimit(1024).resource
+      htmlScraperHtmlClient <- BlazeClientBuilder[IO]
+                                .withParserMode(ParserMode.Lenient)
+                                .withMaxResponseLineSize(8192)
+                                .withMaxTotalConnections(20)
+                                .withMaxWaitQueueLimit(1024)
+                                .withBufferSize(16384)
+                                .withRequestTimeout(20.seconds)
+                                .resource
       dynamoClient         <- Resource.fromAutoCloseable[IO, DynamoDbAsyncClient](IO(DynamoDbAsyncClient.builder().build()))
       sqsClient            <- Resource.fromAutoCloseable[IO, SqsAsyncClient](IO(SqsAsyncClient.builder().build()))
       secretsManagerClient <- Resource.fromAutoCloseable[IO, SecretsManagerClient](IO(SecretsManagerClient.builder().build()))
-    } yield Resources(httpClient, dynamoClient, sqsClient, secretsManagerClient)
+    } yield Resources(apiHttpClient, htmlScraperHtmlClient, dynamoClient, sqsClient, secretsManagerClient)
 }
