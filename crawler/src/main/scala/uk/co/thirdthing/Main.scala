@@ -111,18 +111,18 @@ object Main extends IOApp {
   ): fs2.Stream[IO, Unit] =
     fs2.Stream.eval(secretsManager.secretFor("run-job-commands-queue-url")).flatMap { runJobCommandQueueUrl =>
       val consumer  = buildJobRunnerConsumer(apiHttpClient, htmlScraperHttpClient, dynamoClient, metricsRecorder)
-      val sqsConfig = SqsConfig(runJobCommandQueueUrl, 20.seconds, 5.minutes, 1.minute, 10.seconds, 100.milliseconds, 6)
+      val sqsConfig = SqsConfig(runJobCommandQueueUrl, 20.seconds, 5.minutes, 1.minute, 10.seconds, 100.milliseconds, 8)
       new SqsProcessingStream[IO](sqsClient, sqsConfig, "Job Runner").startStream(consumer)
     }
 
   private def resources: Resource[IO, Resources] =
     for {
-      apiHttpClient <- BlazeClientBuilder[IO].withMaxTotalConnections(20).withRequestTimeout(20.seconds).withMaxWaitQueueLimit(1024).resource
+      apiHttpClient <- BlazeClientBuilder[IO].withMaxTotalConnections(30).withRequestTimeout(20.seconds).withMaxWaitQueueLimit(1500).resource
       htmlScraperHtmlClient <- BlazeClientBuilder[IO]
                                 .withParserMode(ParserMode.Lenient)
                                 .withMaxResponseLineSize(8192)
-                                .withMaxTotalConnections(20)
-                                .withMaxWaitQueueLimit(1024)
+                                .withMaxTotalConnections(30)
+                                .withMaxWaitQueueLimit(1500)
                                 .withBufferSize(16384)
                                 .withRequestTimeout(20.seconds)
                                 .resource
