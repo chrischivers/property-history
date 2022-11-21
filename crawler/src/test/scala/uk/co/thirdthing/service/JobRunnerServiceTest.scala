@@ -53,8 +53,7 @@ class JobRunnerServiceTest extends munit.CatsEffectSuite {
       retrievalServiceResults = Set(retrievalResult1),
       initialJobs = Set(job1),
       initialListingSnapshots = Set.empty,
-      expectedJobs = Set(job1.copy(lastRunCompleted = LastRunCompleted(now).some, lastChange = LastChange(now).some, state = JobState.Completed)
-      ),
+      expectedJobs = Set(job1.copy(lastRunCompleted = LastRunCompleted(now).some, lastChange = LastChange(now).some, state = JobState.Completed)),
       expectedListingSnapshots = Set(
         ListingSnapshot(
           retrievalResult1.listingId,
@@ -71,7 +70,14 @@ class JobRunnerServiceTest extends munit.CatsEffectSuite {
   test("Run a job successfully update the records for a record already existing where the hash has changed") {
 
     val existingListingSnapshot =
-      ListingSnapshot(retrievalResult1.listingId,       LastChange(now.minus(1, ChronoUnit.DAYS)), retrievalResult1.propertyId, retrievalResult1.dateAdded, retrievalResult1.propertyDetails, staticListingSnapshotId.some)
+      ListingSnapshot(
+        retrievalResult1.listingId,
+        LastChange(now.minus(1, ChronoUnit.DAYS)),
+        retrievalResult1.propertyId,
+        retrievalResult1.dateAdded,
+        retrievalResult1.propertyDetails.copy(price = Price(222).some),
+        staticListingSnapshotId.some
+      )
 
     testWith(
       jobId = jobId,
@@ -79,7 +85,7 @@ class JobRunnerServiceTest extends munit.CatsEffectSuite {
       initialJobs = Set(job1),
       initialListingSnapshots = Set(existingListingSnapshot),
       expectedJobs = Set(job1.copy(lastRunCompleted = LastRunCompleted(now).some, lastChange = LastChange(now).some, state = JobState.Completed)),
-      expectedListingSnapshots = Set(existingListingSnapshot, existingListingSnapshot.copy(lastChange = LastChange(now)))
+      expectedListingSnapshots = Set(existingListingSnapshot, existingListingSnapshot.copy(lastChange = LastChange(now), details = retrievalResult1.propertyDetails))
     )
   }
 
@@ -92,10 +98,10 @@ class JobRunnerServiceTest extends munit.CatsEffectSuite {
     expectedListingSnapshots: Set[ListingSnapshot]
   ) = {
     val result = for {
-      jobsStoreRef     <- Ref.of[IO, Map[JobId, CrawlerJob]](initialJobs.map(job => job.jobId                -> job).toMap)
+      jobsStoreRef <- Ref.of[IO, Map[JobId, CrawlerJob]](initialJobs.map(job => job.jobId -> job).toMap)
       listingSnapshotRef <- Ref.of[IO, Map[(ListingId, LastChange), ListingSnapshot]](
-                                 initialListingSnapshots.map(ls => (ls.listingId, ls.lastChange) -> ls).toMap
-                               )
+                             initialListingSnapshots.map(ls => (ls.listingId, ls.lastChange) -> ls).toMap
+                           )
       jobRunner        <- service(retrievalServiceResults.map(r => r.listingId -> r).toMap, jobsStoreRef, listingSnapshotRef)
       _                <- jobRunner.run(jobId)
       jobs             <- jobsStoreRef.get.map(_.view.values.toSet)
@@ -109,9 +115,9 @@ class JobRunnerServiceTest extends munit.CatsEffectSuite {
   }
 
   def service(
-               retrievalServiceResults: Map[ListingId, RetrievalResult],
-               jobStoreRef: Ref[IO, Map[JobId, CrawlerJob]],
-               listingSnapshotStoreRef: Ref[IO, Map[(ListingId, LastChange), ListingSnapshot]]
+    retrievalServiceResults: Map[ListingId, RetrievalResult],
+    jobStoreRef: Ref[IO, Map[JobId, CrawlerJob]],
+    listingSnapshotStoreRef: Ref[IO, Map[(ListingId, LastChange), ListingSnapshot]]
   ): IO[JobRunnerService[IO]] = {
 
     val mockRetrievalService = new RetrievalService[IO] {

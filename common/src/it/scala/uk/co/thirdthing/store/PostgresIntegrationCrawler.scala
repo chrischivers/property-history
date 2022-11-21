@@ -6,7 +6,7 @@ trait PostgresIntegrationCrawler extends PostgresIntegration {
 
   case class PostgresStores(postgresPropertyListingStore: PropertyStore[IO])
 
-  def withPostgresStores(existingPropertyRecords: List[PropertiesRecord] = List.empty)(f: PostgresStores => IO[Unit]): Unit =
-    withPostgresClient(existingPropertyRecords)(session => f(PostgresStores(PostgresPropertyStore[IO](session)))).unsafeRunSync()
+  def withPostgresStores()(f: PostgresStores => IO[Unit]): Unit =
+    withPostgresClient()(session => f(PostgresStores(PostgresPropertyStore[IO](session)))).unsafeRunSync()
 
 }

@@ -62,7 +62,7 @@ object PostgresPropertyStore {
 
     private val insertPropertyRecordCommand: Command[PropertyRecord] =
       sql"""
-             INSERT INTO properties(listingId, propertyId, dateAdded, lastChange, price, transactionTypeId, visible, status, rentFrequency, latitude, longitude) VALUES
+             INSERT INTO properties(listingId, propertyId, dateAdded, lastChange, price, transactionTypeId, visible, listingStatus, rentFrequency, latitude, longitude) VALUES
              ($int8, $int8, $timestamp, $timestamp, ${int4.opt}, ${int4.opt}, ${bool.opt}, ${varchar(24).opt}, ${varchar(32).opt}, ${float8.opt}, ${float8.opt})
          """.command.contramap { pr: PropertyRecord =>
         pr.listingId ~ pr.propertyId ~ pr.dateAdded ~ pr.lastChange ~ pr.price ~ pr.transactionTypeId ~ pr.visible ~ pr.status ~ pr.rentFrequency ~ pr.latitude ~ pr.longitude
@@ -70,10 +70,10 @@ object PostgresPropertyStore {
 
     private val getMostRecentListingCommand: Query[Long, PropertyRecord] = {
       sql"""
-           SELECT recordId, listingId, propertyId, dateAdded, lastChange, price, transactionTypeId, visible, status, rentFrequency, latitude, longitude
+           SELECT recordId, listingId, propertyId, dateAdded, lastChange, price, transactionTypeId, visible, listingStatus, rentFrequency, latitude, longitude
            FROM properties
-           WHERE listingId LIKE $int8
-           ORDER BY recordId DESC
+           WHERE listingId = $int8
+           ORDER BY lastChange DESC
            LIMIT 1
          """
         .query(
@@ -86,18 +86,18 @@ object PostgresPropertyStore {
       sql"""
            SELECT propertyId
            FROM properties
-           WHERE listingId LIKE $int8
-           ORDER BY recordId DESC
+           WHERE listingId = $int8
+           ORDER BY lastChange DESC
            LIMIT 1
          """
         .query(int8)
 
     private val getMostRecentListingsCommand: Query[Long, PropertyRecord] =
       sql"""
-     SELECT DISTINCT ON (listingId) recordId, listingId, propertyId, dateAdded, lastChange, price, transactionTypeId, visible, status, rentFrequency, latitude, longitude
+     SELECT DISTINCT ON (listingId) recordId, listingId, propertyId, dateAdded, lastChange, price, transactionTypeId, visible, listingStatus, rentFrequency, latitude, longitude
      FROM properties
-     WHERE propertyId LIKE $int8
-     ORDER BY recordId DESC
+     WHERE propertyId = $int8
+     ORDER BY listingId DESC, lastChange DESC
    """.query(
           int8.opt ~ int8 ~ int8 ~ timestamp ~ timestamp ~ int4.opt ~ int4.opt ~ bool.opt ~ varchar(24).opt ~ varchar(32).opt ~ float8.opt ~ float8.opt
         )

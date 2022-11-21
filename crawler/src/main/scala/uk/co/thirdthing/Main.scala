@@ -110,7 +110,6 @@ object Main extends IOApp {
     metricsRecorder: MetricsRecorder[IO]
   ) = {
     val jobStore = DynamoJobStore[IO](dynamoClient)
-//    val propertyListingStore = DynamoPropertyListingStore[IO](dynamoClient)
     val postgresPropertyStore = PostgresPropertyStore[IO](dbPool)
     val rightmoveApiClient    = RightmoveApiClient(apiHttpClient, Uri.unsafeFromString("https://api.rightmove.co.uk"))
     val rightmoveHtmlClient   = RightmoveHtmlClient(htmlHttpClient, Uri.unsafeFromString("https://www.rightmove.co.uk"))

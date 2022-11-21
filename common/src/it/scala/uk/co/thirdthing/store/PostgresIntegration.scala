@@ -16,10 +16,6 @@ trait PostgresIntegration extends munit.CatsEffectSuite {
     session.execute(sql"DROP TABLE IF EXISTS properties".command).void
   }
 
-  private def deleteListingsTable(session: Session[IO]) = {
-    session.execute(sql"DROP TABLE IF EXISTS listinghistory".command).void
-
-  }
 
   private def database: Resource[IO, Resource[IO, Session[IO]]] = {
     Session.pooled[IO](
@@ -32,10 +28,9 @@ trait PostgresIntegration extends munit.CatsEffectSuite {
     )
   }
 
-  def withPostgresClient(existingPropertyRecords: List[PropertiesRecord] = List.empty)(f: Resource[IO, Session[IO]] => IO[Unit]): IO[Unit] = {
+  def withPostgresClient()(f: Resource[IO, Session[IO]] => IO[Unit]): IO[Unit] = {
     database.use { pool =>
       pool.use(deletePropertiesTable) *>
-        pool.use(deleteListingsTable) *>
         Initializer.createPostgresTablesIfNotExisting[IO](pool) *>
         f(pool)
     }

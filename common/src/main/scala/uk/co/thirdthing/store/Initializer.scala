@@ -47,14 +47,14 @@ object Initializer {
 
     val createPropertyIdIndex =
       sql"""
-             CREATE INDEX IF NOT EXISTS property_id_date_added_idx
-              ON properties (propertyId, dateAdded);
+             CREATE INDEX IF NOT EXISTS property_id_last_change_idx
+              ON properties (propertyId, lastChange);
               """.command
 
     val createListingIdIndex =
       sql"""
-             CREATE INDEX IF NOT EXISTS listing_id_idx
-              ON properties (listingId);
+             CREATE INDEX IF NOT EXISTS listing_id_last_change_idx
+              ON properties (listingId, lastChange);
               """.command
 
 
