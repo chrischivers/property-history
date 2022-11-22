@@ -93,6 +93,7 @@ object Types {
   object PropertyDetails {
     implicit val codec: Codec[PropertyDetails] = deriveCodec
     val Deleted                                = PropertyDetails(None, None, None, Some(ListingStatus.Deleted), None, None, None)
+    val Empty                                = PropertyDetails(None, None, None, None, None, None, None)
     def from(
       price: Price,
       transactionTypeId: TransactionType,

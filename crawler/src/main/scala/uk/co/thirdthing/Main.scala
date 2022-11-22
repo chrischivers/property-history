@@ -151,7 +151,6 @@ object Main extends IOApp {
           max = 10
         )
     }
-
   }
 
   private def resources(secretsManager: SecretsManager): Resource[IO, Resources] =
