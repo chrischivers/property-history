@@ -148,7 +148,7 @@ object Main extends IOApp {
           user = username,
           database = "propertyhistory",
           password = Some(password),
-          max = 16
+          max = 10
         )
     }
 
