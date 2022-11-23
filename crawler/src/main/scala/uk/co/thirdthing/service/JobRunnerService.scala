@@ -7,12 +7,9 @@ import org.typelevel.log4cats.slf4j.Slf4jLogger
 import uk.co.thirdthing.metrics.MetricsRecorder
 import uk.co.thirdthing.model.Model.CrawlerJob.LastRunCompleted
 import uk.co.thirdthing.model.Model._
-import uk.co.thirdthing.model.Types.ListingSnapshot.ListingSnapshotId
 import uk.co.thirdthing.model.Types._
 import uk.co.thirdthing.service.RetrievalService.RetrievalResult
-import uk.co.thirdthing.store.{JobStore, PropertyListingStore}
-import uk.co.thirdthing.utils.Hasher
-import uk.co.thirdthing.utils.Hasher.Hash
+import uk.co.thirdthing.store.{JobStore, PropertyStore}
 
 import java.time.Instant
 
@@ -26,7 +23,7 @@ object JobRunnerService {
 
   def apply[F[_]: Async](
     jobStore: JobStore[F],
-    propertyListingStore: PropertyListingStore[F],
+    propertyStore: PropertyStore[F],
     retrievalService: RetrievalService[F],
     metricsRecorder: MetricsRecorder[F]
   )(implicit clock: Clock[F]) =
@@ -108,8 +105,8 @@ object JobRunnerService {
         clock.realTimeInstant.flatMap(now => jobStore.put(job.copy(lastRunCompleted = LastRunCompleted(now).some, state = JobState.Completed)))
 
       private def runAndUpdate(listingId: ListingId): F[Option[UpdateTimestamp]] =
-        propertyListingStore
-          .get(listingId)
+        propertyStore
+          .getMostRecentListing(listingId)
           .flatMap { existingPropertyRecord =>
             retrievalService.retrieve(listingId).flatMap[Option[UpdateTimestamp]] { retrievedRecord =>
               (existingPropertyRecord, retrievedRecord) match {
@@ -120,42 +117,49 @@ object JobRunnerService {
                 case (Some(existing), None) => handleDelete(existing).map(_.some)
                 case (None, Some(retrieved)) =>
                   logger.debug(s"New listing ${listingId.value} found. Adding to store") *>
-                    Hasher.hash(retrieved.propertyDetails).flatMap(updateStores(retrieved, _)).map(_.some)
+                    updateStores(retrieved).map(_.some)
               }
             }
           }
           .handleErrorWith(err => logger.error(err)(s"Error encountered when running listing Id $listingId") *> err.raiseError)
 
-      private def handleBothExisting(existingRecord: PropertyListing, retrievalResult: RetrievalResult): F[Option[UpdateTimestamp]] =
-        Hasher.hash(retrievalResult.propertyDetails).flatMap { retrievalResultDetailsChecksum =>
-          if (existingRecord.detailsChecksum.value == retrievalResultDetailsChecksum.value) {
-            logger.debug(s"No change for existing listing ${retrievalResult.listingId.value}").as(Option.empty[UpdateTimestamp])
-          } else {
-            logger.debug(
-              s"Listing ${retrievalResult.listingId.value} has changed. Updating store."
-            ) *>
-              updateStores(retrievalResult, retrievalResultDetailsChecksum).map(Some(_))
-          }
+      private def handleBothExisting(existingRecord: ListingSnapshot, retrievalResult: RetrievalResult): F[Option[UpdateTimestamp]] =
+        if (existingRecord.details == retrievalResult.propertyDetails) {
+          logger.debug(s"No change for existing listing ${retrievalResult.listingId.value}").as(Option.empty[UpdateTimestamp])
+        } else {
+          logger.debug(
+            s"Listing ${retrievalResult.listingId.value} has changed. Updating store."
+          ) *>
+            updateStores(retrievalResult).map(Some(_))
         }
 
-      private def handleDelete(existingRecord: PropertyListing): F[UpdateTimestamp] =
+      private def handleDelete(existingRecord: ListingSnapshot): F[UpdateTimestamp] =
         clock.realTimeInstant.flatMap { now =>
-          val listingSnapshotId = ListingSnapshotId.generate
           val snapshotToUpdate =
-            ListingSnapshot(existingRecord.listingId, LastChange(now), existingRecord.propertyId, existingRecord.dateAdded, listingSnapshotId, None)
-          logger.debug(s"Previously existing listing ${existingRecord.listingId.value} no longer exists. Deleting from store.") *>
-            propertyListingStore.delete(snapshotToUpdate) *>
+            ListingSnapshot(
+              existingRecord.listingId,
+              LastChange(now),
+              existingRecord.propertyId,
+              existingRecord.dateAdded,
+              PropertyDetails.Deleted
+            )
+          logger.debug(s"Previously existing listing ${existingRecord.listingId.value} no longer exists") *>
+            propertyStore.putListingSnapshot(snapshotToUpdate) *>
             UpdateTimestamp(now).pure[F]
         }
 
-      private def updateStores(result: RetrievalResult, detailsHash: Hash): F[UpdateTimestamp] =
+      private def updateStores(result: RetrievalResult): F[UpdateTimestamp] =
         clock.realTimeInstant.flatMap { now =>
-          val listingSnapshotId = ListingSnapshotId.generate
-          val propertyRecord    = PropertyListing(result.listingId, result.propertyId, result.dateAdded, listingSnapshotId, detailsHash)
           val listingSnapshot =
-            ListingSnapshot(result.listingId, LastChange(now), result.propertyId, result.dateAdded, listingSnapshotId, result.propertyDetails.some)
+            ListingSnapshot(
+              result.listingId,
+              LastChange(now),
+              result.propertyId,
+              result.dateAdded,
+              result.propertyDetails
+            )
 
-          propertyListingStore.put(propertyRecord, listingSnapshot) *>
+          propertyStore.putListingSnapshot(listingSnapshot) *>
             UpdateTimestamp(now).pure[F]
         }
 

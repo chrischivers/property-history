@@ -5,9 +5,7 @@ import io.circe.generic.semiauto.deriveCodec
 import io.circe.{Codec, Decoder}
 import monix.newtypes.NewtypeWrapped
 import monix.newtypes.integrations.DerivedCirceCodec
-import org.apache.commons.lang3.RandomStringUtils
 import uk.co.thirdthing.model.Types.ListingSnapshot.ListingSnapshotId
-import uk.co.thirdthing.utils.Hasher.Hash
 
 import java.time.Instant
 
@@ -25,19 +23,24 @@ object Types {
   type Price = Price.Type
   object Price extends NewtypeWrapped[Int] with DerivedCirceCodec
 
-  final case class ListingSnapshot(listingId: ListingId, lastChange: LastChange, propertyId: PropertyId, dateAdded: DateAdded, listingSnapshotId: ListingSnapshotId, details: Option[PropertyDetails])
+  final case class ListingSnapshot(
+    listingId: ListingId,
+    lastChange: LastChange,
+    propertyId: PropertyId,
+    dateAdded: DateAdded,
+    details: PropertyDetails,
+    listingSnapshotId: Option[ListingSnapshotId] = None
+  )
 
   object ListingSnapshot {
     type ListingSnapshotId = ListingSnapshotId.Type
+    object ListingSnapshotId extends NewtypeWrapped[Long] with DerivedCirceCodec
 
-    object ListingSnapshotId extends NewtypeWrapped[String] with DerivedCirceCodec {
-      def generate: ListingSnapshotId = ListingSnapshotId(RandomStringUtils.randomAlphanumeric(12))
-    }
+    implicit val codec: Codec[ListingSnapshot] = deriveCodec
   }
 
   type LastChange = LastChange.Type
   object LastChange extends NewtypeWrapped[Instant] with DerivedCirceCodec
-
 
   sealed abstract class TransactionType(val value: Int) extends IntEnumEntry
 
@@ -77,24 +80,30 @@ object Types {
     }
   }
 
-  final case class PropertyListing(listingId: ListingId, propertyId: PropertyId, dateAdded: DateAdded, listingSnapshotId: ListingSnapshotId, detailsChecksum: Hash)
-
-  object PropertyListing {
-    implicit val codec: Codec[PropertyListing] = deriveCodec
-  }
-
   final case class PropertyDetails(
-                                    price: Price,
-                                    transactionTypeId: TransactionType,
-                                    visible: Boolean,
-                                    status: ListingStatus,
-                                    rentFrequency: Option[String],
-                                    latitude: Option[Double],
-                                    longitude: Option[Double]
-                                  )
+    price: Option[Price],
+    transactionTypeId: Option[TransactionType],
+    visible: Option[Boolean],
+    status: Option[ListingStatus],
+    rentFrequency: Option[String],
+    latitude: Option[Double],
+    longitude: Option[Double]
+  )
 
   object PropertyDetails {
     implicit val codec: Codec[PropertyDetails] = deriveCodec
+    val Deleted                                = PropertyDetails(None, None, None, Some(ListingStatus.Deleted), None, None, None)
+    val Empty                                = PropertyDetails(None, None, None, None, None, None, None)
+    def from(
+      price: Price,
+      transactionTypeId: TransactionType,
+      visible: Boolean,
+      status: ListingStatus,
+      rentFrequency: String,
+      latitude: Double,
+      longitude: Double
+    ): PropertyDetails =
+      PropertyDetails(Some(price), Some(transactionTypeId), Some(visible), Some(status), Some(rentFrequency), Some(latitude), Some(longitude))
   }
 
 }

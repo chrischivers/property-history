@@ -11,6 +11,7 @@ import uk.co.thirdthing.model.Model.{CrawlerJob, JobState, RunJobCommand}
 import uk.co.thirdthing.sqs.SqsPublisher
 import uk.co.thirdthing.store.JobStore
 
+import java.time.ZoneId
 import scala.concurrent.duration._
 import scala.concurrent.duration.FiniteDuration
 

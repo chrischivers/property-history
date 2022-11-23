@@ -7,17 +7,21 @@ import org.scalacheck.Prop.forAll
 import uk.co.thirdthing.model.Types._
 import uk.co.thirdthing.store.PropertyStore
 import uk.co.thirdthing.utils.Generators._
-import uk.co.thirdthing.utils.PublicApiGenerators._
 
 class HistoryServiceTest extends ScalaCheckSuite {
 
-  def propertyStoreMock(rightmovePropertyId: Option[PropertyId], listings: List[PropertyListing]): PropertyStore[IO] = new PropertyStore[IO] {
-    override def propertyIdFor(listingId: ListingId): IO[Option[PropertyId]]          = IO(rightmovePropertyId)
-    override def listingsFor(propertyId: PropertyId): fs2.Stream[IO, PropertyListing] = fs2.Stream.emits[IO, PropertyListing](listings)
+  def propertyStoreMock(rightmovePropertyId: Option[PropertyId], listings: List[ListingSnapshot]): PropertyStore[IO] = new PropertyStore[IO] {
+    override def propertyIdFor(listingId: ListingId): IO[Option[PropertyId]] = IO(rightmovePropertyId)
+
+    override def latestListingsFor(propertyId: PropertyId): fs2.Stream[IO, ListingSnapshot] = fs2.Stream.emits[IO, ListingSnapshot](listings)
+
+    override def putListingSnapshot(listingSnapshot: ListingSnapshot): IO[Unit] = fail("should not be called")
+
+    override def getMostRecentListing(listingId: ListingId): IO[Option[ListingSnapshot]] = fail("should not be called")
   }
 
   property("History is successfully retrieved") {
-    forAll { (propertyId: Option[PropertyId], listings: List[PropertyListing]) =>
+    forAll { (propertyId: Option[PropertyId], listings: List[ListingSnapshot]) =>
       val propertyStore  = propertyStoreMock(propertyId, listings)
       val historyService = HistoryService[IO](propertyStore)
       val results        = historyService.historyFor(ListingId(123)).compile.toList.unsafeRunSync()

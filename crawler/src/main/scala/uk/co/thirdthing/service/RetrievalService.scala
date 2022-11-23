@@ -35,12 +35,12 @@ object RetrievalService {
               RetrievalResult(
                 listingId,
                 propertyId,
-                DateAdded(Instant.ofEpochMilli(listingDetails.sortDate.getOrElse(listingDetails.updateDate))),
+                dateAddedFrom(listingDetails),
                 PropertyDetails(
-                  listingDetails.price,
-                  listingDetails.transactionTypeId,
-                  listingDetails.visible,
-                  listingStatusFrom(scrapeResult, listingDetails),
+                  listingDetails.price.some,
+                  listingDetails.transactionTypeId.some,
+                  listingDetails.visible.some,
+                  listingStatusFrom(scrapeResult, listingDetails).some,
                   listingDetails.rentFrequency,
                   listingDetails.latitude,
                   listingDetails.longitude
@@ -51,6 +51,16 @@ object RetrievalService {
         }.value
       }
     }
+
+  private def validateMillisTimestamp(ts: Long): Option[Long] = {
+    if (ts >= 0) ts.some
+    else none
+  }
+
+  private def dateAddedFrom(listingDetails: ListingDetails): DateAdded = {
+    val timestampMillis = listingDetails.sortDate.flatMap(validateMillisTimestamp).orElse(validateMillisTimestamp(listingDetails.updateDate)).getOrElse(0L)
+    DateAdded(Instant.ofEpochMilli(timestampMillis))
+  }
   private def listingStatusFrom(htmlPageResult: RightmoveHtmlScrapeResult, listingDetails: ListingDetails): ListingStatus = {
 
     if (DeletedStatusCodes(htmlPageResult.statusCode)) ListingStatus.Deleted

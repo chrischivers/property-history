@@ -14,6 +14,7 @@ object Dependencies {
     val log4cats              = "2.4.0"
     val logbackClassic        = "1.2.11"
     val meteor                = "1.0.31"
+    val skunk                 = "0.3.2"
     val newtype               = "0.2.3"
     val enumeration           = "1.7.0"
     val aws                   = "2.18.10"
@@ -58,6 +59,11 @@ object Dependencies {
     "io.github.d2a4u" %% "meteor-awssdk" % Versions.meteor
   )
 
+  private val skunk = Seq(
+    "org.tpolecat" %% "skunk-core"  % Versions.skunk,
+    "org.tpolecat" %% "skunk-circe" % Versions.skunk
+  )
+
   private val newtype = Seq(
     "io.monix" %% "newtypes-core"        % Versions.newtype,
     "io.monix" %% "newtypes-circe-v0-14" % Versions.newtype
@@ -75,7 +81,7 @@ object Dependencies {
     "software.amazon.awssdk" % "secretsmanager" % Versions.aws
   )
 
-  private val awsSCloudwatch = Seq(
+  private val awsCloudwatch = Seq(
     "software.amazon.awssdk" % "cloudwatch" % Versions.aws
   )
 
@@ -89,8 +95,8 @@ object Dependencies {
   private val test = munit.map(_ % "test,it")
 
   val commonDependencies: Seq[ModuleID] =
-    http4s ++ refined ++ circe ++ logging ++ metor ++ newtype ++ awsSqs ++ awsSecretsManager ++ enumeration ++ apacheCommonsLang ++ test
+    http4s ++ refined ++ circe ++ logging ++ metor ++ skunk ++ newtype ++ awsSqs ++ awsSecretsManager ++ awsCloudwatch ++ apacheCommonsLang ++ enumeration ++ test
   val publicApiDependencies: Seq[ModuleID] = http4s ++ refined ++ circe ++ logging ++ metor ++ newtype ++ test
   val crawlerDependencies: Seq[ModuleID] =
-    http4s ++ refined ++ circe ++ logging ++ metor ++ newtype ++ awsSCloudwatch ++ diffx ++ test
+    http4s ++ refined ++ circe ++ logging ++ metor ++ newtype ++ diffx ++ test
 }
