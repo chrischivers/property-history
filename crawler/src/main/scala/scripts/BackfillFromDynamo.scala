@@ -47,7 +47,13 @@ object BackfillFromDynamo extends IOApp {
 
           dynamoClient
             .scan[DynamoItem]("listing-history", consistentRead = false, 10)
-            .evalTap(item => IO.println(s"Processing item $item"))
+            .zipWithIndex
+            .evalMap{
+              case (item, idx) if idx % 10000 == 0 => IO.println(s"Processing item $idx").as(item)
+              case (item, _) => item.pure[IO]
+            }
+//            .evalTap(item => IO.println(s"Processing item $item"))
+            .map(withValidTimestamp)
             .parEvalMap(10)(item => putPostgresListingSnapshot(propertyStore)(item).as(item))
             .map(item => (item.listingId, item.lastChange))
             .broadcastThrough(listingHistoryDynamoTable.batchDelete(60.seconds, 10, BackoffStrategy.defaultStrategy()))
@@ -57,6 +63,11 @@ object BackfillFromDynamo extends IOApp {
 
       }
     }
+
+  private def withValidTimestamp(item: DynamoItem) = {
+    if (item.dateAdded.value.toEpochMilli < 0) item.copy(dateAdded = DateAdded(Instant.ofEpochMilli(0L)))
+    else item
+  }
 
   private def putPostgresListingSnapshot(propertyStore: PropertyStore[IO])(item: DynamoItem) =
     propertyStore
