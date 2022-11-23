@@ -9,7 +9,7 @@ import uk.co.thirdthing.clients.RightmoveApiClient
 import uk.co.thirdthing.config.JobSeederConfig
 import uk.co.thirdthing.model.Model.{CrawlerJob, JobId, JobState}
 import uk.co.thirdthing.model.Types.ListingId
-import uk.co.thirdthing.utils.MockJobStore
+import uk.co.thirdthing.utils.{MockJobScheduler, MockJobStore}
 
 class JobSeederTest extends munit.CatsEffectSuite {
 
@@ -23,7 +23,7 @@ class JobSeederTest extends munit.CatsEffectSuite {
       config = config,
       apiClientSuccessfulIds = Set.empty,
       expectedJobs =
-        (0 until 10).toList.map(i => CrawlerJob(JobId(i + 1), ListingId((i * 10) + 1), ListingId((i + 1) * 10), JobState.NeverRun, None, None, None)).toSet,
+        (0 until 10).toList.map(i => CrawlerJob(JobId(i + 1), ListingId((i * 10) + 1), ListingId((i + 1) * 10), JobState.NeverRun, None, None, None, None)).toSet,
       expectedSize = 10
     )
   }
@@ -33,13 +33,13 @@ class JobSeederTest extends munit.CatsEffectSuite {
     val config = JobSeederConfig(jobChunkSize = 10, startingMaxListingIdForFirstRun = 100, emptyRecordsToDetermineLatest = 5)
     testWith(
       initialJobs = Set(
-        CrawlerJob(JobId(1), ListingId(1), ListingId(10), JobState.NeverRun, None, None, None),
-        CrawlerJob(JobId(2), ListingId(11), ListingId(20), JobState.NeverRun, None, None, None)
+        CrawlerJob(JobId(1), ListingId(1), ListingId(10), JobState.NeverRun, None, None, None, None),
+        CrawlerJob(JobId(2), ListingId(11), ListingId(20), JobState.NeverRun, None, None, None, None)
       ),
       config = config,
       apiClientSuccessfulIds = Set(ListingId(21)),
       expectedJobs =
-        (0 to 2).toList.map(i => CrawlerJob(JobId(i + 1), ListingId((i * 10) + 1), ListingId((i + 1) * 10), JobState.NeverRun, None, None, None)).toSet,
+        (0 to 2).toList.map(i => CrawlerJob(JobId(i + 1), ListingId((i * 10) + 1), ListingId((i + 1) * 10), JobState.NeverRun, None, None, None, None)).toSet,
       expectedSize = 3
     )
 
@@ -50,14 +50,14 @@ class JobSeederTest extends munit.CatsEffectSuite {
     val config = JobSeederConfig(jobChunkSize = 10, startingMaxListingIdForFirstRun = 100, emptyRecordsToDetermineLatest = 5)
     testWith(
       initialJobs = Set(
-        CrawlerJob(JobId(1), ListingId(1), ListingId(10), JobState.NeverRun, None, None, None),
-        CrawlerJob(JobId(2), ListingId(11), ListingId(20), JobState.NeverRun, None, None, None)
+        CrawlerJob(JobId(1), ListingId(1), ListingId(10), JobState.NeverRun, None, None, None, None),
+        CrawlerJob(JobId(2), ListingId(11), ListingId(20), JobState.NeverRun, None, None, None, None)
       ),
       config = config,
       apiClientSuccessfulIds = Set.empty,
       expectedJobs = Set(
-        CrawlerJob(JobId(1), ListingId(1), ListingId(10), JobState.NeverRun, None, None, None),
-        CrawlerJob(JobId(2), ListingId(11), ListingId(20), JobState.NeverRun, None, None, None)
+        CrawlerJob(JobId(1), ListingId(1), ListingId(10), JobState.NeverRun, None, None, None, None),
+        CrawlerJob(JobId(2), ListingId(11), ListingId(20), JobState.NeverRun, None, None, None, None)
       ),
       expectedSize = 2
     )
@@ -105,7 +105,7 @@ class JobSeederTest extends munit.CatsEffectSuite {
       Uri.unsafeFromString("/")
     )
 
-    MockJobStore(initialJobsRef).map(jobStore => JobSeeder.apply[IO](apiClient, jobStore, config))
+    MockJobStore(initialJobsRef).map(jobStore => JobSeeder.apply[IO](apiClient, jobStore, config, MockJobScheduler.apply()))
   }
 
 }

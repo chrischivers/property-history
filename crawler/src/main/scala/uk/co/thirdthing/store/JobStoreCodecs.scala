@@ -6,7 +6,7 @@ import meteor.errors.DecoderError
 import meteor.syntax._
 import uk.co.thirdthing.model.Model.CrawlerJob.{LastRunCompleted, LastRunScheduled}
 import uk.co.thirdthing.model.Model._
-import uk.co.thirdthing.model.Types.{LastChange, ListingId}
+import uk.co.thirdthing.model.Types.{DateAdded, LastChange, ListingId}
 
 import java.time.Instant
 
@@ -23,7 +23,8 @@ object JobStoreCodecs {
       "lastRunScheduled" -> job.lastRunScheduled.map(_.value).asAttributeValue,
       "type"             -> "JOB".asAttributeValue,
       "state"            -> job.state.entryName.asAttributeValue,
-      "lastChange"       -> job.lastChange.map(_.value).asAttributeValue
+      "lastChange"       -> job.lastChange.map(_.value).asAttributeValue,
+      "latestDateAdded" -> job.latestDateAdded.map(_.value).asAttributeValue
     ).asAttributeValue
   }
 
@@ -35,6 +36,7 @@ object JobStoreCodecs {
       lastRunScheduled <- job.getOpt[Instant]("lastRunScheduled")
       lastRunCompleted <- job.getOpt[Instant]("lastRunCompleted")
       lastChange       <- job.getOpt[Instant]("lastChange")
+      latestDateAdded  <- job.getOpt[Instant]("latestDateAdded")
       jobState         <- job.getAs[String]("state").flatMap(JobState.withNameEither(_).leftMap(err => DecoderError("Unable to decode state", err.some)))
     } yield CrawlerJob(
       jobId,
@@ -43,7 +45,8 @@ object JobStoreCodecs {
       jobState,
       lastRunScheduled.map(LastRunScheduled(_)),
       lastRunCompleted.map(LastRunCompleted(_)),
-      lastChange.map(LastChange(_))
+      lastChange.map(LastChange(_)),
+      latestDateAdded.map(DateAdded(_))
     )
   }
 

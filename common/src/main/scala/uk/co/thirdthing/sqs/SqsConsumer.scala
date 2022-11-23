@@ -41,6 +41,7 @@ class SqsProcessingStream[F[_]: Async: Parallel](sqsClient: SqsAsyncClient, sqsC
   private def handleThenDelete[A](consumer: SqsConsumer[F, A], decodedMessage: A, receiptHandle: String) =
     Sync[F].race(consumer.handle(decodedMessage), updateVisibilityTimeoutStream(receiptHandle)).void *>
       deleteMesage(receiptHandle).void
+
   private def decodeMessage[A: Decoder](msg: Message): Either[circe.Error, A] =
     parse(msg.body()).flatMap(_.as[A])
 

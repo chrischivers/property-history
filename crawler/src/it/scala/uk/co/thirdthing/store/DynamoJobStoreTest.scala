@@ -13,25 +13,27 @@ import java.time.temporal.ChronoUnit
 class DynamoJobStoreTest extends munit.CatsEffectSuite with DynamoIntegrationCrawler {
   import JobStoreCodecs._
 
-  private val crawlerJob1 = CrawlerJob(JobId(123), ListingId(333), ListingId(444), JobState.NeverRun, None, None, None)
+  private val crawlerJob1 = CrawlerJob(JobId(123), ListingId(333), ListingId(444), JobState.NeverRun, None, None, None, None)
   private val crawlerJob2 = CrawlerJob(
-    JobId(234),
-    ListingId(444),
-    ListingId(555),
-    JobState.Pending,
-    None,
-    Some(LastRunCompleted(Instant.now().truncatedTo(ChronoUnit.MILLIS))),
-    None
+    jobId = JobId(234),
+    from = ListingId(444),
+    to = ListingId(555),
+    state = JobState.Pending,
+    lastRunScheduled = None,
+    lastRunCompleted = Some(LastRunCompleted(Instant.now().truncatedTo(ChronoUnit.MILLIS))),
+    lastChange = None,
+    latestDateAdded = None
   )
   private val crawlerJob3 =
     CrawlerJob(
-      JobId(345),
-      ListingId(222),
-      ListingId(333),
-      JobState.Completed,
-      None,
-      Some(LastRunCompleted(Instant.now().plus(1, ChronoUnit.DAYS).truncatedTo(ChronoUnit.MILLIS))),
-      None
+      jobId = JobId(345),
+      from = ListingId(222),
+      to = ListingId(333),
+      state = JobState.Completed,
+      lastRunScheduled = None,
+      lastRunCompleted = Some(LastRunCompleted(Instant.now().plus(1, ChronoUnit.DAYS).truncatedTo(ChronoUnit.MILLIS))),
+      lastChange = None,
+      latestDateAdded = None
     )
 
   test("Put a single job") {

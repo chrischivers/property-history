@@ -34,7 +34,8 @@ class JobRunnerServiceTest extends munit.CatsEffectSuite {
     state = JobState.Pending,
     lastRunScheduled = None,
     lastRunCompleted = None,
-    lastChange = None
+    lastChange = None,
+    latestDateAdded = None
   )
 
   private val listingId  = ListingId(500)
@@ -53,7 +54,14 @@ class JobRunnerServiceTest extends munit.CatsEffectSuite {
       retrievalServiceResults = Set(retrievalResult1),
       initialJobs = Set(job1),
       initialListingSnapshots = Set.empty,
-      expectedJobs = Set(job1.copy(lastRunCompleted = LastRunCompleted(now).some, lastChange = LastChange(now).some, state = JobState.Completed)),
+      expectedJobs = Set(
+        job1.copy(
+          lastRunCompleted = LastRunCompleted(now).some,
+          lastChange = LastChange(now).some,
+          latestDateAdded = retrievalResult1.dateAdded.some,
+          state = JobState.Completed
+        )
+      ),
       expectedListingSnapshots = Set(
         ListingSnapshot(
           retrievalResult1.listingId,
@@ -67,7 +75,7 @@ class JobRunnerServiceTest extends munit.CatsEffectSuite {
     )
   }
 
-  test("Run a job successfully update the records for a record already existing where the hash has changed") {
+  test("Run a job successfully update the records for a record already existing but the data has changed") {
 
     val existingListingSnapshot =
       ListingSnapshot(
@@ -84,8 +92,16 @@ class JobRunnerServiceTest extends munit.CatsEffectSuite {
       retrievalServiceResults = Set(retrievalResult1),
       initialJobs = Set(job1),
       initialListingSnapshots = Set(existingListingSnapshot),
-      expectedJobs = Set(job1.copy(lastRunCompleted = LastRunCompleted(now).some, lastChange = LastChange(now).some, state = JobState.Completed)),
-      expectedListingSnapshots = Set(existingListingSnapshot, existingListingSnapshot.copy(lastChange = LastChange(now), details = retrievalResult1.propertyDetails))
+      expectedJobs = Set(
+        job1.copy(
+          lastRunCompleted = LastRunCompleted(now).some,
+          lastChange = LastChange(now).some,
+          latestDateAdded = retrievalResult1.dateAdded.some,
+          state = JobState.Completed
+        )
+      ),
+      expectedListingSnapshots =
+        Set(existingListingSnapshot, existingListingSnapshot.copy(lastChange = LastChange(now), details = retrievalResult1.propertyDetails))
     )
   }
 

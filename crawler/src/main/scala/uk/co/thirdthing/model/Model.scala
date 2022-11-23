@@ -7,7 +7,7 @@ import io.circe.generic.semiauto.deriveCodec
 import monix.newtypes.NewtypeWrapped
 import monix.newtypes.integrations.DerivedCirceCodec
 import uk.co.thirdthing.model.Model.CrawlerJob._
-import uk.co.thirdthing.model.Types.{LastChange, ListingId}
+import uk.co.thirdthing.model.Types.{DateAdded, LastChange, ListingId}
 
 import java.time.Instant
 
@@ -34,7 +34,8 @@ object Model {
                                state: JobState,
                                lastRunScheduled: Option[LastRunScheduled],
                                lastRunCompleted: Option[LastRunCompleted],
-                               lastChange: Option[LastChange]
+                               lastChange: Option[LastChange],
+                               latestDateAdded: Option[DateAdded]
   )
 
   object CrawlerJob {

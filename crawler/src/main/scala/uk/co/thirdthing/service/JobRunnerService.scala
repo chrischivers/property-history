@@ -18,8 +18,7 @@ trait JobRunnerService[F[_]] {
 }
 object JobRunnerService {
 
-  private type UpdateTimestamp = UpdateTimestamp.Type
-  private object UpdateTimestamp extends NewtypeWrapped[Instant]
+  private final case class Result(lastChange: LastChange, dateAdded: DateAdded)
 
   def apply[F[_]: Async](
     jobStore: JobStore[F],
@@ -74,41 +73,49 @@ object JobRunnerService {
           .parEvalMap(5)(runAndUpdate)
           .compile
           .toList
-          .flatMap(handleRunResults(job, _))
+          .flatMap(results => handleRunResults(job, results.flatten))
       }
 
-      private def handleRunResults(job: CrawlerJob, results: List[Option[UpdateTimestamp]]) = results match {
+      private def handleRunResults(job: CrawlerJob, results: List[Result]) = results match {
         case Nil =>
           val error = s"No listings in range for crawler job ${job.jobId.value}"
           logger.error(error) *>
             new IllegalStateException(s"No listings in range for crawler job ${job.jobId.value}").raiseError[F, Unit]
-        case result =>
-          val updateTimestamps = result.collect {
-            case Some(timestamp) => timestamp
-          }
-          if (updateTimestamps.isEmpty) {
+        case results =>
+          if (results.isEmpty) {
             logger.info(s"No records updated for crawler job ${job.jobId.value}") *>
               updateJobStoreWhenNoDataChanges(job)
           } else {
-            logger.info(s"${updateTimestamps.size} of ${job.to.value - job.from.value} records updated for crawler job ${job.jobId.value}") *>
-              updateJobStoreWhenDataChanges(job, LastChange(updateTimestamps.maxBy(_.value).value))
+            logger.info(s"${results.size} of ${job.to.value - job.from.value} records updated for crawler job ${job.jobId.value}") *>
+              updateJobStoreWhenDataChanges(job, results)
           }
 
       }
 
-      private def updateJobStoreWhenDataChanges(job: CrawlerJob, lastChange: LastChange): F[Unit] =
+      private def updateJobStoreWhenDataChanges(job: CrawlerJob, results: List[Result]): F[Unit] = {
+        val latestLastChange = results.maxBy(_.lastChange.value).lastChange
+        val latestDateAdded  = results.maxBy(_.dateAdded.value).dateAdded
+
         clock.realTimeInstant.flatMap { now =>
-          jobStore.put(job.copy(lastRunCompleted = LastRunCompleted(now).some, lastChange = lastChange.some, state = JobState.Completed))
+          jobStore.put(
+            job.copy(
+              lastRunCompleted = LastRunCompleted(now).some,
+              lastChange = latestLastChange.some,
+              latestDateAdded = latestDateAdded.some,
+              state = JobState.Completed
+            )
+          )
         }
+      }
 
       private def updateJobStoreWhenNoDataChanges(job: CrawlerJob) =
         clock.realTimeInstant.flatMap(now => jobStore.put(job.copy(lastRunCompleted = LastRunCompleted(now).some, state = JobState.Completed)))
 
-      private def runAndUpdate(listingId: ListingId): F[Option[UpdateTimestamp]] =
+      private def runAndUpdate(listingId: ListingId): F[Option[Result]] =
         propertyStore
           .getMostRecentListing(listingId)
           .flatMap { existingPropertyRecord =>
-            retrievalService.retrieve(listingId).flatMap[Option[UpdateTimestamp]] { retrievedRecord =>
+            retrievalService.retrieve(listingId).flatMap[Option[Result]] { retrievedRecord =>
               (existingPropertyRecord, retrievedRecord) match {
                 case (None, None) =>
                   logger.debug(s"No change for non-existing listing ${listingId.value}").as(none)
@@ -123,9 +130,9 @@ object JobRunnerService {
           }
           .handleErrorWith(err => logger.error(err)(s"Error encountered when running listing Id $listingId") *> err.raiseError)
 
-      private def handleBothExisting(existingRecord: ListingSnapshot, retrievalResult: RetrievalResult): F[Option[UpdateTimestamp]] =
+      private def handleBothExisting(existingRecord: ListingSnapshot, retrievalResult: RetrievalResult): F[Option[Result]] =
         if (existingRecord.details == retrievalResult.propertyDetails) {
-          logger.debug(s"No change for existing listing ${retrievalResult.listingId.value}").as(Option.empty[UpdateTimestamp])
+          logger.debug(s"No change for existing listing ${retrievalResult.listingId.value}").as(Option.empty[Result])
         } else {
           logger.debug(
             s"Listing ${retrievalResult.listingId.value} has changed. Updating store."
@@ -133,7 +140,7 @@ object JobRunnerService {
             updateStores(retrievalResult).map(Some(_))
         }
 
-      private def handleDelete(existingRecord: ListingSnapshot): F[UpdateTimestamp] =
+      private def handleDelete(existingRecord: ListingSnapshot): F[Result] =
         clock.realTimeInstant.flatMap { now =>
           val snapshotToUpdate =
             ListingSnapshot(
@@ -145,10 +152,10 @@ object JobRunnerService {
             )
           logger.debug(s"Previously existing listing ${existingRecord.listingId.value} no longer exists") *>
             propertyStore.putListingSnapshot(snapshotToUpdate) *>
-            UpdateTimestamp(now).pure[F]
+            Result(LastChange(now), snapshotToUpdate.dateAdded).pure[F]
         }
 
-      private def updateStores(result: RetrievalResult): F[UpdateTimestamp] =
+      private def updateStores(result: RetrievalResult): F[Result] =
         clock.realTimeInstant.flatMap { now =>
           val listingSnapshot =
             ListingSnapshot(
@@ -160,7 +167,7 @@ object JobRunnerService {
             )
 
           propertyStore.putListingSnapshot(listingSnapshot) *>
-            UpdateTimestamp(now).pure[F]
+            Result(LastChange(now), listingSnapshot.dateAdded).pure[F]
         }
 
     }
