@@ -44,12 +44,12 @@ object BackFillJobTableWithLatestDateAdded extends IOApp {
     sql"""
       SELECT MAX(dateadded)
       FROM properties
-      WHERE listingid >= $int8 AND listingid <= $int8""".query(timestamp)
+      WHERE listingid >= $int8 AND listingid <= $int8""".query(timestamp.opt)
 
   private def getLatestDateAddedBetweenListings(pool: Resource[IO, Session[IO]])(from: ListingId, to: ListingId) =
     pool
-      .use(session => session.prepare(selectMaxDateAddedQuery).use(query => query.option(from.value, to.value)))
-      .map(_.map(r => DateAdded(r.asInstant)))
+      .use(session => session.prepare(selectMaxDateAddedQuery).use(_.option(from.value, to.value)))
+      .map(_.flatMap(_.map(ldt => DateAdded(ldt.asInstant))))
 
   private def dynamoDbClient =
     Resource.fromAutoCloseable(IO(DynamoDbAsyncClient.builder().build()))
