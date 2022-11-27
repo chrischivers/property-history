@@ -1,8 +1,11 @@
+import org.portablescala.sbtplatformdeps.PlatformDepsPlugin.autoImport._
 import sbt._
+
 
 object Dependencies {
 
   object Versions {
+    val scala                 = "2.13.8"
     val http4s                = "0.23.12"
     val munit                 = "0.7.29"
     val munitCatsEffect       = "1.0.7"
@@ -20,6 +23,10 @@ object Dependencies {
     val aws                   = "2.18.10"
     val diffx                 = "0.8.2"
     val apacheCommonsLang     = "3.12.0"
+    val laminar               = "0.14.2"
+    val wayPoint              = "0.5.0"
+    val scalaCss              = "1.0.0"
+    val http4sDom             = "0.2.3"
   }
 
   private val munit = Seq(
@@ -94,7 +101,9 @@ object Dependencies {
   )
   private val test = munit.map(_ % "test,it")
 
-  val commonDependencies: Seq[ModuleID] =
+
+  val commonDependencies = enumeration ++ circe ++ newtype
+  val backendCommonDependencies: Seq[ModuleID] =
     http4s ++ refined ++ circe ++ logging ++ metor ++ skunk ++ newtype ++ awsSqs ++ awsSecretsManager ++ awsCloudwatch ++ apacheCommonsLang ++ enumeration ++ test
   val publicApiDependencies: Seq[ModuleID] = http4s ++ refined ++ circe ++ logging ++ metor ++ newtype ++ test
   val crawlerDependencies: Seq[ModuleID] =

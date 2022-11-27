@@ -15,3 +15,5 @@ docker-volumes
 .java-version
 secret
 .bloop
+*.env
+.env

@@ -7,7 +7,7 @@ import org.http4s.implicits._
 import org.http4s.server.Router
 import org.http4s.server.defaults.HttpPort
 import skunk.Session
-import uk.co.thirdthing.routes.{ApiRoute, MetaRoute}
+import uk.co.thirdthing.routes.{ApiRoute, MetaRoute, StaticRoutes}
 import uk.co.thirdthing.secrets.{AmazonSecretsManager, SecretsManager}
 import uk.co.thirdthing.service.HistoryService
 import natchez.Trace.Implicits.noop
@@ -52,7 +52,8 @@ object ApplicationBuilder {
   def router(historyService: HistoryService[IO]) =
     Router(
       "/api"  -> ApiRoute.routes[IO](historyService),
-      "/meta" -> MetaRoute.routes[IO]
+      "/meta" -> MetaRoute.routes[IO],
+      "/"     -> StaticRoutes.routes[IO]
     ).orNotFound
 
   def serverResource(httpApp: HttpApp[IO]) =

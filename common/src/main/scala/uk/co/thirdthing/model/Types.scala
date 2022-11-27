@@ -42,12 +42,12 @@ object Types {
   type LastChange = LastChange.Type
   object LastChange extends NewtypeWrapped[Instant] with DerivedCirceCodec
 
-  sealed abstract class TransactionType(val value: Int) extends IntEnumEntry
+  sealed abstract class TransactionType(override val value: Int, val string: String) extends IntEnumEntry
 
   object TransactionType extends IntEnum[TransactionType] with IntCirceEnum[TransactionType] {
-    final case object Sale extends TransactionType(1)
+    final case object Sale extends TransactionType(1, "Sale")
 
-    final case object Rental extends TransactionType(2)
+    final case object Rental extends TransactionType(2, "Rental")
 
     override def values: IndexedSeq[TransactionType] = findValues
   }

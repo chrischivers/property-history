@@ -1,4 +1,4 @@
-package uk.co.thirdthing
+package uk.co.thirdthing.store
 
 import cats.effect.{Resource, Sync}
 import software.amazon.awssdk.auth.credentials.DefaultCredentialsProvider

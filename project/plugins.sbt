@@ -1,2 +1,6 @@
-addSbtPlugin("org.scalameta" % "sbt-scalafmt" % "2.4.2")
+addSbtPlugin("org.scalameta"  % "sbt-scalafmt"        % "2.4.2")
 addSbtPlugin("com.github.sbt" % "sbt-native-packager" % "1.9.11")
+addSbtPlugin("io.spray"       % "sbt-revolver"        % "0.9.1")
+addSbtPlugin("com.eed3si9n"   % "sbt-projectmatrix"   % "0.9.0")
+addSbtPlugin("org.scala-js"   % "sbt-scalajs"         % "1.12.0")
+addSbtPlugin("nl.gn0s1s"      % "sbt-dotenv"          % "3.0.0")

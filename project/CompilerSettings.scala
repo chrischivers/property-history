@@ -1,13 +1,10 @@
 import sbt.Keys.{scalaVersion, scalacOptions}
-import sbt.addCompilerPlugin
-import sbt.Keys._
-import sbt._
 
 
 object CompilerSettings {
 
   val settings = Seq(
-    scalaVersion                      := "2.13.8",
+    scalaVersion                      := Dependencies.Versions.scala,
     scalacOptions                     := Seq(
 //      "-target:8",
       "-encoding",
