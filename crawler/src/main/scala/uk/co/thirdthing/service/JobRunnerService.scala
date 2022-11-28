@@ -2,7 +2,6 @@ package uk.co.thirdthing.service
 
 import cats.effect.kernel.{Async, Clock}
 import cats.syntax.all._
-import monix.newtypes.NewtypeWrapped
 import org.typelevel.log4cats.slf4j.Slf4jLogger
 import uk.co.thirdthing.metrics.MetricsRecorder
 import uk.co.thirdthing.model.Model.CrawlerJob.LastRunCompleted
@@ -10,8 +9,6 @@ import uk.co.thirdthing.model.Model._
 import uk.co.thirdthing.model.Types._
 import uk.co.thirdthing.service.RetrievalService.RetrievalResult
 import uk.co.thirdthing.store.{JobStore, PropertyStore}
-
-import java.time.Instant
 
 trait JobRunnerService[F[_]] {
   def run(jobId: JobId): F[Unit]
@@ -76,21 +73,14 @@ object JobRunnerService {
           .flatMap(results => handleRunResults(job, results.flatten))
       }
 
-      private def handleRunResults(job: CrawlerJob, results: List[Result]) = results match {
-        case Nil =>
-          val error = s"No listings in range for crawler job ${job.jobId.value}"
-          logger.error(error) *>
-            new IllegalStateException(s"No listings in range for crawler job ${job.jobId.value}").raiseError[F, Unit]
-        case results =>
-          if (results.isEmpty) {
-            logger.info(s"No records updated for crawler job ${job.jobId.value}") *>
-              updateJobStoreWhenNoDataChanges(job)
-          } else {
-            logger.info(s"${results.size} of ${job.to.value - job.from.value} records updated for crawler job ${job.jobId.value}") *>
-              updateJobStoreWhenDataChanges(job, results)
-          }
-
-      }
+      private def handleRunResults(job: CrawlerJob, results: List[Result]) =
+        if (results.isEmpty) {
+          logger.info(s"No records updated for crawler job ${job.jobId.value}") *>
+            updateJobStoreWhenNoDataChanges(job)
+        } else {
+          logger.info(s"${results.size} of ${job.to.value - job.from.value} records updated for crawler job ${job.jobId.value}") *>
+            updateJobStoreWhenDataChanges(job, results)
+        }
 
       private def updateJobStoreWhenDataChanges(job: CrawlerJob, results: List[Result]): F[Unit] = {
         val latestLastChange = results.maxBy(_.lastChange.value).lastChange
