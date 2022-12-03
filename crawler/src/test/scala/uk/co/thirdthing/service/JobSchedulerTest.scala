@@ -20,7 +20,7 @@ class JobSchedulerTest extends munit.CatsEffectSuite {
   val config = JobSchedulerConfig.default
 
   private val crawlerJob1 = CrawlerJob(JobId(1), ListingId(0), ListingId(10), JobState.NeverRun, None, None, None, None)
-  private val now         = Instant.now().truncatedTo(ChronoUnit.MILLIS)
+  private val now         = Instant.now().plus(60, ChronoUnit.DAYS).truncatedTo(ChronoUnit.MILLIS)
   private val staticClock = new Clock[IO] {
     override def applicative: Applicative[IO] = implicitly
 
@@ -115,6 +115,7 @@ class JobSchedulerTest extends munit.CatsEffectSuite {
     val job = crawlerJob1.copy(state = JobState.Pending)
     testWith(Set(job), Set(job), List.empty)
   }
+
 
   def testWith(initialJobs: Set[CrawlerJob], expectedJobs: Set[CrawlerJob], expectedMessages: List[RunJobCommand]) = {
     val result = for {
