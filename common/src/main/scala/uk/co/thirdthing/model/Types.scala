@@ -45,9 +45,9 @@ object Types {
   sealed abstract class TransactionType(override val value: Int, val string: String) extends IntEnumEntry
 
   object TransactionType extends IntEnum[TransactionType] with IntCirceEnum[TransactionType] {
-    final case object Sale extends TransactionType(1, "Sale")
+    case object Sale extends TransactionType(1, "Sale")
 
-    final case object Rental extends TransactionType(2, "Rental")
+    case object Rental extends TransactionType(2, "Rental")
 
     override def values: IndexedSeq[TransactionType] = findValues
   }
@@ -55,23 +55,23 @@ object Types {
   sealed abstract class ListingStatus(override val value: String) extends StringEnumEntry
 
   object ListingStatus extends StringEnum[ListingStatus] with StringCirceEnum[ListingStatus] {
-    final case object SoldSTC extends ListingStatus("Sold STC")
+    case object SoldSTC extends ListingStatus("Sold STC")
 
-    final case object SoldSTCM extends ListingStatus("Sold STCM")
+    case object SoldSTCM extends ListingStatus("Sold STCM")
 
-    final case object LetAgreed extends ListingStatus("Under Offer")
+    case object LetAgreed extends ListingStatus("Under Offer")
 
-    final case object UnderOffer extends ListingStatus("Let Agreed")
+    case object UnderOffer extends ListingStatus("Let Agreed")
 
-    final case object Reserved extends ListingStatus("Reserved")
+    case object Reserved extends ListingStatus("Reserved")
 
-    final case object Deleted extends ListingStatus("Deleted")
+    case object Deleted extends ListingStatus("Deleted")
 
-    final case object Hidden extends ListingStatus("Hidden")
+    case object Hidden extends ListingStatus("Hidden")
 
-    final case object Other extends ListingStatus("Other")
+    case object Other extends ListingStatus("Other")
 
-    final case object Unknown extends ListingStatus("Unknown")
+    case object Unknown extends ListingStatus("Unknown")
 
     override def values: IndexedSeq[ListingStatus] = findValues
 

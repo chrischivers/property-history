@@ -35,6 +35,6 @@ trait DynamoIntegration extends munit.CatsEffectSuite {
         )
       )
       .evalTap(deleteJobsTable)
-      .evalTap(Initializer.createDynamoTablesIfNotExisting[IO])
+      .evalTap(PostgresInitializer.createDynamoTablesIfNotExisting[IO])
   }
 }

@@ -3,7 +3,6 @@ package uk.co.thirdthing.utils
 import cats.effect.kernel.{Async, Sync}
 import cats.syntax.all._
 import org.typelevel.log4cats.Logger
-import software.amazon.awssdk.services.dynamodb.model.ProvisionedThroughputExceededException
 
 import scala.concurrent.duration._
 
@@ -11,11 +10,11 @@ object CatsEffectUtils {
 
   implicit class CatsEffectOps[F[_]: Async, T](f: F[T]) {
 
-    def retryWhenThroughputExceeded(implicit logger: Logger[F]): F[T] =
-      withBackoffRetry(1.minute, 10, errorsToHandle = {
-        case _: ProvisionedThroughputExceededException => true
-        case _                                         => false
-      })
+//    def retryWhenThroughputExceeded(implicit logger: Logger[F]): F[T] =
+//      withBackoffRetry(1.minute, 10, errorsToHandle = {
+//        case _: ProvisionedThroughputExceededException => true
+//        case _                                         => false
+//      })
 
     def withBackoffRetry(
       maxDelay: FiniteDuration,

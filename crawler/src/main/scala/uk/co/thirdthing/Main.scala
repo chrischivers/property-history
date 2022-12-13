@@ -18,7 +18,7 @@ import uk.co.thirdthing.model.Model.RunJobCommand
 import uk.co.thirdthing.secrets.{AmazonSecretsManager, SecretsManager}
 import uk.co.thirdthing.service.{JobRunnerService, JobScheduler, JobSeeder, RetrievalService}
 import uk.co.thirdthing.sqs.{SqsConfig, SqsProcessingStream, SqsPublisher}
-import uk.co.thirdthing.store.{DynamoJobStore, Initializer, JobStore, PostgresPropertyStore}
+import uk.co.thirdthing.store.{DynamoInitializer, DynamoJobStore, JobStore, PostgresInitializer, PostgresPropertyStore}
 
 import scala.concurrent.duration._
 
@@ -42,8 +42,8 @@ object Main extends IOApp {
           val runJobCommandPublisher = new SqsPublisher[IO, RunJobCommand](r.sqsClient)(runJobCommandQueueUrl)
           val jobScheduler           = JobScheduler[IO](jobStore, runJobCommandPublisher, JobSchedulerConfig.default)
 
-          Initializer.createDynamoTablesIfNotExisting[IO](r.dynamoClient) *>
-            Initializer.createPostgresTablesIfNotExisting[IO](r.db) *>
+          DynamoInitializer.createDynamoTablesIfNotExisting[IO](r.dynamoClient) *>
+            PostgresInitializer.createPostgresTablesIfNotExisting[IO](r.db) *>
             startJobSeedTriggerProcessingStream(r.apiHttpClient, r.sqsClient, secretsManager, jobScheduler, jobStore)
               .concurrently(startJobScheduleTriggerProcessingStream(r.sqsClient, secretsManager, jobScheduler))
               .concurrently(

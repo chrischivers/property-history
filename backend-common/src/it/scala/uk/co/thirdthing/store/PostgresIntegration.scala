@@ -31,7 +31,7 @@ trait PostgresIntegration extends munit.CatsEffectSuite {
   def withPostgresClient()(f: Resource[IO, Session[IO]] => IO[Unit]): IO[Unit] = {
     database.use { pool =>
       pool.use(deletePropertiesTable) *>
-        Initializer.createPostgresTablesIfNotExisting[IO](pool) *>
+        PostgresInitializer.createPostgresTablesIfNotExisting[IO](pool) *>
         f(pool)
     }
   }

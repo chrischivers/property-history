@@ -64,7 +64,7 @@ object PostgresPropertyStore {
       sql"""
              INSERT INTO properties(listingId, propertyId, dateAdded, lastChange, price, transactionTypeId, visible, listingStatus, rentFrequency, latitude, longitude) VALUES
              ($int8, $int8, $timestamp, $timestamp, ${int4.opt}, ${int4.opt}, ${bool.opt}, ${varchar(24).opt}, ${varchar(32).opt}, ${float8.opt}, ${float8.opt})
-         """.command.contramap { pr: PropertyRecord =>
+         """.command.contramap { (pr: PropertyRecord) =>
         pr.listingId ~ pr.propertyId ~ pr.dateAdded ~ pr.lastChange ~ pr.price ~ pr.transactionTypeId ~ pr.visible ~ pr.status ~ pr.rentFrequency ~ pr.latitude ~ pr.longitude
       }
 

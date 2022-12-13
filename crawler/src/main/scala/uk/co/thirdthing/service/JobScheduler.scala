@@ -35,7 +35,7 @@ object JobScheduler {
           .evalMap(job => shouldSchedule(job).map(_ -> job))
           .collect { case (shouldSchedule, job) if shouldSchedule => job }
           .evalTap(scheduleJob)
-          .evalMap(job => publisher.publish(RunJobCommand(job.jobId)))
+          .evalTap(job => publisher.publish(RunJobCommand(job.jobId)))
           .compile
           .drain
 

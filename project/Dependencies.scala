@@ -5,7 +5,8 @@ import sbt._
 object Dependencies {
 
   object Versions {
-    val scala                 = "2.13.8"
+    val scala2                = "2.13.8"
+    val scala3                = "3.2.1"
     val http4s                = "0.23.12"
     val munit                 = "0.7.29"
     val munitCatsEffect       = "1.0.7"
@@ -19,7 +20,7 @@ object Dependencies {
     val meteor                = "1.0.31"
     val skunk                 = "0.3.2"
     val newtype               = "0.2.3"
-    val enumeration           = "1.7.0"
+    val enumeration           = "1.7.2"
     val aws                   = "2.18.10"
     val diffx                 = "0.8.2"
     val apacheCommonsLang     = "3.12.0"
@@ -104,8 +105,8 @@ object Dependencies {
 
   val commonDependencies = enumeration ++ circe ++ newtype
   val backendCommonDependencies: Seq[ModuleID] =
-    http4s ++ refined ++ circe ++ logging ++ metor ++ skunk ++ newtype ++ awsSqs ++ awsSecretsManager ++ awsCloudwatch ++ apacheCommonsLang ++ enumeration ++ test
-  val publicApiDependencies: Seq[ModuleID] = http4s ++ refined ++ circe ++ logging ++ metor ++ newtype ++ test
+    http4s ++ refined ++ circe ++ logging ++ skunk ++ newtype ++ awsSqs ++ awsSecretsManager ++ awsCloudwatch ++ apacheCommonsLang ++ enumeration ++ test
+  val publicApiDependencies: Seq[ModuleID] = http4s ++ refined ++ circe ++ logging  ++ newtype ++ test
   val crawlerDependencies: Seq[ModuleID] =
     http4s ++ refined ++ circe ++ logging ++ metor ++ newtype ++ diffx ++ test
 }

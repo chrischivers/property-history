@@ -6,6 +6,7 @@ import cats.syntax.all._
 import io.circe
 import io.circe.Decoder
 import io.circe.parser._
+import org.typelevel.log4cats.SelfAwareStructuredLogger
 import org.typelevel.log4cats.slf4j.Slf4jLogger
 import software.amazon.awssdk.services.sqs.SqsAsyncClient
 import software.amazon.awssdk.services.sqs.model._
@@ -21,7 +22,7 @@ abstract class SqsConsumer[F[_], A: Decoder] {
 
 class SqsProcessingStream[F[_]: Async: Parallel](sqsClient: SqsAsyncClient, sqsConfig: SqsConfig, consumerName: String) {
 
-  private implicit val logger = Slf4jLogger.getLogger[F]
+  private implicit val logger: SelfAwareStructuredLogger[F] = Slf4jLogger.getLogger[F]
 
   def startStream[A: Decoder](consumer: SqsConsumer[F, A]): fs2.Stream[F, Unit] =
     fs2.Stream.eval(logger.info(s"Consumer $consumerName started")) >>
