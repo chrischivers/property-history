@@ -14,7 +14,7 @@ import natchez.Trace.Implicits.noop
 import software.amazon.awssdk.services.secretsmanager.SecretsManagerClient
 import uk.co.thirdthing.store.{PostgresPropertyStore, PropertyStore}
 
-object ApplicationBuilder {
+object ApplicationBuilder:
   def build: Resource[IO, Unit] =
     for {
       secretsManager <- buildSecretsManager
@@ -62,4 +62,3 @@ object ApplicationBuilder {
       .withHttpApp(httpApp)
       .bindHttp(HttpPort, "0.0.0.0")
       .resource
-}

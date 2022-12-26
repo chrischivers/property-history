@@ -8,7 +8,7 @@ import uk.co.thirdthing.model.Types._
 import uk.co.thirdthing.store.PropertyStore
 import uk.co.thirdthing.utils.Generators._
 
-class HistoryServiceTest extends ScalaCheckSuite {
+class HistoryServiceTest extends ScalaCheckSuite:
 
   def propertyStoreMock(rightmovePropertyId: Option[PropertyId], listings: List[ListingSnapshot]): PropertyStore[IO] = new PropertyStore[IO] {
     override def propertyIdFor(listingId: ListingId): IO[Option[PropertyId]] = IO(rightmovePropertyId)
@@ -31,4 +31,3 @@ class HistoryServiceTest extends ScalaCheckSuite {
     }
   }
 
-}

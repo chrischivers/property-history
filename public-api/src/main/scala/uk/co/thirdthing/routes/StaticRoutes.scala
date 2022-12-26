@@ -7,11 +7,8 @@ import org.http4s.{HttpRoutes, StaticFile}
 
 import java.nio.file.Paths
 
-
-object StaticRoutes {
-
-
-  def routes[F[_]: Sync]: HttpRoutes[F] = {
+object StaticRoutes:
+  def routes[F[_]: Sync]: HttpRoutes[F] =
     val dsl = Http4sDsl[F]
     import dsl._
 
@@ -25,9 +22,8 @@ object StaticRoutes {
       )
       .getOrElseF(NotFound())
 
-
     HttpRoutes.of[F] {
-      case req@GET -> Root / "assets" / filename if ACCEPTABLE_ENDINGS.exists(filename.endsWith) =>
+      case req @ GET -> Root / "assets" / filename if ACCEPTABLE_ENDINGS.exists(filename.endsWith) =>
         StaticFile
           .fromResource[F](
             Paths.get("assets", filename).toString,
@@ -36,7 +32,4 @@ object StaticRoutes {
           )
           .getOrElseF(NotFound())
       case req if req.method == GET => indexHtml
-
     }
-  }
-}

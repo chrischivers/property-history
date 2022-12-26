@@ -6,7 +6,7 @@ import uk.co.thirdthing.model.Types._
 import uk.co.thirdthing.service.HistoryService
 import uk.co.thirdthing.utils.Generators.listingSnapshotGen
 
-class ApiRouteTest extends munit.Http4sHttpRoutesSuite {
+class ApiRouteTest extends munit.Http4sHttpRoutesSuite:
 
   implicit val entityDecoder: EntityDecoder[IO, List[ListingSnapshot]] = jsonOf
 
@@ -21,4 +21,3 @@ class ApiRouteTest extends munit.Http4sHttpRoutesSuite {
   test(GET(uri"v1" / "history" / listingSnapshot.listingId.value)).alias("Get history for a listing id") { response =>
     assertIO(response.as[List[ListingSnapshot]], List(listingSnapshot))
   }
-}
