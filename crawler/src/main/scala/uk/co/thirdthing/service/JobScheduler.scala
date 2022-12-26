@@ -46,8 +46,8 @@ object JobScheduler {
         clock.realTimeInstant.map { now =>
           val pendingJobExpiredCutoff = now.minusMillis(config.jobExpiryTimeSinceScheduled.toMillis)
           if (crawlerJob.state.schedulable || crawlerJob.lastRunScheduled.exists(_.value.isBefore(pendingJobExpiredCutoff))) {
-            crawlerJob.lastRunCompleted.flatMap(lr => crawlerJob.lastChange.map(lr -> _)).fold(true) {
-              case (lastRun, lastDataChange) => shouldScheduleByDates(now, lastRun, lastDataChange, crawlerJob.latestDateAdded)
+            crawlerJob.lastRunCompleted.flatMap(lr => crawlerJob.lastChange.map(lr -> _)).fold(true) { case (lastRun, lastDataChange) =>
+              shouldScheduleByDates(now, lastRun, lastDataChange, crawlerJob.latestDateAdded)
             }
           } else false
 
@@ -63,7 +63,7 @@ object JobScheduler {
         val defaultDatedAddedWhereNotExisted                            = DateAdded(Instant.parse("2000-01-01T00:00:00.00Z"))
         val timeBetweenRuns: TimeSinceLastDataChange => TimeBetweenRuns = _ / config.timeBetweenRunsFactor
 
-        //Here our last change value is within the initial seeding run, so we use the data added instead
+        // Here our last change value is within the initial seeding run, so we use the data added instead
         val lastChanged =
           if (lastDataChange.value.isBefore(lastChangedBaseline.value)) latestDateAdded.getOrElse(defaultDatedAddedWhereNotExisted).value
           else lastDataChange.value

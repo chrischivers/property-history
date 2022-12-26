@@ -16,28 +16,23 @@ class RightmoveHtmlClientTest extends munit.CatsEffectSuite {
 
     val expectedResult = RightmoveHtmlScrapeResult(200, Some(PropertyId(72291262)))
 
-
     assertIO(apiClient("/rightmove-html-success-response.html").scrapeDetails(listingId), expectedResult)
   }
 
-  def apiClient(responsePath: String, status: Status = Status.Ok): RightmoveHtmlClient[IO] = {
-
-
+  def apiClient(responsePath: String, status: Status = Status.Ok): RightmoveHtmlClient[IO] =
     RightmoveHtmlClient.apply[IO](
       Client.fromHttpApp[IO](
         HttpRoutes
-          .of[IO] {
-            case request @ GET -> Root / "properties" / _ =>
-              val response = StaticFile
-                .fromPath(Fs2Path(getClass.getResource(responsePath).getPath), Some(request))
-                .getOrElseF(NotFound())
+          .of[IO] { case request @ GET -> Root / "properties" / _ =>
+            val response = StaticFile
+              .fromPath(Fs2Path(getClass.getResource(responsePath).getPath), Some(request))
+              .getOrElseF(NotFound())
 
-              response.map(_.copy(status = status))
+            response.map(_.copy(status = status))
           }
           .orNotFound
       ),
       Uri.unsafeFromString("/")
     )
-  }
 
 }

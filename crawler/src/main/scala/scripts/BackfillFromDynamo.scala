@@ -34,40 +34,38 @@ object BackfillFromDynamo extends IOApp {
 
   override def run(args: List[String]): IO[ExitCode] =
     buildSecretsManager.use { secretsManager =>
-      (dynamoDbClient, databaseSessionPool(secretsManager)).tupled.use {
-        case (dynamo, pool) =>
-          val propertyStore = PostgresPropertyStore[IO](pool)
-          val dynamoClient  = Client[IO](dynamo)
-          val listingHistoryDynamoTable = CompositeTable[IO, ListingId, LastChange](
-            "listing-history",
-            KeyDef("listingId", DynamoDbType.N),
-            KeyDef("lastChange", DynamoDbType.N),
-            dynamo
-          )
+      (dynamoDbClient, databaseSessionPool(secretsManager)).tupled.use { case (dynamo, pool) =>
+        val propertyStore = PostgresPropertyStore[IO](pool)
+        val dynamoClient  = Client[IO](dynamo)
+        val listingHistoryDynamoTable = CompositeTable[IO, ListingId, LastChange](
+          "listing-history",
+          KeyDef("listingId", DynamoDbType.N),
+          KeyDef("lastChange", DynamoDbType.N),
+          dynamo
+        )
 
-          dynamoClient
-            .scan[DynamoItem]("listing-history", consistentRead = false, 10)
-            .zipWithIndex
-            .evalMap{
-              case (item, idx) if idx % 10000 == 0 => IO.println(s"Processing item $idx").as(item)
-              case (item, _) => item.pure[IO]
-            }
+        dynamoClient
+          .scan[DynamoItem]("listing-history", consistentRead = false, 10)
+          .zipWithIndex
+          .evalMap {
+            case (item, idx) if idx % 10000 == 0 => IO.println(s"Processing item $idx").as(item)
+            case (item, _) => item.pure[IO]
+          }
 //            .evalTap(item => IO.println(s"Processing item $item"))
-            .map(withValidTimestamp)
-            .parEvalMap(10)(item => putPostgresListingSnapshot(propertyStore)(item).as(item))
-            .map(item => (item.listingId, item.lastChange))
-            .broadcastThrough(listingHistoryDynamoTable.batchDelete(60.seconds, 10, BackoffStrategy.defaultStrategy()))
-            .compile
-            .drain
-            .as(ExitCode.Success)
+          .map(withValidTimestamp)
+          .parEvalMap(10)(item => putPostgresListingSnapshot(propertyStore)(item).as(item))
+          .map(item => (item.listingId, item.lastChange))
+          .broadcastThrough(listingHistoryDynamoTable.batchDelete(60.seconds, 10, BackoffStrategy.defaultStrategy()))
+          .compile
+          .drain
+          .as(ExitCode.Success)
 
       }
     }
 
-  private def withValidTimestamp(item: DynamoItem) = {
+  private def withValidTimestamp(item: DynamoItem) =
     if (item.dateAdded.value.toEpochMilli < 0) item.copy(dateAdded = DateAdded(Instant.ofEpochMilli(0L)))
     else item
-  }
 
   private def putPostgresListingSnapshot(propertyStore: PropertyStore[IO])(item: DynamoItem) =
     propertyStore
@@ -91,16 +89,15 @@ object BackfillFromDynamo extends IOApp {
       password <- secretsManager.secretFor("postgres-password")
     } yield (host, username, password)
 
-    Resource.eval(secrets).flatMap {
-      case (host, username, password) =>
-        Session.pooled[IO](
-          host = host,
-          port = 5432,
-          user = username,
-          database = "propertyhistory",
-          password = Some(password),
-          max = 10
-        )
+    Resource.eval(secrets).flatMap { case (host, username, password) =>
+      Session.pooled[IO](
+        host = host,
+        port = 5432,
+        user = username,
+        database = "propertyhistory",
+        password = Some(password),
+        max = 10
+      )
     }
   }
 
@@ -114,18 +111,16 @@ object Codecs {
     for {
       price <- av.getAs[Int]("price").map(Price(_))
       transactionTypeId <- av
-                            .getAs[Int]("transactionTypeId")
-                            .flatMap(id =>
-                              TransactionType.withValueEither(id).leftMap(err => DecoderError(s"cannot map $id to transaction type", err.some))
-                            )
+        .getAs[Int]("transactionTypeId")
+        .flatMap(id => TransactionType.withValueEither(id).leftMap(err => DecoderError(s"cannot map $id to transaction type", err.some)))
       visible <- av.getAs[Boolean]("visible")
       status <- av
-                 .getAs[String]("status")
-                 .flatMap(status =>
-                   ListingStatus
-                     .withValueEither(status)
-                     .leftMap(err => DecoderError(s"cannot map $status to listing status type"))
-                 )
+        .getAs[String]("status")
+        .flatMap(status =>
+          ListingStatus
+            .withValueEither(status)
+            .leftMap(err => DecoderError(s"cannot map $status to listing status type"))
+        )
       rentFrequency <- av.getOpt[String]("rentFrequency")
       latitude      <- av.getOpt[Double]("latitude")
       longitude     <- av.getOpt[Double]("longitude")

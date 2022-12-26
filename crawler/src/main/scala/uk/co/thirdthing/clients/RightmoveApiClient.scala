@@ -59,14 +59,17 @@ object RightmoveApiClient {
         .withQueryParam("propertyId", listingId.value)
         .withQueryParam("apiApplication", "IPAD")
 
-      client.get(uri) { response =>
-        response.status match {
-          case Status(200) => handleSuccessfulResponse(response, listingId)
-          case Status(500) => handleErrorResponse(response, listingId)
-          case Status(other) =>
-            new RuntimeException(s"Unexpected response code $other from API for listing id ${listingId.value}").raiseError[F, Option[ListingDetails]]
+      client
+        .get(uri) { response =>
+          response.status match {
+            case Status(200) => handleSuccessfulResponse(response, listingId)
+            case Status(500) => handleErrorResponse(response, listingId)
+            case Status(other) =>
+              new RuntimeException(s"Unexpected response code $other from API for listing id ${listingId.value}")
+                .raiseError[F, Option[ListingDetails]]
+          }
         }
-      }.withBackoffRetry(30.seconds, 5, maxRetries = 10)
+        .withBackoffRetry(30.seconds, 5, maxRetries = 10)
     }
 
     private def handleSuccessfulResponse(response: Response[F], listingId: ListingId): F[Option[ListingDetails]] =

@@ -7,17 +7,15 @@ import org.typelevel.log4cats.slf4j.Slf4jLogger
 import uk.co.thirdthing.service.JobSeeder
 import uk.co.thirdthing.sqs.SqsConsumer
 
-
 object JobSeedTriggerConsumer {
 
-  def apply[F[_] : Sync](jobSeeder: JobSeeder[F]) = new SqsConsumer[F, Json] {
+  def apply[F[_]: Sync](jobSeeder: JobSeeder[F]) = new SqsConsumer[F, Json] {
 
     implicit val logger = Slf4jLogger.getLogger[F]
 
-    override def handle(msg: Json): F[Unit] = {
+    override def handle(msg: Json): F[Unit] =
       logger.info("Received seed trigger request") *>
         jobSeeder.seed *>
         logger.info("Completed seed trigger request")
-    }
   }
 }

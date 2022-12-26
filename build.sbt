@@ -58,7 +58,7 @@ lazy val publicApi = projectMatrix
         }
       }
     },
-    run / baseDirectory := (ThisBuild / baseDirectory).value,
+    run / baseDirectory     := (ThisBuild / baseDirectory).value,
     reStart / baseDirectory := (ThisBuild / baseDirectory).value
   )
   .dependsOn(backendCommon % "test->test;it->test;it->it;compile->compile")

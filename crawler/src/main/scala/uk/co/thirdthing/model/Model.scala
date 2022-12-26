@@ -13,7 +13,6 @@ import java.time.Instant
 
 object Model {
 
-
   type JobId = JobId.Type
   object JobId extends NewtypeWrapped[Long] with DerivedCirceCodec
 
@@ -28,14 +27,14 @@ object Model {
   }
 
   final case class CrawlerJob(
-                               jobId: JobId,
-                               from: ListingId,
-                               to: ListingId,
-                               state: JobState,
-                               lastRunScheduled: Option[LastRunScheduled],
-                               lastRunCompleted: Option[LastRunCompleted],
-                               lastChange: Option[LastChange],
-                               latestDateAdded: Option[DateAdded]
+    jobId: JobId,
+    from: ListingId,
+    to: ListingId,
+    state: JobState,
+    lastRunScheduled: Option[LastRunScheduled],
+    lastRunCompleted: Option[LastRunCompleted],
+    lastChange: Option[LastChange],
+    latestDateAdded: Option[DateAdded]
   )
 
   object CrawlerJob {
@@ -52,7 +51,5 @@ object Model {
   object RunJobCommand {
     implicit val codec: Codec[RunJobCommand] = deriveCodec
   }
-
-
 
 }

@@ -11,8 +11,8 @@ object DynamoInitializer {
 
   def createDynamoTablesIfNotExisting[F[_]: Async](dynamoDbAsyncClient: DynamoDbAsyncClient): F[Unit] = {
 
-    val recoverIfAlreadyExists: PartialFunction[Throwable, F[Unit]] = {
-      case _: ResourceInUseException => ().pure[F]
+    val recoverIfAlreadyExists: PartialFunction[Throwable, F[Unit]] = { case _: ResourceInUseException =>
+      ().pure[F]
     }
 
     createJobsTable(dynamoDbAsyncClient).recoverWith(recoverIfAlreadyExists)

@@ -35,7 +35,7 @@ object PropertyStore {
     latitude: Option[Double],
     longitude: Option[Double]
   ) {
-    //TODO this is not safe
+    // TODO this is not safe
     def toListingSnapshot: ListingSnapshot =
       ListingSnapshot(
         ListingId(this.listingId),
@@ -63,12 +63,14 @@ object PostgresPropertyStore {
     private val insertPropertyRecordCommand: Command[PropertyRecord] =
       sql"""
              INSERT INTO properties(listingId, propertyId, dateAdded, lastChange, price, transactionTypeId, visible, listingStatus, rentFrequency, latitude, longitude) VALUES
-             ($int8, $int8, $timestamp, $timestamp, ${int4.opt}, ${int4.opt}, ${bool.opt}, ${varchar(24).opt}, ${varchar(32).opt}, ${float8.opt}, ${float8.opt})
+             ($int8, $int8, $timestamp, $timestamp, ${int4.opt}, ${int4.opt}, ${bool.opt}, ${varchar(24).opt}, ${varchar(
+          32
+        ).opt}, ${float8.opt}, ${float8.opt})
          """.command.contramap { (pr: PropertyRecord) =>
         pr.listingId ~ pr.propertyId ~ pr.dateAdded ~ pr.lastChange ~ pr.price ~ pr.transactionTypeId ~ pr.visible ~ pr.status ~ pr.rentFrequency ~ pr.latitude ~ pr.longitude
       }
 
-    private val getMostRecentListingCommand: Query[Long, PropertyRecord] = {
+    private val getMostRecentListingCommand: Query[Long, PropertyRecord] =
       sql"""
            SELECT recordId, listingId, propertyId, dateAdded, lastChange, price, transactionTypeId, visible, listingStatus, rentFrequency, latitude, longitude
            FROM properties
@@ -77,10 +79,11 @@ object PostgresPropertyStore {
            LIMIT 1
          """
         .query(
-          int8.opt ~ int8 ~ int8 ~ timestamp ~ timestamp ~ int4.opt ~ int4.opt ~ bool.opt ~ varchar(24).opt ~ varchar(32).opt ~ float8.opt ~ float8.opt
+          int8.opt ~ int8 ~ int8 ~ timestamp ~ timestamp ~ int4.opt ~ int4.opt ~ bool.opt ~ varchar(24).opt ~ varchar(
+            32
+          ).opt ~ float8.opt ~ float8.opt
         )
         .gmap[PropertyRecord]
-    }
 
     private val getPropertyIdCommand: Query[Long, Long] =
       sql"""
@@ -99,9 +102,8 @@ object PostgresPropertyStore {
      WHERE propertyId = $int8
      ORDER BY listingId DESC, lastChange DESC
    """.query(
-          int8.opt ~ int8 ~ int8 ~ timestamp ~ timestamp ~ int4.opt ~ int4.opt ~ bool.opt ~ varchar(24).opt ~ varchar(32).opt ~ float8.opt ~ float8.opt
-        )
-        .gmap[PropertyRecord]
+        int8.opt ~ int8 ~ int8 ~ timestamp ~ timestamp ~ int4.opt ~ int4.opt ~ bool.opt ~ varchar(24).opt ~ varchar(32).opt ~ float8.opt ~ float8.opt
+      ).gmap[PropertyRecord]
 
     override def propertyIdFor(listingId: ListingId): F[Option[PropertyId]] =
       pool.use { session =>

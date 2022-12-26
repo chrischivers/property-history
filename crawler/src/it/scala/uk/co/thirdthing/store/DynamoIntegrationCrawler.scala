@@ -16,8 +16,8 @@ trait DynamoIntegrationCrawler extends DynamoIntegration {
   def withDynamoStoresAndClient()(f: (DynamoStores, DynamoDbAsyncClient) => IO[Unit]): Unit =
     withDynamoClient()
       .map(client => DynamoStores(DynamoJobStore[IO](client)) -> client)
-      .use {
-        case (stores, client) => f(stores, client)
+      .use { case (stores, client) =>
+        f(stores, client)
       }
       .unsafeRunSync()
 

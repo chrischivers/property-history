@@ -1,7 +1,6 @@
 import org.portablescala.sbtplatformdeps.PlatformDepsPlugin.autoImport._
 import sbt._
 
-
 object Dependencies {
 
   object Versions {
@@ -58,9 +57,9 @@ object Dependencies {
   )
 
   private val logging = Seq(
-    "com.typesafe.scala-logging" %% "scala-logging"  % Versions.typesafeLogging,
-    "org.typelevel"              %% "log4cats-slf4j" % Versions.log4cats,
-    "ch.qos.logback"             % "logback-classic" % Versions.logbackClassic
+    "com.typesafe.scala-logging" %% "scala-logging"   % Versions.typesafeLogging,
+    "org.typelevel"              %% "log4cats-slf4j"  % Versions.log4cats,
+    "ch.qos.logback"              % "logback-classic" % Versions.logbackClassic
   )
 
   private val metor = Seq(
@@ -102,11 +101,10 @@ object Dependencies {
   )
   private val test = munit.map(_ % "test,it")
 
-
   val commonDependencies = enumeration ++ circe ++ newtype
   val backendCommonDependencies: Seq[ModuleID] =
     http4s ++ refined ++ circe ++ logging ++ skunk ++ newtype ++ awsSqs ++ awsSecretsManager ++ awsCloudwatch ++ apacheCommonsLang ++ enumeration ++ test
-  val publicApiDependencies: Seq[ModuleID] = http4s ++ refined ++ circe ++ logging  ++ newtype ++ test
+  val publicApiDependencies: Seq[ModuleID] = http4s ++ refined ++ circe ++ logging ++ newtype ++ test
   val crawlerDependencies: Seq[ModuleID] =
     http4s ++ refined ++ circe ++ logging ++ metor ++ newtype ++ diffx ++ test
 }

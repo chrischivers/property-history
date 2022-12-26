@@ -1,5 +1,3 @@
 package uk.co.thirdthing.consumers
 
-object SeedRequestConsumer {
-
-}
+object SeedRequestConsumer {}

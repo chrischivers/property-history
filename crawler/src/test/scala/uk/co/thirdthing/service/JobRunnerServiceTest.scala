@@ -116,8 +116,8 @@ class JobRunnerServiceTest extends munit.CatsEffectSuite {
     val result = for {
       jobsStoreRef <- Ref.of[IO, Map[JobId, CrawlerJob]](initialJobs.map(job => job.jobId -> job).toMap)
       listingSnapshotRef <- Ref.of[IO, Map[(ListingId, LastChange), ListingSnapshot]](
-                             initialListingSnapshots.map(ls => (ls.listingId, ls.lastChange) -> ls).toMap
-                           )
+        initialListingSnapshots.map(ls => (ls.listingId, ls.lastChange) -> ls).toMap
+      )
       jobRunner        <- service(retrievalServiceResults.map(r => r.listingId -> r).toMap, jobsStoreRef, listingSnapshotRef)
       _                <- jobRunner.run(jobId)
       jobs             <- jobsStoreRef.get.map(_.view.values.toSet)

@@ -30,7 +30,7 @@ object UI {
   private def toUrl(listingId: ListingId) =
     s"https://www.rightmove.co.uk/properties/$listingId"
 
-  private def formatListingResults(results: List[ListingSnapshot]) = {
+  private def formatListingResults(results: List[ListingSnapshot]) =
     if (results.isEmpty) div()
     else {
       div(
@@ -44,21 +44,20 @@ object UI {
             th("Price"),
             th("Link")
           ) +:
-          results.map { ls =>
-            tr(
-              List(
-                td(ls.dateAdded.value.atZone(ZoneId.of("UTC")).toLocalDate.toString).some,
-                ls.details.transactionTypeId.map(tt => td(tt.string)),
-                ls.details.status.map(s => td(s.value)),
-                ls.details.price.map(p => td(p.value)),
-                td(a(href := toUrl(ls.listingId), "[link]")).some
-              ).flatten: _*
-            )
-          }
+            results.map { ls =>
+              tr(
+                List(
+                  td(ls.dateAdded.value.atZone(ZoneId.of("UTC")).toLocalDate.toString).some,
+                  ls.details.transactionTypeId.map(tt => td(tt.string)),
+                  ls.details.status.map(s => td(s.value)),
+                  ls.details.price.map(p => td(p.value)),
+                  td(a(href := toUrl(ls.listingId), "[link]")).some
+                ).flatten: _*
+              )
+            }
         )
       )
     }
-  }
 
   def apply: ReactiveHtmlElement[html.Div] = {
 

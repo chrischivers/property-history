@@ -10,7 +10,9 @@ import cats.syntax.all._
 
 class SqsPublisher[F[_]: Async, A: Encoder](client: SqsAsyncClient)(queueUrl: String) {
   def publish(msg: A): F[Unit] =
-    Async[F].fromFuture(
-      Sync[F].delay(client.sendMessage(SendMessageRequest.builder().queueUrl(queueUrl).messageBody(msg.asJson.noSpaces).build()).asScala)
-    ).void
+    Async[F]
+      .fromFuture(
+        Sync[F].delay(client.sendMessage(SendMessageRequest.builder().queueUrl(queueUrl).messageBody(msg.asJson.noSpaces).build()).asScala)
+      )
+      .void
 }

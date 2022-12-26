@@ -12,7 +12,6 @@ object ApiRoute:
 
   val API_VERSION = "v1"
 
-
   def routes[F[_]: Concurrent](historyService: HistoryService[F]): HttpRoutes[F] =
     val dsl = Http4sDsl[F]
     import dsl._

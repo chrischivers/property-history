@@ -42,7 +42,7 @@ object Generators {
     snapshotId
   )
 
-  implicit val propertyIdArb: Arbitrary[PropertyId] = Arbitrary(propertyIdGen)
+  implicit val propertyIdArb: Arbitrary[PropertyId]           = Arbitrary(propertyIdGen)
   implicit val listingSnapshotArb: Arbitrary[ListingSnapshot] = Arbitrary(listingSnapshotGen)
 
 }

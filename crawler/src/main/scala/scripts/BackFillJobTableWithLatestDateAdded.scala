@@ -18,24 +18,23 @@ object BackFillJobTableWithLatestDateAdded extends IOApp {
 
   override def run(args: List[String]): IO[ExitCode] =
     buildSecretsManager.use { secretsManager =>
-      (dynamoDbClient, databaseSessionPool(secretsManager)).tupled.use {
-        case (dynamo, pool) =>
-          val dynamoJobStore = DynamoJobStore[IO](dynamo)
+      (dynamoDbClient, databaseSessionPool(secretsManager)).tupled.use { case (dynamo, pool) =>
+        val dynamoJobStore = DynamoJobStore[IO](dynamo)
 
-          dynamoJobStore.getStream
-            .filter(_.latestDateAdded.isEmpty)
-            .filter(_.state == JobState.Completed)
-            .zipWithIndex
-            .evalMap {
-              case (job, idx) if idx % 100 == 0 => IO.println(s"Processing job $idx").as(job)
-              case (job, _) => job.pure[IO]
-            }
-            .evalMap(job => getLatestDateAddedBetweenListings(pool)(job.from, job.to).map(job -> _))
-            .collect { case (job, Some(date)) => job.copy(latestDateAdded = date.some) }
-            .evalMap(dynamoJobStore.put)
-            .compile
-            .drain
-            .as(ExitCode.Success)
+        dynamoJobStore.getStream
+          .filter(_.latestDateAdded.isEmpty)
+          .filter(_.state == JobState.Completed)
+          .zipWithIndex
+          .evalMap {
+            case (job, idx) if idx % 100 == 0 => IO.println(s"Processing job $idx").as(job)
+            case (job, _) => job.pure[IO]
+          }
+          .evalMap(job => getLatestDateAddedBetweenListings(pool)(job.from, job.to).map(job -> _))
+          .collect { case (job, Some(date)) => job.copy(latestDateAdded = date.some) }
+          .evalMap(dynamoJobStore.put)
+          .compile
+          .drain
+          .as(ExitCode.Success)
 
       }
     }
@@ -68,16 +67,15 @@ object BackFillJobTableWithLatestDateAdded extends IOApp {
       password <- secretsManager.secretFor("postgres-password")
     } yield (host, username, password)
 
-    Resource.eval(secrets).flatMap {
-      case (host, username, password) =>
-        Session.pooled[IO](
-          host = host,
-          port = 5432,
-          user = username,
-          database = "propertyhistory",
-          password = Some(password),
-          max = 10
-        )
+    Resource.eval(secrets).flatMap { case (host, username, password) =>
+      Session.pooled[IO](
+        host = host,
+        port = 5432,
+        user = username,
+        database = "propertyhistory",
+        password = Some(password),
+        max = 10
+      )
     }
   }
 

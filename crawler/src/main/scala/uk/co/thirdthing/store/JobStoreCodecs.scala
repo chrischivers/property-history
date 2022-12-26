@@ -24,7 +24,7 @@ object JobStoreCodecs {
       "type"             -> "JOB".asAttributeValue,
       "state"            -> job.state.entryName.asAttributeValue,
       "lastChange"       -> job.lastChange.map(_.value).asAttributeValue,
-      "latestDateAdded" -> job.latestDateAdded.map(_.value).asAttributeValue
+      "latestDateAdded"  -> job.latestDateAdded.map(_.value).asAttributeValue
     ).asAttributeValue
   }
 
@@ -37,7 +37,7 @@ object JobStoreCodecs {
       lastRunCompleted <- job.getOpt[Instant]("lastRunCompleted")
       lastChange       <- job.getOpt[Instant]("lastChange")
       latestDateAdded  <- job.getOpt[Instant]("latestDateAdded")
-      jobState         <- job.getAs[String]("state").flatMap(JobState.withNameEither(_).leftMap(err => DecoderError("Unable to decode state", err.some)))
+      jobState <- job.getAs[String]("state").flatMap(JobState.withNameEither(_).leftMap(err => DecoderError("Unable to decode state", err.some)))
     } yield CrawlerJob(
       jobId,
       from,

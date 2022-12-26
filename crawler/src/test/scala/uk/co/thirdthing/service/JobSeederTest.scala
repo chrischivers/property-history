@@ -22,8 +22,9 @@ class JobSeederTest extends munit.CatsEffectSuite {
       initialJobs = Set.empty,
       config = config,
       apiClientSuccessfulIds = Set.empty,
-      expectedJobs =
-        (0 until 10).toList.map(i => CrawlerJob(JobId(i + 1), ListingId((i * 10) + 1), ListingId((i + 1) * 10), JobState.NeverRun, None, None, None, None)).toSet,
+      expectedJobs = (0 until 10).toList
+        .map(i => CrawlerJob(JobId(i + 1), ListingId((i * 10) + 1), ListingId((i + 1) * 10), JobState.NeverRun, None, None, None, None))
+        .toSet,
       expectedSize = 10
     )
   }
@@ -38,8 +39,9 @@ class JobSeederTest extends munit.CatsEffectSuite {
       ),
       config = config,
       apiClientSuccessfulIds = Set(ListingId(21)),
-      expectedJobs =
-        (0 to 2).toList.map(i => CrawlerJob(JobId(i + 1), ListingId((i * 10) + 1), ListingId((i + 1) * 10), JobState.NeverRun, None, None, None, None)).toSet,
+      expectedJobs = (0 to 2).toList
+        .map(i => CrawlerJob(JobId(i + 1), ListingId((i * 10) + 1), ListingId((i + 1) * 10), JobState.NeverRun, None, None, None, None))
+        .toSet,
       expectedSize = 3
     )
 

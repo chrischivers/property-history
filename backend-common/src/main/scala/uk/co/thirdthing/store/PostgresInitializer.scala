@@ -10,7 +10,6 @@ import java.time.Instant
 
 object PostgresInitializer {
 
-
   def createPostgresTablesIfNotExisting[F[_]: Sync](pool: Resource[F, Session[F]]) = {
     val createPropertiesTable =
       sql"""CREATE TABLE IF NOT EXISTS properties(
@@ -29,7 +28,6 @@ object PostgresInitializer {
          CONSTRAINT listingId_lastChange_unique UNIQUE (listingId, lastChange)
          )""".command
 
-
     val createPropertyIdIndex =
       sql"""
              CREATE INDEX IF NOT EXISTS property_id_last_change_idx
@@ -41,8 +39,6 @@ object PostgresInitializer {
              CREATE INDEX IF NOT EXISTS listing_id_last_change_idx
               ON properties (listingId, lastChange);
               """.command
-
-
 
     pool.use(_.execute(createPropertiesTable)) *>
       pool.use(_.execute(createPropertyIdIndex)) *>

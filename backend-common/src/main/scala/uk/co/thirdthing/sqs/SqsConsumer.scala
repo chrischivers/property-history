@@ -30,11 +30,10 @@ class SqsProcessingStream[F[_]: Async: Parallel](sqsClient: SqsAsyncClient, sqsC
         .evalMap(msg => Sync[F].fromEither(decodeMessage(msg)).map(_ -> msg.receiptHandle()))
         .chunkN(sqsConfig.processingParallelism, allowFewer = true)
         .evalMap { chunks =>
-          chunks.parTraverse {
-            case (decodedMessage, receiptHandle) =>
-              handleThenDelete(consumer, decodedMessage, receiptHandle).recoverWith {
-                case err => logger.error(err)(s"Error processing message $decodedMessage")
-              }
+          chunks.parTraverse { case (decodedMessage, receiptHandle) =>
+            handleThenDelete(consumer, decodedMessage, receiptHandle).recoverWith { case err =>
+              logger.error(err)(s"Error processing message $decodedMessage")
+            }
           }
         }
         .unchunks
@@ -57,8 +56,8 @@ class SqsProcessingStream[F[_]: Async: Parallel](sqsClient: SqsAsyncClient, sqsC
     fs2.Stream
       .awakeEvery(sqsConfig.heartbeatInterval)
       .evalMap(_ =>
-        updateVisibilityTimeout(messageReceiptHandle, sqsConfig.visibilityTimeout).void.recoverWith {
-          case err => logger.error(err)("Error updating visibility timeout")
+        updateVisibilityTimeout(messageReceiptHandle, sqsConfig.visibilityTimeout).void.recoverWith { case err =>
+          logger.error(err)("Error updating visibility timeout")
         }
       )
       .compile
@@ -97,9 +96,8 @@ class SqsProcessingStream[F[_]: Async: Parallel](sqsClient: SqsAsyncClient, sqsC
       Async[F]
         .fromFuture(Sync[F].delay(sqsClient.receiveMessage(request).asScala))
         .map(_.messages().asScala.toList)
-        .recoverWith {
-          case NonFatal(t) =>
-            logger.error(t)(s"$consumerName got error polling queue ${sqsConfig.queueUrl} - sleeping for ${sqsConfig.retrySleepTime}") *>
-              Sync[F].sleep(sqsConfig.retrySleepTime).as(List.empty)
+        .recoverWith { case NonFatal(t) =>
+          logger.error(t)(s"$consumerName got error polling queue ${sqsConfig.queueUrl} - sleeping for ${sqsConfig.retrySleepTime}") *>
+            Sync[F].sleep(sqsConfig.retrySleepTime).as(List.empty)
         }
 }

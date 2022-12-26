@@ -41,11 +41,10 @@ class RetrievalServiceTest extends munit.CatsEffectSuite {
     val apiClient: RightmoveApiClient[IO] = RightmoveApiClient.apply[IO](
       Client.fromHttpApp[IO](
         HttpRoutes
-          .of[IO] {
-            case request @ GET -> Root / "api" / "propertyDetails" =>
-              StaticFile
-                .fromPath(Fs2Path(getClass.getResource(apiClientResponse).getPath), Some(request))
-                .getOrElseF(NotFound())
+          .of[IO] { case request @ GET -> Root / "api" / "propertyDetails" =>
+            StaticFile
+              .fromPath(Fs2Path(getClass.getResource(apiClientResponse).getPath), Some(request))
+              .getOrElseF(NotFound())
 
           }
           .orNotFound
@@ -56,11 +55,10 @@ class RetrievalServiceTest extends munit.CatsEffectSuite {
     val htmlClient = RightmoveHtmlClient.apply[IO](
       Client.fromHttpApp[IO](
         HttpRoutes
-          .of[IO] {
-            case request @ GET -> Root / "properties" / _ =>
-              StaticFile
-                .fromPath(Fs2Path(getClass.getResource(htmlClientResponse).getPath), Some(request))
-                .getOrElseF(NotFound())
+          .of[IO] { case request @ GET -> Root / "properties" / _ =>
+            StaticFile
+              .fromPath(Fs2Path(getClass.getResource(htmlClientResponse).getPath), Some(request))
+              .getOrElseF(NotFound())
           }
           .orNotFound
       ),

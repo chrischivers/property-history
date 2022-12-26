@@ -4,7 +4,7 @@ import sbt.Keys.{scalaVersion, scalacOptions}
 object CompilerSettings {
 
   def scalacOptionsVersion(scalaVersion: String): Seq[String] =
-    (CrossVersion.partialVersion(scalaVersion) match {
+    CrossVersion.partialVersion(scalaVersion) match {
       case Some((3, _)) =>
         Seq(
           "-language:implicitConversions",
@@ -22,7 +22,7 @@ object CompilerSettings {
           "-language:implicitConversions",
           "-Xfatal-warnings"
         )
-    })
+    }
 
   val settings = Seq(
     scalacOptions := Seq(

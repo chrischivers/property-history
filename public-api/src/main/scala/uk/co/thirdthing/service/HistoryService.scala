@@ -7,7 +7,7 @@ import uk.co.thirdthing.store.PropertyStore
 
 trait HistoryService[F[_]]:
   def historyFor(id: ListingId): fs2.Stream[F, ListingSnapshot]
-  
+
 object HistoryService:
   def apply[F[_]: Sync](propertyStore: PropertyStore[F]): HistoryService[F] =
     new HistoryService[F] {

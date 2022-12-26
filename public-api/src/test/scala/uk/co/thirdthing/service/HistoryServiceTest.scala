@@ -30,4 +30,3 @@ class HistoryServiceTest extends ScalaCheckSuite:
       else assertEquals(results, listings)
     }
   }
-

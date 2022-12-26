@@ -54,12 +54,11 @@ object JobSeeder {
         getLatestListingIdFrom(ListingId(lastJob.to.value + 1))
 
       private def jobsToCreate(from: ListingId, to: ListingId): List[CrawlerJob] =
-        (from.value to to.value).foldLeft(List.empty[CrawlerJob]) {
-          case (agg, id) =>
-            if ((id - 1) % config.jobChunkSize == 0) {
-              val jobId = JobId((id - 1) / config.jobChunkSize + 1)
-              agg :+ CrawlerJob(jobId, ListingId(id), ListingId(id + (config.jobChunkSize - 1)), JobState.NeverRun, None, None, None, None)
-            } else agg
+        (from.value to to.value).foldLeft(List.empty[CrawlerJob]) { case (agg, id) =>
+          if ((id - 1) % config.jobChunkSize == 0) {
+            val jobId = JobId((id - 1) / config.jobChunkSize + 1)
+            agg :+ CrawlerJob(jobId, ListingId(id), ListingId(id + (config.jobChunkSize - 1)), JobState.NeverRun, None, None, None, None)
+          } else agg
         }
 
       private def persistJobs(jobs: List[CrawlerJob]): F[Unit] =

@@ -6,7 +6,7 @@ final case class JobSchedulerConfig(jobExpiryTimeSinceScheduled: FiniteDuration,
 
 object JobSchedulerConfig {
 
-  private val jobExpiryTimeSinceScheduled = 30.days //This will come down after initial backfill
+  private val jobExpiryTimeSinceScheduled = 30.days // This will come down after initial backfill
   private val timeBetweenRunsFactor       = 12
 
   def default = JobSchedulerConfig(jobExpiryTimeSinceScheduled, timeBetweenRunsFactor)

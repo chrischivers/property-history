@@ -116,7 +116,6 @@ class JobSchedulerTest extends munit.CatsEffectSuite {
     testWith(Set(job), Set(job), List.empty)
   }
 
-
   def testWith(initialJobs: Set[CrawlerJob], expectedJobs: Set[CrawlerJob], expectedMessages: List[RunJobCommand]) = {
     val result = for {
       jobsRef      <- Ref.of[IO, Map[JobId, CrawlerJob]](initialJobs.map(job => job.jobId -> job).toMap)

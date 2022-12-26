@@ -9,7 +9,7 @@ object MockSqsPublisher {
 
   private val fakeSqsClient = new SqsAsyncClient {
     override def serviceName(): String = ???
-    override def close(): Unit = ???
+    override def close(): Unit         = ???
   }
 
   def apply[A: Encoder](messagesRef: Ref[IO, List[A]]) = new SqsPublisher[IO, A](fakeSqsClient)("blah") {

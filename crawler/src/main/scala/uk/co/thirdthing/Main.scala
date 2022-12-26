@@ -136,16 +136,15 @@ object Main extends IOApp {
       password <- secretsManager.secretFor("postgres-password")
     } yield (host, username, password)
 
-    Resource.eval(secrets).flatMap {
-      case (host, username, password) =>
-        Session.pooled[IO](
-          host = host,
-          port = 5432,
-          user = username,
-          database = "propertyhistory",
-          password = Some(password),
-          max = 10
-        )
+    Resource.eval(secrets).flatMap { case (host, username, password) =>
+      Session.pooled[IO](
+        host = host,
+        port = 5432,
+        user = username,
+        database = "propertyhistory",
+        password = Some(password),
+        max = 10
+      )
     }
   }
 
@@ -153,13 +152,13 @@ object Main extends IOApp {
     for {
       apiHttpClient <- BlazeClientBuilder[IO].withMaxTotalConnections(30).withRequestTimeout(20.seconds).withMaxWaitQueueLimit(1500).resource
       htmlScraperHtmlClient <- BlazeClientBuilder[IO]
-                                .withParserMode(ParserMode.Lenient)
-                                .withMaxResponseLineSize(8192)
-                                .withMaxTotalConnections(30)
-                                .withMaxWaitQueueLimit(1500)
-                                .withBufferSize(16384)
-                                .withRequestTimeout(20.seconds)
-                                .resource
+        .withParserMode(ParserMode.Lenient)
+        .withMaxResponseLineSize(8192)
+        .withMaxTotalConnections(30)
+        .withMaxWaitQueueLimit(1500)
+        .withBufferSize(16384)
+        .withRequestTimeout(20.seconds)
+        .resource
       dynamoClient     <- Resource.fromAutoCloseable[IO, DynamoDbAsyncClient](IO(DynamoDbAsyncClient.builder().build()))
       sqsClient        <- Resource.fromAutoCloseable[IO, SqsAsyncClient](IO(SqsAsyncClient.builder().build()))
       cloudwatchClient <- Resource.fromAutoCloseable[IO, CloudWatchAsyncClient](IO(CloudWatchAsyncClient.builder().build()))

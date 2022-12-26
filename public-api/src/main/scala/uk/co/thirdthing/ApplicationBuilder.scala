@@ -19,10 +19,10 @@ object ApplicationBuilder:
     for {
       secretsManager <- buildSecretsManager
       dbPool         <- databaseSessionPool(secretsManager)
-      propertyStore  = PostgresPropertyStore.apply[IO](dbPool)
+      propertyStore = PostgresPropertyStore.apply[IO](dbPool)
       historyService <- Resource.pure[IO, HistoryService[IO]](HistoryService.apply[IO](propertyStore))
-      httpApp        = router(historyService)
-      _              <- serverResource(httpApp)
+      httpApp = router(historyService)
+      _ <- serverResource(httpApp)
     } yield ()
 
   private def buildSecretsManager: Resource[IO, SecretsManager] =
@@ -35,16 +35,15 @@ object ApplicationBuilder:
       password <- secretsManager.secretFor("postgres-password")
     } yield (host, username, password)
 
-    Resource.eval(secrets).flatMap {
-      case (host, username, password) =>
-        Session.pooled[IO](
-          host = host,
-          port = 5432,
-          user = username,
-          database = "propertyhistory",
-          password = Some(password),
-          max = 16
-        )
+    Resource.eval(secrets).flatMap { case (host, username, password) =>
+      Session.pooled[IO](
+        host = host,
+        port = 5432,
+        user = username,
+        database = "propertyhistory",
+        password = Some(password),
+        max = 16
+      )
     }
 
   }

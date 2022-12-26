@@ -27,8 +27,7 @@ class RightmoveHtmlClientIntegrationTest extends munit.CatsEffectSuite {
   }
 
   def buildClient(f: RightmoveHtmlClient[IO] => IO[Unit]) =
-    BlazeClientBuilder[IO]
-      .resource
+    BlazeClientBuilder[IO].resource
       .map(client => RightmoveHtmlClient.apply[IO](client, Uri.unsafeFromString("https://www.rightmove.co.uk")))
       .use(f)
 

@@ -23,7 +23,7 @@ trait RightmoveHtmlClient[F[_]] {
 object RightmoveHtmlClient {
   final case class RightmoveHtmlScrapeResult(statusCode: Int, propertyId: Option[PropertyId])
 
-  def apply[F[_] : Async](client: Client[F], baseUrl: Uri): RightmoveHtmlClient[F] = new RightmoveHtmlClient[F] {
+  def apply[F[_]: Async](client: Client[F], baseUrl: Uri): RightmoveHtmlClient[F] = new RightmoveHtmlClient[F] {
 
     implicit def logger: SelfAwareStructuredLogger[F] = Slf4jLogger.getLogger[F]
 
@@ -33,9 +33,9 @@ object RightmoveHtmlClient {
         .stream(Request.apply[F](uri = uri))
         .flatMap { response =>
           response.status match {
-            case s@(Status.NotFound | Status.Found) =>
+            case s @ (Status.NotFound | Status.Found) =>
               fs2.Stream.emit[F, RightmoveHtmlScrapeResult](RightmoveHtmlScrapeResult(s.code, None))
-            case s@(Status.Gone | Status.Ok) => handleByteStream(response.body).map(dpid => RightmoveHtmlScrapeResult(s.code, dpid))
+            case s @ (Status.Gone | Status.Ok) => handleByteStream(response.body).map(dpid => RightmoveHtmlScrapeResult(s.code, dpid))
             case other =>
               fs2.Stream.eval(new RuntimeException(s"Unexpected status code ${other.code} returned from uri $uri").raiseError)
           }
