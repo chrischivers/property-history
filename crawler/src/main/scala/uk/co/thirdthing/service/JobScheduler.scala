@@ -37,7 +37,7 @@ object JobScheduler {
         updateScheduledJobState(job).flatMap(jobStore.put)
 
       override def scheduleJobs: F[Unit] =
-        jobStore.getStream
+        jobStore.jobs
           .evalMap(job => shouldSchedule(job).map(_ -> job))
           .collect { case (shouldSchedule, job) if shouldSchedule => job }
           .evalTap(scheduleJob)

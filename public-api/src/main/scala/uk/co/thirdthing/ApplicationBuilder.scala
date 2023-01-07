@@ -47,7 +47,6 @@ object ApplicationBuilder:
         max = 16
       )
     }
-
   }
 
   private def router(historyService: HistoryService[IO]): Resource[IO, HttpApp[IO]] =

@@ -106,9 +106,7 @@ object PostgresPropertyStore {
       ).gmap[PropertyRecord]
 
     override def propertyIdFor(listingId: ListingId): F[Option[PropertyId]] =
-      pool.use { session =>
-        session.prepare(getPropertyIdCommand).use(getPropertyId => getPropertyId.option(listingId.value).map(_.map(PropertyId(_))))
-      }
+      pool.use(_.prepare(getPropertyIdCommand).use(_.option(listingId.value).map(_.map(PropertyId(_)))))
 
     override def latestListingsFor(propertyId: PropertyId): fs2.Stream[F, ListingSnapshot] =
       for {
@@ -133,7 +131,7 @@ object PostgresPropertyStore {
         details.latitude,
         details.longitude
       )
-      pool.use(session => session.prepare(insertPropertyRecordCommand).use(_.execute(propertyRecord).void))
+      pool.use(_.prepare(insertPropertyRecordCommand).use(_.execute(propertyRecord).void))
     }
 
     override def getMostRecentListing(listingId: ListingId): F[Option[ListingSnapshot]] = pool.use { session =>

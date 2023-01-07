@@ -17,10 +17,8 @@ import uk.co.thirdthing.metrics.{CloudWatchMetricsRecorder, MetricsRecorder}
 import uk.co.thirdthing.model.Model.RunJobCommand
 import uk.co.thirdthing.secrets.{AmazonSecretsManager, SecretsManager}
 import uk.co.thirdthing.service.{JobRunnerService, JobScheduler, JobSeeder, RetrievalService}
-import uk.co.thirdthing.sqs.SqsConfig._
-import uk.co.thirdthing.sqs.SqsConsumer.ConsumerName
-import uk.co.thirdthing.sqs.{SqsConfig, SqsConsumer, SqsProcessingStream, SqsPublisher}
-import uk.co.thirdthing.store._
+import uk.co.thirdthing.sqs.{SqsConfig, SqsProcessingStream, SqsPublisher}
+import uk.co.thirdthing.store.{DynamoInitializer, JobStore, PostgresInitializer, PostgresJobStore, PostgresPropertyStore}
 
 import scala.concurrent.duration._
 
@@ -40,8 +38,8 @@ object Main extends IOApp {
       resources(secretsManager).use { r =>
         secretsManager.secretFor("run-job-commands-queue-url").flatMap { runJobCommandQueueUrl =>
           val metricsRecorder        = CloudWatchMetricsRecorder[IO](r.cloudWatchClient)
-          val jobStore               = DynamoJobStore[IO](r.dynamoClient)
-          val runJobCommandPublisher = new SqsPublisher[IO, RunJobCommand](r.sqsClient)(QueueUrl(runJobCommandQueueUrl))
+          val jobStore               = PostgresJobStore[IO](r.db)
+          val runJobCommandPublisher = new SqsPublisher[IO, RunJobCommand](r.sqsClient)(runJobCommandQueueUrl)
           val jobScheduler           = JobScheduler[IO](jobStore, runJobCommandPublisher, JobSchedulerConfig.default)
 
           DynamoInitializer.createDynamoTablesIfNotExisting[IO](r.dynamoClient) *>

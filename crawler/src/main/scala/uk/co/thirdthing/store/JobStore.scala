@@ -1,88 +1,143 @@
 package uk.co.thirdthing.store
 
-import cats.effect.Async
+import cats.effect.Resource
 import cats.effect.kernel.Sync
-import fs2.Pipe
-import meteor.Client
-import meteor.api.hi._
-import software.amazon.awssdk.core.retry.backoff.BackoffStrategy
-import software.amazon.awssdk.services.dynamodb.model.{AttributeValue, ProvisionedThroughputExceededException, QueryRequest}
-import uk.co.thirdthing.model.Model.{CrawlerJob, JobId}
-
-import scala.concurrent.duration.DurationInt
 import cats.syntax.all._
-import meteor.{DynamoDbType, KeyDef}
-import org.typelevel.log4cats.Logger
-import org.typelevel.log4cats.slf4j.Slf4jLogger
-import software.amazon.awssdk.services.dynamodb.DynamoDbAsyncClient
-import uk.co.thirdthing.utils.CatsEffectUtils._
+import fs2.Pipe
+import skunk._
+import skunk.codec.all._
+import skunk.implicits._
+import uk.co.thirdthing.model.Model.CrawlerJob.{LastRunCompleted, LastRunScheduled}
+import uk.co.thirdthing.model.Model.{CrawlerJob, JobId, JobState}
+import uk.co.thirdthing.model.Types.ListingSnapshot.ListingSnapshotId
+import uk.co.thirdthing.model.Types._
+import uk.co.thirdthing.store.PropertyStore.PropertyRecord
+import uk.co.thirdthing.utils.TimeUtils._
+import JobStore.JobStoreRecord
 
-import scala.jdk.CollectionConverters._
+import java.time.{LocalDateTime, ZoneId}
 
 trait JobStore[F[_]] {
   def put(job: CrawlerJob): F[Unit]
   def get(jobId: JobId): F[Option[CrawlerJob]]
-  def putStream: Pipe[F, CrawlerJob, Unit]
-  def getStream: fs2.Stream[F, CrawlerJob]
+  def jobs: fs2.Stream[F, CrawlerJob]
   def getLatestJob: F[Option[CrawlerJob]]
-
+  def getNextJob: F[Option[CrawlerJob]]
 }
 
-object DynamoJobStore {
-
-  import JobStoreCodecs._
-
-  private val provisionedThroughputExceeded: Throwable => Boolean = {
-    case _: ProvisionedThroughputExceededException => true
-    case _                                         => false
+object JobStore {
+  private[store] final case class JobStoreRecord(
+    jobId: Long,
+    from: Long,
+    to: Long,
+    state: String,
+    lastRunScheduled: Option[LocalDateTime],
+    lastRunCompleted: Option[LocalDateTime],
+    lastChange: Option[LocalDateTime],
+    latestDateAdded: Option[LocalDateTime]
+  ) {
+    // TODO this is not safe
+    def toCrawlerJob: CrawlerJob =
+      CrawlerJob(
+        JobId(this.jobId),
+        ListingId(this.from),
+        ListingId(this.to),
+        JobState.withName(this.state),
+        this.lastRunScheduled.map(v => LastRunScheduled(v.asInstant)),
+        this.lastRunCompleted.map(v => LastRunCompleted(v.asInstant)),
+        this.lastChange.map(v => LastChange(v.asInstant)),
+        this.latestDateAdded.map(v => DateAdded(v.asInstant))
+      )
   }
 
-  def apply[F[_]: Async](client: DynamoDbAsyncClient): JobStore[F] = {
+  private[store] def jobStoreRecordFrom(job: CrawlerJob): JobStoreRecord =
+    JobStoreRecord(
+      job.jobId.value,
+      job.from.value,
+      job.to.value,
+      job.state.entryName,
+      job.lastRunScheduled.map(_.value.toLocalDateTime),
+      job.lastRunCompleted.map(_.value.toLocalDateTime),
+      job.lastChange.map(_.value.toLocalDateTime),
+      job.latestDateAdded.map(_.value.toLocalDateTime)
+    )
+}
 
-    implicit val logger = Slf4jLogger.getLogger[F]
+object PostgresJobStore {
 
-    val tableName           = "crawler-jobs"
-    val jobsByDateIndexName = "jobsByToDate-GSI"
-    val table               = SimpleTable[F, JobId](tableName, KeyDef[JobId]("jobId", DynamoDbType.N), client)
-    val meteorClient        = Client[F](client)
+  def apply[F[_]: Sync](pool: Resource[F, Session[F]]) = new JobStore[F] {
 
-    new JobStore[F] {
+    private val insertJobCommand: Command[JobStoreRecord] =
+      sql"""
+             INSERT INTO jobs(jobId, from, to, state, lastRunScheduled, lastRunCompleted, lastChange, latestDateAdded) VALUES
+             ($int8, $int8, $int8, ${varchar(24)}, ${timestamp.opt}, ${timestamp.opt}, ${timestamp.opt}, ${timestamp.opt})
+         """.command.contramap { (js: JobStoreRecord) =>
+        js.jobId ~ js.from ~ js.to ~ js.state ~ js.lastRunScheduled ~ js.lastRunCompleted ~ js.lastChange ~ js.latestDateAdded
+      }
 
-      override def put(job: CrawlerJob): F[Unit] =
-        table.put[CrawlerJob](job).withBackoffRetry(1.minute, 10, errorsToHandle = provisionedThroughputExceeded)
+    private val getJobQuery: Query[Long, JobStoreRecord] =
+      sql"""
+             SELECT jobId, from, to, state, lastRunScheduled, lastRunCompleted, lastChange, latestDateAdded
+             FROM jobs
+             WHERE jobId = $int8
+             """.query(int8 ~ int8 ~ int8 ~ varchar(24) ~ timestamp.opt ~ timestamp.opt ~ timestamp.opt ~ timestamp.opt).gmap[JobStoreRecord]
 
-      override def putStream: Pipe[F, CrawlerJob, Unit] =
-        table.batchPut[CrawlerJob](maxBatchWait = 30.seconds, BackoffStrategy.defaultStrategy())
+    private val getJobsQuery: Query[Void, JobStoreRecord] =
+      sql"""
+         SELECT jobId, from, to, state, lastRunScheduled, lastRunCompleted, lastChange, latestDateAdded
+         FROM jobs
+         """.query(int8 ~ int8 ~ int8 ~ varchar(24) ~ timestamp.opt ~ timestamp.opt ~ timestamp.opt ~ timestamp.opt).gmap[JobStoreRecord]
 
-      override def getLatestJob: F[Option[CrawlerJob]] =
-        Async[F]
-          .fromCompletableFuture(
-            Sync[F].delay(
-              client.query(
-                QueryRequest
-                  .builder()
-                  .tableName(tableName)
-                  .indexName(jobsByDateIndexName)
-                  .keyConditionExpression("#type = :t0")
-                  .expressionAttributeNames(Map("#type" -> "type").asJava)
-                  .expressionAttributeValues(Map(":t0" -> AttributeValue.fromS("JOB")).asJava)
-                  .scanIndexForward(false)
-                  .limit(1)
-                  .build()
-              )
-            )
-          )
-          .map(_.items().asScala.toList.headOption)
-          .flatMap(itemOpt => itemOpt.fold(Option.empty[CrawlerJob].pure[F])(item => Sync[F].fromEither(crawlerJobDecoder.read(item).map(_.some))))
-          .withBackoffRetry(1.minute, 10, errorsToHandle = provisionedThroughputExceeded)
+    private val getLatestJobQuery: Query[Void, JobStoreRecord] =
+      sql"""
+             SELECT jobId, from, to, state, lastRunScheduled, lastRunCompleted, lastChange, latestDateAdded
+             FROM jobs
+             ORDER BY to DESC
+             LIMIT 1
+             """.query(int8 ~ int8 ~ int8 ~ varchar(24) ~ timestamp.opt ~ timestamp.opt ~ timestamp.opt ~ timestamp.opt).gmap[JobStoreRecord]
 
-      override def getStream: fs2.Stream[F, CrawlerJob] = meteorClient.scan[CrawlerJob](tableName, consistentRead = false, parallelism = 2)
+    private val getNextJobQuery: Query[LocalDateTime, JobStoreRecord] =
+      sql"""
+             SELECT jobId, from, to, state, lastRunScheduled, lastRunCompleted, lastChange, latestDateAdded, (now - lastDateChange) / 12 AS requiredTimeBetweenRuns
+             FROM jobs
+             WHERE state IN ('NeverRun', 'Completed') OR (state = 'Pending' AND lastRunScheduled < $timestamp)
+             ORDER BY lastRunCompleted
+             LIMIT 1
+             """.query(int8 ~ int8 ~ int8 ~ varchar(24) ~ timestamp.opt ~ timestamp.opt ~ timestamp.opt ~ timestamp.opt).gmap[JobStoreRecord]
 
-      override def get(jobId: JobId): F[Option[CrawlerJob]] =
-        table
-          .get[CrawlerJob](jobId, consistentRead = false)
-          .withBackoffRetry(1.minute, 10, errorsToHandle = provisionedThroughputExceeded)
+    /*
+
+    private val getMostRecentListingsCommand: Query[Long, PropertyRecord] =
+      sql"""
+     SELECT DISTINCT ON (listingId) recordId, listingId, propertyId, dateAdded, lastChange, price, transactionTypeId, visible, listingStatus, rentFrequency, latitude, longitude
+     FROM properties
+     WHERE propertyId = $int8
+     ORDER BY listingId DESC, lastChange DESC
+   """.query(
+        int8.opt ~ int8 ~ int8 ~ timestamp ~ timestamp ~ int4.opt ~ int4.opt ~ bool.opt ~ varchar(24).opt ~ varchar(32).opt ~ float8.opt ~ float8.opt
+      ).gmap[PropertyRecord]
+
+     */
+
+    override def put(job: CrawlerJob): F[Unit] =
+      pool.use(_.prepare(insertJobCommand).use(_.execute(JobStore.jobStoreRecordFrom(job)).void))
+
+    override def get(jobId: JobId): F[Option[CrawlerJob]] =
+      pool.use(_.prepare(getJobQuery).use(_.option(jobId.value))).map(_.map(_.toCrawlerJob))
+
+    override def jobs: fs2.Stream[F, CrawlerJob] =
+      for {
+        db      <- fs2.Stream.resource(pool)
+        getJobs <- fs2.Stream.resource(db.prepare(getJobsQuery))
+        result  <- getJobs.stream(Void, 16).map(_.toCrawlerJob)
+      } yield result
+
+    override def getLatestJob: F[Option[CrawlerJob]] =
+      pool.use(_.prepare(getLatestJobQuery).use(_.option(Void))).map(_.map(_.toCrawlerJob))
+
+    override def getNextJob: F[Option[CrawlerJob]] = {
+      ???
     }
-
   }
+
 }
