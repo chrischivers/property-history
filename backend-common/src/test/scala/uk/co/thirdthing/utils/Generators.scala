@@ -3,14 +3,16 @@ package uk.co.thirdthing.utils
 import org.scalacheck.{Arbitrary, Gen}
 import uk.co.thirdthing.model.Types.ListingSnapshot.ListingSnapshotId
 import uk.co.thirdthing.model.Types._
+import java.time.Instant
 
 object Generators {
 
+  val instantGen: Gen[Instant] = Gen.chooseNum(0L, System.currentTimeMillis()).map(Instant.ofEpochMilli)
   val listingSnapshotIdGen: Gen[ListingSnapshotId] = Gen.long.map(ListingSnapshotId(_))
   val listingIdGen: Gen[ListingId]                 = Gen.long.map(ListingId(_))
   val propertyIdGen: Gen[PropertyId]               = Gen.long.map(PropertyId(_))
-  val lastChangeGen: Gen[LastChange]               = Gen.calendar.map(_.toInstant).map(LastChange(_))
-  val dateAddedGen: Gen[DateAdded]                 = Gen.calendar.map(_.toInstant).map(DateAdded(_))
+  val lastChangeGen: Gen[LastChange]               = instantGen.map(LastChange(_))
+  val dateAddedGen: Gen[DateAdded]                 = instantGen.map(DateAdded(_))
   val priceGen: Gen[Price]                         = Gen.posNum[Int].map(Price(_))
   val transactionTypeGen: Gen[TransactionType]     = Gen.oneOf(TransactionType.values)
   val listingStatusGen: Gen[ListingStatus]         = Gen.oneOf(ListingStatus.values)

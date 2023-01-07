@@ -64,7 +64,7 @@ object JobSeeder {
       private def persistJobs(jobs: List[CrawlerJob]): F[Unit] =
         fs2.Stream
           .emits(jobs)
-          .through(jobStore.putStream)
+          .evalTap(jobStore.put)
           .compile
           .drain
 
