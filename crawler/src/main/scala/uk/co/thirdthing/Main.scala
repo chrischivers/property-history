@@ -12,13 +12,15 @@ import software.amazon.awssdk.services.secretsmanager.SecretsManagerClient
 import software.amazon.awssdk.services.sqs.SqsAsyncClient
 import uk.co.thirdthing.clients.{RightmoveApiClient, RightmoveHtmlClient}
 import uk.co.thirdthing.config.{JobSchedulerConfig, JobSeederConfig}
-import uk.co.thirdthing.consumer.{JobRunnerConsumer, JobScheduleTriggerConsumer, JobSeedTriggerConsumer}
+import uk.co.thirdthing.consumer._
 import uk.co.thirdthing.metrics.{CloudWatchMetricsRecorder, MetricsRecorder}
 import uk.co.thirdthing.model.Model.RunJobCommand
 import uk.co.thirdthing.secrets.{AmazonSecretsManager, SecretsManager}
 import uk.co.thirdthing.service.{JobRunnerService, JobScheduler, JobSeeder, RetrievalService}
-import uk.co.thirdthing.sqs.{SqsConfig, SqsProcessingStream, SqsPublisher}
-import uk.co.thirdthing.store.{DynamoInitializer, DynamoJobStore, JobStore, PostgresInitializer, PostgresPropertyStore}
+import uk.co.thirdthing.sqs.SqsConfig._
+import uk.co.thirdthing.sqs.SqsConsumer.ConsumerName
+import uk.co.thirdthing.sqs.{SqsConfig, SqsConsumer, SqsProcessingStream, SqsPublisher}
+import uk.co.thirdthing.store._
 
 import scala.concurrent.duration._
 
@@ -39,7 +41,7 @@ object Main extends IOApp {
         secretsManager.secretFor("run-job-commands-queue-url").flatMap { runJobCommandQueueUrl =>
           val metricsRecorder        = CloudWatchMetricsRecorder[IO](r.cloudWatchClient)
           val jobStore               = DynamoJobStore[IO](r.dynamoClient)
-          val runJobCommandPublisher = new SqsPublisher[IO, RunJobCommand](r.sqsClient)(runJobCommandQueueUrl)
+          val runJobCommandPublisher = new SqsPublisher[IO, RunJobCommand](r.sqsClient)(QueueUrl(runJobCommandQueueUrl))
           val jobScheduler           = JobScheduler[IO](jobStore, runJobCommandPublisher, JobSchedulerConfig.default)
 
           DynamoInitializer.createDynamoTablesIfNotExisting[IO](r.dynamoClient) *>
@@ -64,8 +66,8 @@ object Main extends IOApp {
       }
     }
 
-  private def buildSecretsManager: Resource[IO, SecretsManager] =
-    Resource.fromAutoCloseable[IO, SecretsManagerClient](IO(SecretsManagerClient.builder().build())).map(AmazonSecretsManager(_))
+  private def buildSecretsManager: Resource[IO, SecretsManager[IO]] =
+    Resource.fromAutoCloseable[IO, SecretsManagerClient](IO(SecretsManagerClient.builder().build())).map(AmazonSecretsManager[IO](_))
 
   private def buildJobSeedTriggerConsumer(apiHttpClient: Client[IO], jobStore: JobStore[IO], jobScheduler: JobScheduler[IO]) = {
     val rightmoveApiClient = RightmoveApiClient(apiHttpClient, Uri.unsafeFromString("https://api.rightmove.co.uk"))
@@ -76,26 +78,42 @@ object Main extends IOApp {
   private def startJobSeedTriggerProcessingStream(
     apiHttpClient: Client[IO],
     sqsClient: SqsAsyncClient,
-    secretsManager: SecretsManager,
+    secretsManager: SecretsManager[IO],
     jobScheduler: JobScheduler[IO],
     jobStore: JobStore[IO]
   ): fs2.Stream[IO, Unit] =
-    fs2.Stream.eval(secretsManager.secretFor("job-seeder-queue-url")).flatMap { queueUrl =>
-      val consumer  = buildJobSeedTriggerConsumer(apiHttpClient, jobStore, jobScheduler)
-      val sqsConfig = SqsConfig(queueUrl, 20.seconds, 5.minutes, 1.minute, 10.seconds, 1.minute, 1)
-      new SqsProcessingStream[IO](sqsClient, sqsConfig, "Job Seed Trigger").startStream(consumer)
+    fs2.Stream.eval(secretsManager.secretFor("job-seeder-queue-url")).flatMap { jobSeederQueueUrl =>
+      val consumer = buildJobSeedTriggerConsumer(apiHttpClient, jobStore, jobScheduler)
+      val sqsConfig = SqsConfig(
+        QueueUrl(jobSeederQueueUrl),
+        WaitTime(20.seconds),
+        VisibilityTimeout(5.minutes),
+        HeartbeatInterval(1.minute),
+        RetrySleepTime(10.seconds),
+        StreamThrottlingRate(1.minute),
+        Parallelism(1)
+      )
+      new SqsProcessingStream[IO](sqsClient, sqsConfig, ConsumerName("Job Seed Trigger")).startStream(consumer)
     }
 
   private def startJobScheduleTriggerProcessingStream(
     sqsClient: SqsAsyncClient,
-    secretsManager: SecretsManager,
+    secretsManager: SecretsManager[IO],
     jobScheduler: JobScheduler[IO]
   ): fs2.Stream[IO, Unit] =
     fs2.Stream.eval(secretsManager.secretFor("run-job-commands-queue-url")).flatMap { runJobCommandQueueUrl =>
       fs2.Stream.eval(secretsManager.secretFor("job-schedule-trigger-queue-url")).flatMap { jobScheduleTriggerQueueUrl =>
-        val consumer  = JobScheduleTriggerConsumer(jobScheduler)
-        val sqsConfig = SqsConfig(jobScheduleTriggerQueueUrl, 20.seconds, 5.minutes, 1.minute, 10.seconds, 1.minute, 1)
-        new SqsProcessingStream[IO](sqsClient, sqsConfig, "Job Schedule Trigger").startStream(consumer)
+        val consumer = JobScheduleTriggerConsumer(jobScheduler)
+        val sqsConfig = SqsConfig(
+          QueueUrl(jobScheduleTriggerQueueUrl),
+          WaitTime(20.seconds),
+          VisibilityTimeout(5.minutes),
+          HeartbeatInterval(1.minute),
+          RetrySleepTime(10.seconds),
+          StreamThrottlingRate(1.minute),
+          Parallelism(1)
+        )
+        new SqsProcessingStream[IO](sqsClient, sqsConfig, ConsumerName("Job Schedule Trigger")).startStream(consumer)
       }
     }
 
@@ -105,7 +123,7 @@ object Main extends IOApp {
     jobStore: JobStore[IO],
     dbPool: Resource[IO, Session[IO]],
     metricsRecorder: MetricsRecorder[IO]
-  ) = {
+  ): SqsConsumer[IO, RunJobCommand] = {
     val postgresPropertyStore = PostgresPropertyStore[IO](dbPool)
     val rightmoveApiClient    = RightmoveApiClient(apiHttpClient, Uri.unsafeFromString("https://api.rightmove.co.uk"))
     val rightmoveHtmlClient   = RightmoveHtmlClient(htmlHttpClient, Uri.unsafeFromString("https://www.rightmove.co.uk"))
@@ -120,16 +138,24 @@ object Main extends IOApp {
     htmlScraperHttpClient: Client[IO],
     jobStore: JobStore[IO],
     dbPool: Resource[IO, Session[IO]],
-    secretsManager: SecretsManager,
+    secretsManager: SecretsManager[IO],
     metricsRecorder: MetricsRecorder[IO]
   ): fs2.Stream[IO, Unit] =
     fs2.Stream.eval(secretsManager.secretFor("run-job-commands-queue-url")).flatMap { runJobCommandQueueUrl =>
-      val consumer  = buildJobRunnerConsumer(apiHttpClient, htmlScraperHttpClient, jobStore, dbPool, metricsRecorder)
-      val sqsConfig = SqsConfig(runJobCommandQueueUrl, 20.seconds, 5.minutes, 1.minute, 10.seconds, 100.milliseconds, 8)
-      new SqsProcessingStream[IO](sqsClient, sqsConfig, "Job Runner").startStream(consumer)
+      val consumer = buildJobRunnerConsumer(apiHttpClient, htmlScraperHttpClient, jobStore, dbPool, metricsRecorder)
+      val sqsConfig = SqsConfig(
+        QueueUrl(runJobCommandQueueUrl),
+        WaitTime(20.seconds),
+        VisibilityTimeout(5.minutes),
+        HeartbeatInterval(1.minute),
+        RetrySleepTime(10.seconds),
+        StreamThrottlingRate(100.milliseconds),
+        Parallelism(8)
+      )
+      new SqsProcessingStream[IO](sqsClient, sqsConfig, ConsumerName("Job Runner")).startStream(consumer)
     }
 
-  private def databaseSessionPool(secretsManager: SecretsManager): Resource[IO, Resource[IO, Session[IO]]] = {
+  private def databaseSessionPool(secretsManager: SecretsManager[IO]): Resource[IO, Resource[IO, Session[IO]]] = {
     val secrets = for {
       host     <- secretsManager.secretFor("postgres-host")
       username <- secretsManager.secretFor("postgres-user")
@@ -148,7 +174,7 @@ object Main extends IOApp {
     }
   }
 
-  private def resources(secretsManager: SecretsManager): Resource[IO, Resources] =
+  private def resources(secretsManager: SecretsManager[IO]): Resource[IO, Resources] =
     for {
       apiHttpClient <- BlazeClientBuilder[IO].withMaxTotalConnections(30).withRequestTimeout(20.seconds).withMaxWaitQueueLimit(1500).resource
       htmlScraperHtmlClient <- BlazeClientBuilder[IO]

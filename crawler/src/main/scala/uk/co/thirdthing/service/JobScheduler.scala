@@ -12,6 +12,7 @@ import uk.co.thirdthing.store.JobStore
 
 import java.time.Instant
 import scala.concurrent.duration.{FiniteDuration, _}
+import monix.newtypes.NewtypeWrapped
 
 trait JobScheduler[F[_]] {
   def scheduleJobs: F[Unit]
@@ -20,9 +21,14 @@ trait JobScheduler[F[_]] {
 
 object JobScheduler {
 
-  private type TimeSinceLastDataChange  = FiniteDuration
-  private type TimeSinceLastRecordAdded = FiniteDuration
-  private type TimeBetweenRuns          = FiniteDuration
+  private type TimeSinceLastDataChange = TimeSinceLastDataChange.Type
+  private object TimeSinceLastDataChange extends NewtypeWrapped[FiniteDuration]
+
+  private type TimeSinceLastRecordAdded = TimeSinceLastRecordAdded.Type
+  private object TimeSinceLastRecordAdded extends NewtypeWrapped[FiniteDuration]
+
+  private type TimeBetweenRuns = TimeBetweenRuns.Type
+  private object TimeBetweenRuns extends NewtypeWrapped[FiniteDuration]
 
   def apply[F[_]: Async](jobStore: JobStore[F], publisher: SqsPublisher[F, RunJobCommand], config: JobSchedulerConfig)(implicit clock: Clock[F]) =
     new JobScheduler[F] {
@@ -61,18 +67,18 @@ object JobScheduler {
       ): Boolean = {
         val lastChangedBaseline                                         = LastChange(Instant.parse("2022-11-28T17:48:04.00Z"))
         val defaultDatedAddedWhereNotExisted                            = DateAdded(Instant.parse("2000-01-01T00:00:00.00Z"))
-        val timeBetweenRuns: TimeSinceLastDataChange => TimeBetweenRuns = _ / config.timeBetweenRunsFactor
+        val timeBetweenRuns: TimeSinceLastDataChange => TimeBetweenRuns = timeSinceLastDataChange => TimeBetweenRuns(timeSinceLastDataChange.value / config.timeBetweenRunsFactor)
 
         // Here our last change value is within the initial seeding run, so we use the data added instead
-        val lastChanged =
+        val lastChanged: Instant =
           if (lastDataChange.value.isBefore(lastChangedBaseline.value)) latestDateAdded.getOrElse(defaultDatedAddedWhereNotExisted).value
           else lastDataChange.value
 
         val nowMillis               = now.toEpochMilli
-        val timeSinceLastDataChange = nowMillis - lastChanged.toEpochMilli
+        val timeSinceLastDataChange =TimeSinceLastDataChange((nowMillis - lastChanged.toEpochMilli).millis)
         val timeSinceLastRun        = nowMillis - lastRunCompleted.value.toEpochMilli
-        val requiredTimeBetweenRuns = timeBetweenRuns(timeSinceLastDataChange.millis)
-        timeSinceLastRun >= requiredTimeBetweenRuns.toMillis
+        val requiredTimeBetweenRuns = timeBetweenRuns(timeSinceLastDataChange)
+        timeSinceLastRun >= requiredTimeBetweenRuns.value.toMillis
       }
     }
 

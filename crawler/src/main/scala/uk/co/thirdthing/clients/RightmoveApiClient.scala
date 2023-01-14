@@ -3,8 +3,9 @@ package uk.co.thirdthing.clients
 import cats.MonadThrow
 import cats.effect.Async
 import cats.implicits._
+import io.circe.generic.JsonCodec
 import io.circe.generic.semiauto.{deriveDecoder, deriveEncoder}
-import io.circe.{Decoder, Encoder}
+import io.circe.{Decoder, DecodingFailure, Encoder}
 import org.http4s.circe._
 import org.http4s.client.Client
 import org.http4s.{EntityDecoder, Response, Status, Uri}
@@ -41,11 +42,21 @@ object RightmoveApiClient {
     implicit val decoder: Decoder[ListingDetails] = deriveDecoder
   }
 
-  private case class ResultWrapper(result: String, property: Option[ListingDetails], errorInfo: Option[String])
+  sealed trait ResultWrapper
+
+  private case class SuccessResultWrapper(property: Option[ListingDetails]) extends ResultWrapper
+  private case class FailureResultWrapper(errorInfo: Option[String])        extends ResultWrapper
 
   private object ResultWrapper {
-    implicit val encoder: Encoder[ResultWrapper] = deriveEncoder
-    implicit val decoder: Decoder[ResultWrapper] = deriveDecoder
+    implicit val successResultWrapperDecoder: Decoder[SuccessResultWrapper] = deriveDecoder
+    implicit val failureResultWrapperDecoder: Decoder[FailureResultWrapper] = deriveDecoder
+    implicit val decoder: Decoder[ResultWrapper] = Decoder.instance { cursor =>
+      cursor.downField("result").as[String].flatMap {
+        case "SUCCESS" => cursor.as[SuccessResultWrapper]
+        case "FAILURE" => cursor.as[FailureResultWrapper]
+        case other     => Left(DecodingFailure(s"Unhandled result type $other", cursor.history))
+      }
+    }
   }
 
   def apply[F[_]: Async](client: Client[F], baseUrl: Uri) = new RightmoveApiClient[F] {
@@ -73,20 +84,23 @@ object RightmoveApiClient {
     }
 
     private def handleSuccessfulResponse(response: Response[F], listingId: ListingId): F[Option[ListingDetails]] =
-      response.as[ResultWrapper].flatMap {
-        case ResultWrapper("SUCCESS", Some(details), _) =>
-          logger.debug(s"Property found for $listingId").as(details.some)
-        case ResultWrapper("SUCCESS", _, _) =>
-          logger.warn(s"Received status SUCCESS but no property details for listingID $listingId").as(None)
-        case ResultWrapper("FAILURE", _, Some("Property not found")) =>
-          logger.debug(s"No property found for $listingId").as(None)
-        case ResultWrapper("FAILURE", _, Some(errorInfo)) =>
-          logger.warn(s"Received status FAILURE for listingID $listingId. Error Info [$errorInfo]").as(None)
-        case ResultWrapper("FAILURE", _, None) =>
-          logger.warn(s"Received status FAILURE for listingID $listingId with no error info").as(None)
-        case ResultWrapper(otherStatus, _, _) =>
-          logger.warn(s"Received unhandled status $otherStatus for listingID $listingId").as(None)
-      }
+      response
+        .as[ResultWrapper]
+        .flatMap[Option[ListingDetails]] {
+          case SuccessResultWrapper(Some(details)) =>
+            logger.debug(s"Property found for $listingId").as(details.some)
+          case SuccessResultWrapper(_) =>
+            logger.warn(s"Received status SUCCESS but no property details for listingID $listingId").as(None)
+          case FailureResultWrapper(Some("Property not found")) =>
+            logger.debug(s"No property found for $listingId").as(None)
+          case FailureResultWrapper(Some(errorInfo)) =>
+            logger.warn(s"Received status FAILURE for listingID $listingId. Error Info [$errorInfo]").as(None)
+          case FailureResultWrapper(None) =>
+            logger.warn(s"Received status FAILURE for listingID $listingId with no error info").as(None)
+        }
+        .recoverWith { case DecodingFailure(msg, _) =>
+          logger.warn(msg).as(None)
+        }
 
     private def handleErrorResponse(response: Response[F], listingId: ListingId): F[Option[ListingDetails]] =
       response.as[String].flatMap { errorResponse =>

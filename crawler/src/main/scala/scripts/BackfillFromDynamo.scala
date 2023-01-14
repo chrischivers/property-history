@@ -75,14 +75,14 @@ object BackfillFromDynamo extends IOApp {
   private def dynamoDbClient =
     Resource.fromAutoCloseable(IO(DynamoDbAsyncClient.builder().build()))
 
-  private def buildSecretsManager: Resource[IO, SecretsManager] =
+  private def buildSecretsManager: Resource[IO, SecretsManager[IO]] =
     Resource
       .fromAutoCloseable[IO, SecretsManagerClient](
         IO(SecretsManagerClient.builder().build())
       )
-      .map(AmazonSecretsManager(_))
+      .map(AmazonSecretsManager[IO](_))
 
-  private def databaseSessionPool(secretsManager: SecretsManager): Resource[IO, Resource[IO, Session[IO]]] = {
+  private def databaseSessionPool(secretsManager: SecretsManager[IO]): Resource[IO, Resource[IO, Session[IO]]] = {
     val secrets = for {
       host     <- secretsManager.secretFor("postgres-host")
       username <- secretsManager.secretFor("postgres-user")

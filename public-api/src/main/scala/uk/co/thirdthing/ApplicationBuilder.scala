@@ -25,10 +25,10 @@ object ApplicationBuilder:
       _ <- serverResource(httpApp)
     } yield ()
 
-  private def buildSecretsManager: Resource[IO, SecretsManager] =
+  private def buildSecretsManager: Resource[IO, SecretsManager[IO]] =
     Resource.fromAutoCloseable[IO, SecretsManagerClient](IO(SecretsManagerClient.builder().build())).map(AmazonSecretsManager(_))
 
-  private def databaseSessionPool(secretsManager: SecretsManager): Resource[IO, Resource[IO, Session[IO]]] = {
+  private def databaseSessionPool(secretsManager: SecretsManager[IO]): Resource[IO, Resource[IO, Session[IO]]] = {
     val secrets = for {
       host     <- secretsManager.secretFor("postgres-host")
       username <- secretsManager.secretFor("postgres-user")
