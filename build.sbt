@@ -29,7 +29,7 @@ lazy val backendCommon = projectMatrix
   .settings(Defaults.itSettings)
   .settings(IntegrationTest / internalDependencyClasspath += Attributed.blank((Test / classDirectory).value))
   .settings(IntegrationTest / parallelExecution := false)
-  .dependsOn(common)
+  .dependsOn(common % "test->test;it->test;it->it;compile->compile")
   .aggregate(common)
 
 lazy val publicApi = projectMatrix
@@ -37,6 +37,7 @@ lazy val publicApi = projectMatrix
   .jvmPlatform(Seq(Versions.scala3))
   .settings(CompilerSettings.settings)
   .settings(libraryDependencies ++= publicApiDependencies)
+  .enablePlugins(Smithy4sCodegenPlugin)
   .configs(IntegrationTest)
   .settings(inConfig(IntegrationTest)(org.scalafmt.sbt.ScalafmtPlugin.scalafmtConfigSettings))
   .settings(Defaults.itSettings)
@@ -105,3 +106,6 @@ lazy val frontend =
     )
     .dependsOn(common % "compile->compile")
     .aggregate(common)
+
+lazy val defaults =
+  Seq(VirtualAxis.scalaABIVersion(Versions.scala3), VirtualAxis.jvm)

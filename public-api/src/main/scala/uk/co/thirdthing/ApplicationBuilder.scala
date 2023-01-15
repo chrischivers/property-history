@@ -1,18 +1,20 @@
 package uk.co.thirdthing
 
 import cats.effect.{IO, Resource}
+import com.comcast.ip4s.{Host, Port}
 import org.http4s.HttpApp
-import org.http4s.blaze.server.BlazeServerBuilder
-import org.http4s.implicits._
+import org.http4s.ember.server.EmberServerBuilder
+import org.http4s.implicits.*
 import org.http4s.server.Router
 import org.http4s.server.defaults.HttpPort
 import skunk.Session
-import uk.co.thirdthing.routes.{ApiRoute, MetaRoute, StaticRoutes}
+import uk.co.thirdthing.routes._
 import uk.co.thirdthing.secrets.{AmazonSecretsManager, SecretsManager}
 import uk.co.thirdthing.service.HistoryService
 import natchez.Trace.Implicits.noop
 import software.amazon.awssdk.services.secretsmanager.SecretsManagerClient
 import uk.co.thirdthing.store.{PostgresPropertyStore, PropertyStore}
+import smithy4s.http4s.SimpleRestJsonBuilder
 
 object ApplicationBuilder:
   def build: Resource[IO, Unit] =
@@ -21,7 +23,7 @@ object ApplicationBuilder:
       dbPool         <- databaseSessionPool(secretsManager)
       propertyStore = PostgresPropertyStore.apply[IO](dbPool)
       historyService <- Resource.pure[IO, HistoryService[IO]](HistoryService.apply[IO](propertyStore))
-      httpApp = router(historyService)
+      httpApp <- router(historyService)
       _ <- serverResource(httpApp)
     } yield ()
 
@@ -48,16 +50,20 @@ object ApplicationBuilder:
 
   }
 
-  def router(historyService: HistoryService[IO]) =
-    Router(
-      "/api"  -> ApiRoute.routes[IO](historyService),
-      "/meta" -> MetaRoute.routes[IO],
-      "/"     -> StaticRoutes.routes[IO]
-    ).orNotFound
+  private def router(historyService: HistoryService[IO]): Resource[IO, HttpApp[IO]] =
+    SimpleRestJsonBuilder.routes(ApiRouteSmithy(historyService)).resource.map { apiRoutesSmithy =>
+      Router(
+        "/api/v1" -> ApiRoute.routes[IO](historyService),
+        "/api/v2" -> apiRoutesSmithy,
+        "/meta"   -> MetaRoute.routes[IO],
+        "/"       -> StaticRoutes.routes[IO]
+      ).orNotFound
+    }
 
-  def serverResource(httpApp: HttpApp[IO]) =
-    BlazeServerBuilder
-      .apply[IO]
+  private def serverResource(httpApp: HttpApp[IO]) =
+    EmberServerBuilder
+      .default[IO]
       .withHttpApp(httpApp)
-      .bindHttp(HttpPort, "0.0.0.0")
-      .resource
+      .withPort(Port.fromInt(8080).get)
+      .withHost(Host.fromString("0.0.0.0").get)
+      .build

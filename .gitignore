@@ -17,3 +17,4 @@ secret
 .bloop
 *.env
 .env
+.smithy.lsp.log

@@ -27,6 +27,8 @@ object Dependencies {
     val wayPoint              = "0.5.0"
     val scalaCss              = "1.0.0"
     val http4sDom             = "0.2.3"
+    val smithy4s              = "0.17.1"
+    val coursier = "2.1.0-RC4"
   }
 
   private val munit = Seq(
@@ -41,8 +43,13 @@ object Dependencies {
   private val http4s = Seq(
     "org.http4s" %% "http4s-dsl"          % Versions.http4s,
     "org.http4s" %% "http4s-circe"        % Versions.http4s,
-    "org.http4s" %% "http4s-blaze-server" % Versions.http4s,
+    "org.http4s" %% "http4s-ember-server" % Versions.http4s,
     "org.http4s" %% "http4s-blaze-client" % Versions.http4s
+  )
+
+  private val smithy4s = Seq(
+    "com.disneystreaming.smithy4s" %% "smithy4s-http4s"         % Versions.smithy4s,
+    "com.disneystreaming.smithy4s" %% "smithy4s-http4s-swagger" % Versions.smithy4s
   )
 
   private val refined = Seq(
@@ -99,12 +106,13 @@ object Dependencies {
   private val apacheCommonsLang = Seq(
     "org.apache.commons" % "commons-lang3" % Versions.apacheCommonsLang
   )
+
   private val test = munit.map(_ % "test,it")
 
   val commonDependencies = enumeration ++ circe ++ newtype
   val backendCommonDependencies: Seq[ModuleID] =
     http4s ++ refined ++ circe ++ logging ++ skunk ++ newtype ++ awsSqs ++ awsSecretsManager ++ awsCloudwatch ++ apacheCommonsLang ++ enumeration ++ test
-  val publicApiDependencies: Seq[ModuleID] = http4s ++ refined ++ circe ++ logging ++ newtype ++ test
+  val publicApiDependencies: Seq[ModuleID] = http4s ++ refined ++ circe ++ logging ++ newtype ++ smithy4s ++ test
   val crawlerDependencies: Seq[ModuleID] =
     http4s ++ refined ++ circe ++ logging ++ metor ++ newtype ++ diffx ++ test
 }
