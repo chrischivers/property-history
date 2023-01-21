@@ -3,26 +3,22 @@ package uk.co.thirdthing.store
 import cats.effect.Resource
 import cats.effect.kernel.Sync
 import cats.syntax.all._
-import fs2.Pipe
 import skunk._
 import skunk.codec.all._
 import skunk.implicits._
 import uk.co.thirdthing.model.Model.CrawlerJob.{LastRunCompleted, LastRunScheduled}
 import uk.co.thirdthing.model.Model.{CrawlerJob, JobId, JobState}
-import uk.co.thirdthing.model.Types.ListingSnapshot.ListingSnapshotId
 import uk.co.thirdthing.model.Types._
-import uk.co.thirdthing.store.PropertyStore.PropertyRecord
+import uk.co.thirdthing.store.JobStore.JobStoreRecord
 import uk.co.thirdthing.utils.TimeUtils._
-import JobStore.JobStoreRecord
 
-import java.time.{LocalDateTime, ZoneId}
+import java.time.LocalDateTime
 
 trait JobStore[F[_]] {
   def put(job: CrawlerJob): F[Unit]
   def get(jobId: JobId): F[Option[CrawlerJob]]
   def jobs: fs2.Stream[F, CrawlerJob]
   def getLatestJob: F[Option[CrawlerJob]]
-  def getNextJob: F[Option[CrawlerJob]]
 }
 
 object JobStore {
@@ -135,9 +131,7 @@ object PostgresJobStore {
     override def getLatestJob: F[Option[CrawlerJob]] =
       pool.use(_.prepare(getLatestJobQuery).use(_.option(Void))).map(_.map(_.toCrawlerJob))
 
-    override def getNextJob: F[Option[CrawlerJob]] = {
-      ???
-    }
+
   }
 
 }
