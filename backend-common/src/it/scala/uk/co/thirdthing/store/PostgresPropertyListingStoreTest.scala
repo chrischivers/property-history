@@ -8,7 +8,7 @@ import uk.co.thirdthing.model.Types._
 import java.time.Instant
 import java.time.temporal.ChronoUnit
 
-class PostgresPropertyListingStoreTest extends munit.CatsEffectSuite with PostgresIntegrationCrawler {
+class PostgresPropertyListingStoreTest extends munit.CatsEffectSuite with PostgresPropertyListingStoreIntegration {
 
   val listingId  = ListingId(12345678)
   val propertyId = PropertyId(987654321)
@@ -22,18 +22,18 @@ class PostgresPropertyListingStoreTest extends munit.CatsEffectSuite with Postgr
     ListingSnapshot(listingId, LastChange(lastChange.value.plusSeconds(5)), propertyId, dateAdded, details, ListingSnapshotId(2).some)
 
   test("putListingSnapshot: Store a listing snapshot, and retrieve it again") {
-    withPostgresStores() { stores =>
-      val result = stores.postgresPropertyListingStore.putListingSnapshot(listingSnapshot1) *>
-        stores.postgresPropertyListingStore.getMostRecentListing(listingSnapshot1.listingId)
+    withPostgresPropertyListingStore { store =>
+      val result = store.putListingSnapshot(listingSnapshot1) *>
+        store.getMostRecentListing(listingSnapshot1.listingId)
 
       assertIO(result, Some(listingSnapshot1))
     }
   }
 
   test("putListingSnapshot: Enforce constraint on listingId and lastChange") {
-    withPostgresStores() { stores =>
-      val result = stores.postgresPropertyListingStore.putListingSnapshot(listingSnapshot1) *>
-        stores.postgresPropertyListingStore.putListingSnapshot(listingSnapshot1)
+    withPostgresPropertyListingStore { store =>
+      val result = store.putListingSnapshot(listingSnapshot1) *>
+        store.putListingSnapshot(listingSnapshot1)
 
       interceptIO[PostgresErrorException](result).void
 
@@ -41,11 +41,11 @@ class PostgresPropertyListingStoreTest extends munit.CatsEffectSuite with Postgr
   }
 
   test("getMostRecentListing: Return the most recent listing") {
-    withPostgresStores() { stores =>
-      val result = stores.postgresPropertyListingStore.putListingSnapshot(listingSnapshot1) *>
-        stores.postgresPropertyListingStore.putListingSnapshot(listingSnapshot2) *>
-        stores.postgresPropertyListingStore.putListingSnapshot(listingSnapshot2.copy(listingId = ListingId(1485733))) *>
-        stores.postgresPropertyListingStore.getMostRecentListing(listingSnapshot1.listingId)
+    withPostgresPropertyListingStore { store =>
+      val result = store.putListingSnapshot(listingSnapshot1) *>
+        store.putListingSnapshot(listingSnapshot2) *>
+        store.putListingSnapshot(listingSnapshot2.copy(listingId = ListingId(1485733))) *>
+        store.getMostRecentListing(listingSnapshot1.listingId)
 
       assertIO(result, Some(listingSnapshot2))
 
@@ -53,36 +53,36 @@ class PostgresPropertyListingStoreTest extends munit.CatsEffectSuite with Postgr
   }
 
   test("getMostRecentListing: Return None when there is no most recent listing") {
-    withPostgresStores() { stores =>
-      val result = stores.postgresPropertyListingStore.putListingSnapshot(listingSnapshot1) *>
-        stores.postgresPropertyListingStore.getMostRecentListing(ListingId(84763092))
+    withPostgresPropertyListingStore { store =>
+      val result = store.putListingSnapshot(listingSnapshot1) *>
+        store.getMostRecentListing(ListingId(84763092))
       assertIO(result, None)
     }
   }
 
   test("propertyIdFor: Get the property id for a listing id") {
-    withPostgresStores() { stores =>
-      val result = stores.postgresPropertyListingStore.putListingSnapshot(listingSnapshot1) *>
-        stores.postgresPropertyListingStore.putListingSnapshot(listingSnapshot2.copy(listingId = ListingId(1485733))) *>
-        stores.postgresPropertyListingStore.propertyIdFor(listingSnapshot1.listingId)
+    withPostgresPropertyListingStore { store =>
+      val result = store.putListingSnapshot(listingSnapshot1) *>
+        store.putListingSnapshot(listingSnapshot2.copy(listingId = ListingId(1485733))) *>
+        store.propertyIdFor(listingSnapshot1.listingId)
       assertIO(result, Some(listingSnapshot1.propertyId))
     }
   }
 
   test("propertyIdFor: Return none when no listings found") {
-    withPostgresStores() { stores =>
-      val result = stores.postgresPropertyListingStore.putListingSnapshot(listingSnapshot1) *>
-        stores.postgresPropertyListingStore.propertyIdFor(ListingId(854738823))
+    withPostgresPropertyListingStore { store =>
+      val result = store.putListingSnapshot(listingSnapshot1) *>
+        store.propertyIdFor(ListingId(854738823))
       assertIO(result, None)
     }
   }
 
   test("latestListingsFor: Get latest listings for a property id") {
-    withPostgresStores() { stores =>
-      val result = stores.postgresPropertyListingStore.putListingSnapshot(listingSnapshot1) *>
-        stores.postgresPropertyListingStore.putListingSnapshot(listingSnapshot2) *>
-        stores.postgresPropertyListingStore.putListingSnapshot(listingSnapshot1.copy(listingId = ListingId(9322))) *>
-        stores.postgresPropertyListingStore.latestListingsFor(listingSnapshot1.propertyId).compile.toList
+    withPostgresPropertyListingStore { store =>
+      val result = store.putListingSnapshot(listingSnapshot1) *>
+        store.putListingSnapshot(listingSnapshot2) *>
+        store.putListingSnapshot(listingSnapshot1.copy(listingId = ListingId(9322))) *>
+        store.latestListingsFor(listingSnapshot1.propertyId).compile.toList
       assertIO(
         result,
         List(
