@@ -6,7 +6,7 @@ import skunk.Session
 import skunk.implicits._
 import uk.co.thirdthing.model.Types._
 
-trait PostgresIntegration extends munit.CatsEffectSuite {
+trait PostgresPropertyListingStoreIntegration extends munit.CatsEffectSuite {
 
   case class PropertiesRecord(listingId: ListingId, dateAdded: DateAdded, propertyId: PropertyId, url: String)
 
@@ -23,10 +23,15 @@ trait PostgresIntegration extends munit.CatsEffectSuite {
       max = 16
     )
 
-  def withPostgresClient()(f: Resource[IO, Session[IO]] => IO[Unit]): IO[Unit] =
+  private def withPostgresClient(f: Resource[IO, Session[IO]] => IO[Unit]): IO[Unit] =
     database.use { pool =>
       pool.use(deletePropertiesTable) *>
-        PostgresInitializer.createPostgresTablesIfNotExisting[IO](pool) *>
+        PostgresInitializer.createPropertiesTableIfNotExisting[IO](pool) *>
         f(pool)
     }
+
+
+    def withPostgresPropertyListingStore(f: PropertyStore[IO] => IO[Unit]): Unit =
+      withPostgresClient(session => f(PostgresPropertyStore.apply[IO](session))).unsafeRunSync()
+
 }

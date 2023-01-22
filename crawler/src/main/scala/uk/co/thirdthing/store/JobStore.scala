@@ -65,41 +65,52 @@ object PostgresJobStore {
 
     private val insertJobCommand: Command[JobStoreRecord] =
       sql"""
-             INSERT INTO jobs(jobId, from, to, state, lastRunScheduled, lastRunCompleted, lastChange, latestDateAdded) VALUES
+             INSERT INTO jobs(jobId, fromJob, toJob, state, lastRunScheduled, lastRunCompleted, lastChange, latestDateAdded) VALUES
              ($int8, $int8, $int8, ${varchar(24)}, ${timestamp.opt}, ${timestamp.opt}, ${timestamp.opt}, ${timestamp.opt})
          """.command.contramap { (js: JobStoreRecord) =>
         js.jobId ~ js.from ~ js.to ~ js.state ~ js.lastRunScheduled ~ js.lastRunCompleted ~ js.lastChange ~ js.latestDateAdded
       }
 
+    private val updateJobCommand: Command[JobStoreRecord] =
+      sql"""
+             UPDATE jobs
+             SET jobId=$int8, fromJob=$int8, toJob=$int8, state=${varchar(
+          24
+        )}, lastRunScheduled=${timestamp.opt}, lastRunCompleted=${timestamp.opt}, lastChange=${timestamp.opt}, latestDateAdded=${timestamp.opt}
+             WHERE jobId=$int8
+         """.command.contramap { (js: JobStoreRecord) =>
+        js.jobId ~ js.from ~ js.to ~ js.state ~ js.lastRunScheduled ~ js.lastRunCompleted ~ js.lastChange ~ js.latestDateAdded ~ js.jobId
+      }
+
     private val getJobQuery: Query[Long, JobStoreRecord] =
       sql"""
-             SELECT jobId, from, to, state, lastRunScheduled, lastRunCompleted, lastChange, latestDateAdded
+             SELECT jobId, fromJob, toJob, state, lastRunScheduled, lastRunCompleted, lastChange, latestDateAdded
              FROM jobs
              WHERE jobId = $int8
              """.query(int8 ~ int8 ~ int8 ~ varchar(24) ~ timestamp.opt ~ timestamp.opt ~ timestamp.opt ~ timestamp.opt).gmap[JobStoreRecord]
 
     private val getJobsQuery: Query[Void, JobStoreRecord] =
       sql"""
-         SELECT jobId, from, to, state, lastRunScheduled, lastRunCompleted, lastChange, latestDateAdded
+         SELECT jobId, fromJob, toJob, state, lastRunScheduled, lastRunCompleted, lastChange, latestDateAdded
          FROM jobs
          """.query(int8 ~ int8 ~ int8 ~ varchar(24) ~ timestamp.opt ~ timestamp.opt ~ timestamp.opt ~ timestamp.opt).gmap[JobStoreRecord]
 
     private val getLatestJobQuery: Query[Void, JobStoreRecord] =
       sql"""
-             SELECT jobId, from, to, state, lastRunScheduled, lastRunCompleted, lastChange, latestDateAdded
+             SELECT jobId, fromJob, toJob, state, lastRunScheduled, lastRunCompleted, lastChange, latestDateAdded
              FROM jobs
-             ORDER BY to DESC
+             ORDER BY toJob DESC
              LIMIT 1
              """.query(int8 ~ int8 ~ int8 ~ varchar(24) ~ timestamp.opt ~ timestamp.opt ~ timestamp.opt ~ timestamp.opt).gmap[JobStoreRecord]
 
-    private val getNextJobQuery: Query[LocalDateTime, JobStoreRecord] =
-      sql"""
-             SELECT jobId, from, to, state, lastRunScheduled, lastRunCompleted, lastChange, latestDateAdded, (now - lastDateChange) / 12 AS requiredTimeBetweenRuns
-             FROM jobs
-             WHERE state IN ('NeverRun', 'Completed') OR (state = 'Pending' AND lastRunScheduled < $timestamp)
-             ORDER BY lastRunCompleted
-             LIMIT 1
-             """.query(int8 ~ int8 ~ int8 ~ varchar(24) ~ timestamp.opt ~ timestamp.opt ~ timestamp.opt ~ timestamp.opt).gmap[JobStoreRecord]
+//    private val getNextJobQuery: Query[LocalDateTime, JobStoreRecord] =
+//      sql"""
+//             SELECT jobId, from, to, state, lastRunScheduled, lastRunCompleted, lastChange, latestDateAdded, (now - lastDateChange) / 12 AS requiredTimeBetweenRuns
+//             FROM jobs
+//             WHERE state IN ('NeverRun', 'Completed') OR (state = 'Pending' AND lastRunScheduled < $timestamp)
+//             ORDER BY lastRunCompleted
+//             LIMIT 1
+//             """.query(int8 ~ int8 ~ int8 ~ varchar(24) ~ timestamp.opt ~ timestamp.opt ~ timestamp.opt ~ timestamp.opt).gmap[JobStoreRecord]
 
     /*
 
@@ -116,7 +127,15 @@ object PostgresJobStore {
      */
 
     override def put(job: CrawlerJob): F[Unit] =
-      pool.use(_.prepare(insertJobCommand).use(_.execute(JobStore.jobStoreRecordFrom(job)).void))
+      pool.use { session =>
+        val jobRecord = JobStore.jobStoreRecordFrom(job)
+        session
+          .prepare(insertJobCommand)
+          .use(_.execute(jobRecord).void)
+          .recoverWith { case SqlState.UniqueViolation(ex) =>
+            session.prepare(updateJobCommand).use(_.execute(jobRecord).void)
+          }
+      }
 
     override def get(jobId: JobId): F[Option[CrawlerJob]] =
       pool.use(_.prepare(getJobQuery).use(_.option(jobId.value))).map(_.map(_.toCrawlerJob))
@@ -130,7 +149,6 @@ object PostgresJobStore {
 
     override def getLatestJob: F[Option[CrawlerJob]] =
       pool.use(_.prepare(getLatestJobQuery).use(_.option(Void))).map(_.map(_.toCrawlerJob))
-
 
   }
 

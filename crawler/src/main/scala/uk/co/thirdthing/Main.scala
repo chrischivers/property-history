@@ -7,18 +7,18 @@ import org.http4s.blaze.client.{BlazeClientBuilder, ParserMode}
 import org.http4s.client.Client
 import skunk.Session
 import software.amazon.awssdk.services.cloudwatch.CloudWatchAsyncClient
-import software.amazon.awssdk.services.dynamodb.DynamoDbAsyncClient
 import software.amazon.awssdk.services.secretsmanager.SecretsManagerClient
 import software.amazon.awssdk.services.sqs.SqsAsyncClient
 import uk.co.thirdthing.clients.{RightmoveApiClient, RightmoveHtmlClient}
 import uk.co.thirdthing.config.{JobSchedulerConfig, JobSeederConfig}
 import uk.co.thirdthing.consumer._
+import uk.co.thirdthing.consumer.{JobScheduleTriggerConsumer, JobSeedTriggerConsumer}
 import uk.co.thirdthing.metrics.{CloudWatchMetricsRecorder, MetricsRecorder}
 import uk.co.thirdthing.model.Model.RunJobCommand
 import uk.co.thirdthing.secrets.{AmazonSecretsManager, SecretsManager}
-import uk.co.thirdthing.service.{JobRunnerService, JobScheduler, JobSeeder, RetrievalService}
+import uk.co.thirdthing.service.{JobScheduler, JobSeeder, RetrievalService}
 import uk.co.thirdthing.sqs.{SqsConfig, SqsProcessingStream, SqsPublisher}
-import uk.co.thirdthing.store.{DynamoInitializer, JobStore, PostgresInitializer, PostgresJobStore, PostgresPropertyStore}
+import uk.co.thirdthing.store.{JobStore, PostgresInitializer, PostgresJobStore, PostgresPropertyStore}
 
 import scala.concurrent.duration._
 
@@ -27,7 +27,6 @@ object Main extends IOApp {
   final case class Resources(
     apiHttpClient: Client[IO],
     htmlScraperHttpClient: Client[IO],
-    dynamoClient: DynamoDbAsyncClient,
     sqsClient: SqsAsyncClient,
     db: Resource[IO, Session[IO]],
     cloudWatchClient: CloudWatchAsyncClient
@@ -42,21 +41,10 @@ object Main extends IOApp {
           val runJobCommandPublisher = new SqsPublisher[IO, RunJobCommand](r.sqsClient)(runJobCommandQueueUrl)
           val jobScheduler           = JobScheduler[IO](jobStore, runJobCommandPublisher, JobSchedulerConfig.default)
 
-          DynamoInitializer.createDynamoTablesIfNotExisting[IO](r.dynamoClient) *>
-            PostgresInitializer.createPostgresTablesIfNotExisting[IO](r.db) *>
+            PostgresInitializer.createPropertiesTableIfNotExisting[IO](r.db) *>
+            PostgresInitializer.createJobsTableIfNotExisting[IO](r.db) *>
             startJobSeedTriggerProcessingStream(r.apiHttpClient, r.sqsClient, secretsManager, jobScheduler, jobStore)
               .concurrently(startJobScheduleTriggerProcessingStream(r.sqsClient, secretsManager, jobScheduler))
-              .concurrently(
-                startJobRunnerProcessingStream(
-                  r.sqsClient,
-                  r.apiHttpClient,
-                  r.htmlScraperHttpClient,
-                  jobStore,
-                  r.db,
-                  secretsManager,
-                  metricsRecorder
-                )
-              )
               .compile
               .drain
               .as(ExitCode.Success)
@@ -115,43 +103,6 @@ object Main extends IOApp {
       }
     }
 
-  private def buildJobRunnerConsumer(
-    apiHttpClient: Client[IO],
-    htmlHttpClient: Client[IO],
-    jobStore: JobStore[IO],
-    dbPool: Resource[IO, Session[IO]],
-    metricsRecorder: MetricsRecorder[IO]
-  ): SqsConsumer[IO, RunJobCommand] = {
-    val postgresPropertyStore = PostgresPropertyStore[IO](dbPool)
-    val rightmoveApiClient    = RightmoveApiClient(apiHttpClient, Uri.unsafeFromString("https://api.rightmove.co.uk"))
-    val rightmoveHtmlClient   = RightmoveHtmlClient(htmlHttpClient, Uri.unsafeFromString("https://www.rightmove.co.uk"))
-    val retrievalService      = RetrievalService[IO](rightmoveApiClient, rightmoveHtmlClient)
-    val jobRunnerService      = JobRunnerService[IO](jobStore, postgresPropertyStore, retrievalService, metricsRecorder)
-    JobRunnerConsumer(jobRunnerService)
-  }
-
-  private def startJobRunnerProcessingStream(
-    sqsClient: SqsAsyncClient,
-    apiHttpClient: Client[IO],
-    htmlScraperHttpClient: Client[IO],
-    jobStore: JobStore[IO],
-    dbPool: Resource[IO, Session[IO]],
-    secretsManager: SecretsManager[IO],
-    metricsRecorder: MetricsRecorder[IO]
-  ): fs2.Stream[IO, Unit] =
-    fs2.Stream.eval(secretsManager.secretFor("run-job-commands-queue-url")).flatMap { runJobCommandQueueUrl =>
-      val consumer = buildJobRunnerConsumer(apiHttpClient, htmlScraperHttpClient, jobStore, dbPool, metricsRecorder)
-      val sqsConfig = SqsConfig(
-        QueueUrl(runJobCommandQueueUrl),
-        WaitTime(20.seconds),
-        VisibilityTimeout(5.minutes),
-        HeartbeatInterval(1.minute),
-        RetrySleepTime(10.seconds),
-        StreamThrottlingRate(100.milliseconds),
-        Parallelism(8)
-      )
-      new SqsProcessingStream[IO](sqsClient, sqsConfig, ConsumerName("Job Runner")).startStream(consumer)
-    }
 
   private def databaseSessionPool(secretsManager: SecretsManager[IO]): Resource[IO, Resource[IO, Session[IO]]] = {
     val secrets = for {
@@ -183,9 +134,8 @@ object Main extends IOApp {
         .withBufferSize(16384)
         .withRequestTimeout(20.seconds)
         .resource
-      dynamoClient     <- Resource.fromAutoCloseable[IO, DynamoDbAsyncClient](IO(DynamoDbAsyncClient.builder().build()))
       sqsClient        <- Resource.fromAutoCloseable[IO, SqsAsyncClient](IO(SqsAsyncClient.builder().build()))
       cloudwatchClient <- Resource.fromAutoCloseable[IO, CloudWatchAsyncClient](IO(CloudWatchAsyncClient.builder().build()))
       dbPool           <- databaseSessionPool(secretsManager)
-    } yield Resources(apiHttpClient, htmlScraperHtmlClient, dynamoClient, sqsClient, dbPool, cloudwatchClient)
+    } yield Resources(apiHttpClient, htmlScraperHtmlClient, sqsClient, dbPool, cloudwatchClient)
 }

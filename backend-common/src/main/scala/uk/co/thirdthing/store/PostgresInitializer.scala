@@ -10,7 +10,7 @@ import java.time.Instant
 
 object PostgresInitializer {
 
-  def createPostgresTablesIfNotExisting[F[_]: Sync](pool: Resource[F, Session[F]]) = {
+  def createPropertiesTableIfNotExisting[F[_]: Sync](pool: Resource[F, Session[F]]) = {
     val createPropertiesTable =
       sql"""CREATE TABLE IF NOT EXISTS properties(
          recordId BIGSERIAL NOT NULL PRIMARY KEY,
@@ -43,6 +43,31 @@ object PostgresInitializer {
     pool.use(_.execute(createPropertiesTable)) *>
       pool.use(_.execute(createPropertyIdIndex)) *>
       pool.use(_.execute(createListingIdIndex))
+  }
+
+  
+  def createJobsTableIfNotExisting[F[_] : Sync](pool: Resource[F, Session[F]]) = {
+    val createJobsTable =
+      sql"""CREATE TABLE IF NOT EXISTS jobs(
+         jobId BIGINT NOT NULL PRIMARY KEY,
+         fromJob BIGINT NOT NULL,
+         toJob BIGINT NOT NULL,
+         state VARCHAR(24) NOT NULL,
+         lastRunScheduled TIMESTAMP,
+         lastRunCompleted TIMESTAMP,
+         lastChange TIMESTAMP,
+         latestDateAdded TIMESTAMP
+         )""".command
+
+    val createToIndex =
+      sql"""
+             CREATE INDEX IF NOT EXISTS toJob_idx
+              ON jobs (toJob);
+              """.command
+    
+
+    pool.use(_.execute(createJobsTable)) *>
+      pool.use(_.execute(createToIndex))
   }
 
 }

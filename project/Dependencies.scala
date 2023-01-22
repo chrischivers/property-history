@@ -16,7 +16,6 @@ object Dependencies {
     val typesafeLogging       = "3.9.5"
     val log4cats              = "2.4.0"
     val logbackClassic        = "1.2.11"
-    val meteor                = "1.0.31"
     val skunk                 = "0.3.2"
     val newtype               = "0.2.3"
     val enumeration           = "1.7.2"
@@ -69,10 +68,6 @@ object Dependencies {
     "ch.qos.logback"              % "logback-classic" % Versions.logbackClassic
   )
 
-  private val metor = Seq(
-    "io.github.d2a4u" %% "meteor-awssdk" % Versions.meteor
-  )
-
   private val skunk = Seq(
     "org.tpolecat" %% "skunk-core"  % Versions.skunk,
     "org.tpolecat" %% "skunk-circe" % Versions.skunk
@@ -114,5 +109,5 @@ object Dependencies {
     http4s ++ refined ++ circe ++ logging ++ skunk ++ newtype ++ awsSqs ++ awsSecretsManager ++ awsCloudwatch ++ apacheCommonsLang ++ enumeration ++ test
   val publicApiDependencies: Seq[ModuleID] = http4s ++ refined ++ circe ++ logging ++ newtype ++ smithy4s ++ test
   val crawlerDependencies: Seq[ModuleID] =
-    http4s ++ refined ++ circe ++ logging ++ metor ++ newtype ++ diffx ++ test
+    http4s ++ refined ++ circe ++ logging ++ newtype ++ diffx ++ test
 }
