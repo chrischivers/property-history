@@ -19,7 +19,7 @@ class PostgresJobStoreTest extends munit.CatsEffectSuite with PostgresJobStoreIn
     from = ListingId(0),
     to = ListingId(1000),
     state = Model.JobState.Pending,
-    lastRunScheduled = None,
+    lastRunStarted = None,
     lastRunCompleted = None,
     lastChange = None,
     latestDateAdded = None
@@ -30,7 +30,7 @@ class PostgresJobStoreTest extends munit.CatsEffectSuite with PostgresJobStoreIn
     from = ListingId(1001),
     to = ListingId(2000),
     state = Model.JobState.Pending,
-    lastRunScheduled = None,
+    lastRunStarted = None,
     lastRunCompleted = None,
     lastChange = None,
     latestDateAdded = None
@@ -39,7 +39,7 @@ class PostgresJobStoreTest extends munit.CatsEffectSuite with PostgresJobStoreIn
   test("Store a job, and retrieve it again") {
     withPostgresJobStore { store =>
       val result = store.put(job1) *>
-        store.get(jobId1)
+        store.getAndLock(jobId1)
 
       assertIO(result, Some(job1))
     }
@@ -54,10 +54,20 @@ class PostgresJobStoreTest extends munit.CatsEffectSuite with PostgresJobStoreIn
     }
   }
 
+    test("Store a job, retrieve it again, but not a second time") {
+    withPostgresJobStore { store =>
+      val result = store.put(job1) *>
+        store.getAndLock(jobId1) *>
+         store.getAndLock(jobId1)
+
+      assertIO(result, None)
+    }
+  }
+
   test("Update record where job with same jobId already exists") {
     withPostgresJobStore { store =>
       val result = store.put(job1) *> store.put(job1.copy(state = Model.JobState.Completed)) *>
-        store.get(jobId1)
+        store.getAndLock(jobId1)
 
       assertIO(result, Some(job1.copy(state = Model.JobState.Completed)))
     }

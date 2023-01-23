@@ -28,7 +28,7 @@ object JobRunnerService {
       implicit val logger = Slf4jLogger.getLogger[F]
 
       override def run(jobId: JobId): F[Unit] =
-        jobStore.get(jobId).flatMap {
+        jobStore.getAndLock(jobId).flatMap {
           case None                               => handleJobNotExisting(jobId)
           case Some(job) if job.state.schedulable => logger.warn(s"Job for ${jobId.value} is not in a runnable state. Ignoring")
           case Some(job)                          => withDurationMetricReporting(jobId)(runJob(job))

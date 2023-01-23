@@ -40,12 +40,11 @@ object PostgresInitializer {
               ON properties (listingId, lastChange);
               """.command
 
-              pool.use {session =>
-
-                    session.execute(createPropertiesTable) *>
-      session.execute(createPropertyIdIndex) *>
-      session.execute(createListingIdIndex)
-                }
+    pool.use { session =>
+      session.execute(createPropertiesTable) *>
+        session.execute(createPropertyIdIndex) *>
+        session.execute(createListingIdIndex)
+    }
 
   }
 
@@ -56,7 +55,7 @@ object PostgresInitializer {
          fromJob BIGINT NOT NULL,
          toJob BIGINT NOT NULL,
          state VARCHAR(24) NOT NULL,
-         lastRunScheduled TIMESTAMP,
+         lastRunStarted TIMESTAMP,
          lastRunCompleted TIMESTAMP,
          lastChange TIMESTAMP,
          latestDateAdded TIMESTAMP
@@ -74,10 +73,10 @@ object PostgresInitializer {
               ON jobs (lastRunCompleted);
               """.command
 
-    val createLastRunScheduledIndex =
+    val createLastRunStartedIndex =
       sql"""
-             CREATE INDEX IF NOT EXISTS lastRunScheduled_idx
-              ON jobs (lastRunScheduled);
+             CREATE INDEX IF NOT EXISTS lastRunStarted_idx
+              ON jobs (lastRunStarted);
               """.command
 
     val createStateIndex =
@@ -90,7 +89,7 @@ object PostgresInitializer {
       session.execute(createJobsTable) *>
         session.execute(createToJobIndex) *>
         session.execute(createLastRunCompletedIndex) *>
-        session.execute(createLastRunScheduledIndex) *>
+        session.execute(createLastRunStartedIndex) *>
         session.execute(createStateIndex)
     }
 

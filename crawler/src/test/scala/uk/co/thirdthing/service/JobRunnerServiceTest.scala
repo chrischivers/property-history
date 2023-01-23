@@ -32,7 +32,7 @@ class JobRunnerServiceTest extends munit.CatsEffectSuite {
     from = ListingId(0),
     to = ListingId(1000),
     state = JobState.Pending,
-    lastRunScheduled = None,
+    lastRunStarted = None,
     lastRunCompleted = None,
     lastChange = None,
     latestDateAdded = None
