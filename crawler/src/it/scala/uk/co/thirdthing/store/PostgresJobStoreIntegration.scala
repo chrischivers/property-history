@@ -5,6 +5,7 @@ import natchez.Trace.Implicits.noop
 import skunk.Session
 import skunk.implicits._
 import uk.co.thirdthing.model.Types._
+import uk.co.thirdthing.config.JobSchedulingConfig
 
 trait PostgresJobStoreIntegration extends munit.CatsEffectSuite {
 
@@ -28,8 +29,7 @@ trait PostgresJobStoreIntegration extends munit.CatsEffectSuite {
         f(pool)
     }
 
-
-    def withPostgresJobStore(f: JobStore[IO] => IO[Unit]): Unit =
-      withPostgresClient(session => f(PostgresJobStore.apply[IO](session))).unsafeRunSync()
+  def withPostgresJobStore(f: JobStore[IO] => IO[Unit]): Unit =
+    withPostgresClient(session => f(PostgresJobStore.apply[IO](session, JobSchedulingConfig.default))).unsafeRunSync()
 
 }

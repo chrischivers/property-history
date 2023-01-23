@@ -30,8 +30,7 @@ trait PostgresPropertyListingStoreIntegration extends munit.CatsEffectSuite {
         f(pool)
     }
 
-
-    def withPostgresPropertyListingStore(f: PropertyStore[IO] => IO[Unit]): Unit =
-      withPostgresClient(session => f(PostgresPropertyStore.apply[IO](session))).unsafeRunSync()
+  def withPostgresPropertyListingStore(f: PropertyStore[IO] => IO[Unit]): Unit =
+    withPostgresClient(session => f(PostgresPropertyStore.apply[IO](session))).unsafeRunSync()
 
 }

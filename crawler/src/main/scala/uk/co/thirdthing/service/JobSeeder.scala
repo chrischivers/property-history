@@ -16,7 +16,7 @@ trait JobSeeder[F[_]] {
 
 object JobSeeder {
 
-  def apply[F[_]: Sync](rightmoveApiClient: RightmoveApiClient[F], jobStore: JobStore[F], config: JobSeederConfig, jobScheduler: JobScheduler[F]) =
+  def apply[F[_]: Sync](rightmoveApiClient: RightmoveApiClient[F], jobStore: JobStore[F], config: JobSeederConfig) =
     new JobSeeder[F] {
 
       implicit val logger = Slf4jLogger.getLogger[F]
@@ -83,7 +83,6 @@ object JobSeeder {
             }
             .flatTap(jobs => logger.info(s"${jobs.size} jobs retrieved for adding"))
             .flatTap(persistJobs)
-            .flatTap(_.traverse(jobScheduler.scheduleJob).void)
             .flatTap(_ => logger.info("Job insertion complete"))
             .void
 
