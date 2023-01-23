@@ -9,7 +9,7 @@ import uk.co.thirdthing.clients.RightmoveApiClient
 import uk.co.thirdthing.config.JobSeederConfig
 import uk.co.thirdthing.model.Model.{CrawlerJob, JobId, JobState}
 import uk.co.thirdthing.model.Types.ListingId
-import uk.co.thirdthing.utils.{MockJobScheduler, MockJobStore}
+import uk.co.thirdthing.utils.MockJobStore
 
 class JobSeederTest extends munit.CatsEffectSuite {
 
@@ -107,7 +107,7 @@ class JobSeederTest extends munit.CatsEffectSuite {
       Uri.unsafeFromString("/")
     )
 
-    MockJobStore(initialJobsRef).map(jobStore => JobSeeder.apply[IO](apiClient, jobStore, config, MockJobScheduler.apply()))
+    MockJobStore(initialJobsRef).map(jobStore => JobSeeder.apply[IO](apiClient, jobStore, config))
   }
 
 }

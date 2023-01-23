@@ -40,13 +40,16 @@ object PostgresInitializer {
               ON properties (listingId, lastChange);
               """.command
 
-    pool.use(_.execute(createPropertiesTable)) *>
-      pool.use(_.execute(createPropertyIdIndex)) *>
-      pool.use(_.execute(createListingIdIndex))
+              pool.use {session =>
+
+                    session.execute(createPropertiesTable) *>
+      session.execute(createPropertyIdIndex) *>
+      session.execute(createListingIdIndex)
+                }
+
   }
 
-  
-  def createJobsTableIfNotExisting[F[_] : Sync](pool: Resource[F, Session[F]]) = {
+  def createJobsTableIfNotExisting[F[_]: Sync](pool: Resource[F, Session[F]]) = {
     val createJobsTable =
       sql"""CREATE TABLE IF NOT EXISTS jobs(
          jobId BIGINT NOT NULL PRIMARY KEY,
@@ -59,15 +62,38 @@ object PostgresInitializer {
          latestDateAdded TIMESTAMP
          )""".command
 
-    val createToIndex =
+    val createToJobIndex =
       sql"""
              CREATE INDEX IF NOT EXISTS toJob_idx
               ON jobs (toJob);
               """.command
-    
 
-    pool.use(_.execute(createJobsTable)) *>
-      pool.use(_.execute(createToIndex))
+    val createLastRunCompletedIndex =
+      sql"""
+             CREATE INDEX IF NOT EXISTS lastRunCompleted_idx
+              ON jobs (lastRunCompleted);
+              """.command
+
+    val createLastRunScheduledIndex =
+      sql"""
+             CREATE INDEX IF NOT EXISTS lastRunScheduled_idx
+              ON jobs (lastRunScheduled);
+              """.command
+
+    val createStateIndex =
+      sql"""
+             CREATE INDEX IF NOT EXISTS state_idx
+              ON jobs (state);
+              """.command
+
+    pool.use { session =>
+      session.execute(createJobsTable) *>
+        session.execute(createToJobIndex) *>
+        session.execute(createLastRunCompletedIndex) *>
+        session.execute(createLastRunScheduledIndex) *>
+        session.execute(createStateIndex)
+    }
+
   }
 
 }

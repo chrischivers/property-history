@@ -10,17 +10,19 @@ import software.amazon.awssdk.services.cloudwatch.CloudWatchAsyncClient
 import software.amazon.awssdk.services.secretsmanager.SecretsManagerClient
 import software.amazon.awssdk.services.sqs.SqsAsyncClient
 import uk.co.thirdthing.clients.{RightmoveApiClient, RightmoveHtmlClient}
-import uk.co.thirdthing.config.{JobSchedulerConfig, JobSeederConfig}
-import uk.co.thirdthing.consumer._
-import uk.co.thirdthing.consumer.{JobScheduleTriggerConsumer, JobSeedTriggerConsumer}
+import uk.co.thirdthing.config.{JobSeederConfig, JobSchedulingConfig}
+import uk.co.thirdthing.consumer.JobSeedTriggerConsumer
 import uk.co.thirdthing.metrics.{CloudWatchMetricsRecorder, MetricsRecorder}
 import uk.co.thirdthing.model.Model.RunJobCommand
 import uk.co.thirdthing.secrets.{AmazonSecretsManager, SecretsManager}
-import uk.co.thirdthing.service.{JobScheduler, JobSeeder, RetrievalService}
+import uk.co.thirdthing.service.{JobSeeder, RetrievalService}
 import uk.co.thirdthing.sqs.{SqsConfig, SqsProcessingStream, SqsPublisher}
 import uk.co.thirdthing.store.{JobStore, PostgresInitializer, PostgresJobStore, PostgresPropertyStore}
 
 import scala.concurrent.duration._
+import uk.co.thirdthing.service.JobRunnerPoller
+import uk.co.thirdthing.config.JobRunnerPollerConfig
+import uk.co.thirdthing.service.JobRunnerService
 
 object Main extends IOApp {
 
@@ -37,14 +39,15 @@ object Main extends IOApp {
       resources(secretsManager).use { r =>
         secretsManager.secretFor("run-job-commands-queue-url").flatMap { runJobCommandQueueUrl =>
           val metricsRecorder        = CloudWatchMetricsRecorder[IO](r.cloudWatchClient)
-          val jobStore               = PostgresJobStore[IO](r.db)
+          val jobStore               = PostgresJobStore[IO](r.db, JobSchedulingConfig.default)
           val runJobCommandPublisher = new SqsPublisher[IO, RunJobCommand](r.sqsClient)(runJobCommandQueueUrl)
-          val jobScheduler           = JobScheduler[IO](jobStore, runJobCommandPublisher, JobSchedulerConfig.default)
+          val jobRunnerService = buildJobRunnerService(r.apiHttpClient, r.htmlScraperHttpClient, jobStore, r.db, metricsRecorder)
+          val jobRunnerPoller  = JobRunnerPoller[IO](jobStore, jobRunnerService, JobRunnerPollerConfig.default)
 
-            PostgresInitializer.createPropertiesTableIfNotExisting[IO](r.db) *>
+          PostgresInitializer.createPropertiesTableIfNotExisting[IO](r.db) *>
             PostgresInitializer.createJobsTableIfNotExisting[IO](r.db) *>
-            startJobSeedTriggerProcessingStream(r.apiHttpClient, r.sqsClient, secretsManager, jobScheduler, jobStore)
-              .concurrently(startJobScheduleTriggerProcessingStream(r.sqsClient, secretsManager, jobScheduler))
+            startJobSeedTriggerProcessingStream(r.apiHttpClient, r.sqsClient, secretsManager, jobStore)
+              .concurrently(jobRunnerPoller.start)
               .compile
               .drain
               .as(ExitCode.Success)
@@ -55,9 +58,9 @@ object Main extends IOApp {
   private def buildSecretsManager: Resource[IO, SecretsManager[IO]] =
     Resource.fromAutoCloseable[IO, SecretsManagerClient](IO(SecretsManagerClient.builder().build())).map(AmazonSecretsManager[IO](_))
 
-  private def buildJobSeedTriggerConsumer(apiHttpClient: Client[IO], jobStore: JobStore[IO], jobScheduler: JobScheduler[IO]) = {
+  private def buildJobSeedTriggerConsumer(apiHttpClient: Client[IO], jobStore: JobStore[IO]) = {
     val rightmoveApiClient = RightmoveApiClient(apiHttpClient, Uri.unsafeFromString("https://api.rightmove.co.uk"))
-    val jobSeeder          = JobSeeder[IO](rightmoveApiClient, jobStore, JobSeederConfig.default, jobScheduler)
+    val jobSeeder          = JobSeeder[IO](rightmoveApiClient, jobStore, JobSeederConfig.default)
     JobSeedTriggerConsumer(jobSeeder)
   }
 
@@ -65,9 +68,12 @@ object Main extends IOApp {
     apiHttpClient: Client[IO],
     sqsClient: SqsAsyncClient,
     secretsManager: SecretsManager[IO],
-    jobScheduler: JobScheduler[IO],
     jobStore: JobStore[IO]
   ): fs2.Stream[IO, Unit] =
+    fs2.Stream.eval(secretsManager.secretFor("job-seeder-queue-url")).flatMap { queueUrl =>
+      val consumer  = buildJobSeedTriggerConsumer(apiHttpClient, jobStore)
+      val sqsConfig = SqsConfig(queueUrl, 20.seconds, 5.minutes, 1.minute, 10.seconds, 1.minute, 1)
+      new SqsProcessingStream[IO](sqsClient, sqsConfig, "Job Seed Trigger").startStream(consumer)
     fs2.Stream.eval(secretsManager.secretFor("job-seeder-queue-url")).flatMap { jobSeederQueueUrl =>
       val consumer = buildJobSeedTriggerConsumer(apiHttpClient, jobStore, jobScheduler)
       val sqsConfig = SqsConfig(
@@ -82,29 +88,21 @@ object Main extends IOApp {
       new SqsProcessingStream[IO](sqsClient, sqsConfig, ConsumerName("Job Seed Trigger")).startStream(consumer)
     }
 
-  private def startJobScheduleTriggerProcessingStream(
-    sqsClient: SqsAsyncClient,
-    secretsManager: SecretsManager[IO],
-    jobScheduler: JobScheduler[IO]
-  ): fs2.Stream[IO, Unit] =
-    fs2.Stream.eval(secretsManager.secretFor("run-job-commands-queue-url")).flatMap { runJobCommandQueueUrl =>
-      fs2.Stream.eval(secretsManager.secretFor("job-schedule-trigger-queue-url")).flatMap { jobScheduleTriggerQueueUrl =>
-        val consumer = JobScheduleTriggerConsumer(jobScheduler)
-        val sqsConfig = SqsConfig(
-          QueueUrl(jobScheduleTriggerQueueUrl),
-          WaitTime(20.seconds),
-          VisibilityTimeout(5.minutes),
-          HeartbeatInterval(1.minute),
-          RetrySleepTime(10.seconds),
-          StreamThrottlingRate(1.minute),
-          Parallelism(1)
-        )
-        new SqsProcessingStream[IO](sqsClient, sqsConfig, ConsumerName("Job Schedule Trigger")).startStream(consumer)
-      }
-    }
+  private def buildJobRunnerService(
+    apiHttpClient: Client[IO],
+    htmlHttpClient: Client[IO],
+    jobStore: JobStore[IO],
+    dbPool: Resource[IO, Session[IO]],
+    metricsRecorder: MetricsRecorder[IO]
+  ) = {
+    val postgresPropertyStore = PostgresPropertyStore[IO](dbPool)
+    val rightmoveApiClient    = RightmoveApiClient(apiHttpClient, Uri.unsafeFromString("https://api.rightmove.co.uk"))
+    val rightmoveHtmlClient   = RightmoveHtmlClient(htmlHttpClient, Uri.unsafeFromString("https://www.rightmove.co.uk"))
+    val retrievalService      = RetrievalService[IO](rightmoveApiClient, rightmoveHtmlClient)
+    JobRunnerService[IO](jobStore, postgresPropertyStore, retrievalService, metricsRecorder)
+  }
 
-
-  private def databaseSessionPool(secretsManager: SecretsManager[IO]): Resource[IO, Resource[IO, Session[IO]]] = {
+  private def databaseSessionPool(secretsManager: SecretsManager): Resource[IO, Resource[IO, Session[IO]]] = {
     val secrets = for {
       host     <- secretsManager.secretFor("postgres-host")
       username <- secretsManager.secretFor("postgres-user")

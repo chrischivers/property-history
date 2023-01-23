@@ -11,14 +11,17 @@ import uk.co.thirdthing.model.Model.{CrawlerJob, JobId, JobState}
 import uk.co.thirdthing.model.Types._
 import uk.co.thirdthing.store.JobStore.JobStoreRecord
 import uk.co.thirdthing.utils.TimeUtils._
+import uk.co.thirdthing.config.JobSchedulingConfig
 
 import java.time.LocalDateTime
+import cats.effect.kernel.Clock
 
 trait JobStore[F[_]] {
   def put(job: CrawlerJob): F[Unit]
   def get(jobId: JobId): F[Option[CrawlerJob]]
   def jobs: fs2.Stream[F, CrawlerJob]
   def getLatestJob: F[Option[CrawlerJob]]
+  def nextJobToRun: F[Option[CrawlerJob]]
 }
 
 object JobStore {
@@ -61,7 +64,7 @@ object JobStore {
 
 object PostgresJobStore {
 
-  def apply[F[_]: Sync](pool: Resource[F, Session[F]]) = new JobStore[F] {
+  def apply[F[_]: Sync: Clock](pool: Resource[F, Session[F]], jobSchedulingConfig: JobSchedulingConfig) = new JobStore[F] {
 
     private val insertJobCommand: Command[JobStoreRecord] =
       sql"""
@@ -103,28 +106,14 @@ object PostgresJobStore {
              LIMIT 1
              """.query(int8 ~ int8 ~ int8 ~ varchar(24) ~ timestamp.opt ~ timestamp.opt ~ timestamp.opt ~ timestamp.opt).gmap[JobStoreRecord]
 
-//    private val getNextJobQuery: Query[LocalDateTime, JobStoreRecord] =
-//      sql"""
-//             SELECT jobId, from, to, state, lastRunScheduled, lastRunCompleted, lastChange, latestDateAdded, (now - lastDateChange) / 12 AS requiredTimeBetweenRuns
-//             FROM jobs
-//             WHERE state IN ('NeverRun', 'Completed') OR (state = 'Pending' AND lastRunScheduled < $timestamp)
-//             ORDER BY lastRunCompleted
-//             LIMIT 1
-//             """.query(int8 ~ int8 ~ int8 ~ varchar(24) ~ timestamp.opt ~ timestamp.opt ~ timestamp.opt ~ timestamp.opt).gmap[JobStoreRecord]
-
-    /*
-
-    private val getMostRecentListingsCommand: Query[Long, PropertyRecord] =
+    private val getNextJobQuery: Query[LocalDateTime, JobStoreRecord] =
       sql"""
-     SELECT DISTINCT ON (listingId) recordId, listingId, propertyId, dateAdded, lastChange, price, transactionTypeId, visible, listingStatus, rentFrequency, latitude, longitude
-     FROM properties
-     WHERE propertyId = $int8
-     ORDER BY listingId DESC, lastChange DESC
-   """.query(
-        int8.opt ~ int8 ~ int8 ~ timestamp ~ timestamp ~ int4.opt ~ int4.opt ~ bool.opt ~ varchar(24).opt ~ varchar(32).opt ~ float8.opt ~ float8.opt
-      ).gmap[PropertyRecord]
-
-     */
+            SELECT jobId, fromJob, toJob, state, lastRunScheduled, lastRunCompleted, lastChange, latestDateAdded
+            FROM jobs
+            WHERE state IN ('neverun', 'completed') OR (state = 'pending' AND lastRunScheduled < $timestamp)
+            ORDER BY lastRunCompleted ASC NULLS FIRST, toJob DESC
+            LIMIT 1
+            """.query(int8 ~ int8 ~ int8 ~ varchar(24) ~ timestamp.opt ~ timestamp.opt ~ timestamp.opt ~ timestamp.opt).gmap[JobStoreRecord]
 
     override def put(job: CrawlerJob): F[Unit] =
       pool.use { session =>
@@ -150,6 +139,10 @@ object PostgresJobStore {
     override def getLatestJob: F[Option[CrawlerJob]] =
       pool.use(_.prepare(getLatestJobQuery).use(_.option(Void))).map(_.map(_.toCrawlerJob))
 
+    override def nextJobToRun: F[Option[CrawlerJob]] = Clock[F].realTimeInstant.flatMap { now =>
+      val pendingJobExpiredCutoff = now.minusMillis(jobSchedulingConfig.jobExpiryTimeSinceScheduled.toMillis).toLocalDateTime
+      pool.use(_.prepare(getNextJobQuery).use(_.option(pendingJobExpiredCutoff))).map(_.map(_.toCrawlerJob))
+    }
   }
 
 }

@@ -71,4 +71,13 @@ class PostgresJobStoreTest extends munit.CatsEffectSuite with PostgresJobStoreIn
       assertIO(result, Some(job2))
     }
   }
+
+  test("Retrieve next job to schedule where lastRunCompleted is null") {
+    withPostgresJobStore { store =>
+      val result = store.put(job2.copy(state = Model.JobState.Completed)) *> store.put(job1.copy(state = Model.JobState.Completed)) *>
+        store.nextJobToRun
+
+      assertIO(result, Some(job2.copy(state = Model.JobState.Completed)))
+    }
+  }
 }

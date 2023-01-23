@@ -7,7 +7,7 @@ import java.time.Instant
 
 object Generators {
 
-  val instantGen: Gen[Instant] = Gen.chooseNum(0L, System.currentTimeMillis()).map(Instant.ofEpochMilli)
+  val instantGen: Gen[Instant]                     = Gen.chooseNum(0L, System.currentTimeMillis()).map(Instant.ofEpochMilli)
   val listingSnapshotIdGen: Gen[ListingSnapshotId] = Gen.long.map(ListingSnapshotId(_))
   val listingIdGen: Gen[ListingId]                 = Gen.long.map(ListingId(_))
   val propertyIdGen: Gen[PropertyId]               = Gen.long.map(PropertyId(_))
