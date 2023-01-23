@@ -5,6 +5,8 @@ import fs2.Pipe
 import uk.co.thirdthing.model.Model
 import uk.co.thirdthing.model.Model.{CrawlerJob, JobId}
 import uk.co.thirdthing.store.JobStore
+import cats.effect.Clock
+import uk.co.thirdthing.utils.TimeUtils._
 
 object MockJobStore {
 
@@ -18,8 +20,13 @@ object MockJobStore {
 
       override def getLatestJob: IO[Option[Model.CrawlerJob]] = initialJobsRef.get.map(_.view.values.toList.sortBy(_.from.value).lastOption)
 
-      override def get(jobId: JobId): IO[Option[CrawlerJob]] = initialJobsRef.get.map(_.get(jobId))
-
+      override def getAndLock(jobId: JobId): IO[Option[CrawlerJob]] = Clock[IO].realTimeInstant.flatMap { now =>
+        initialJobsRef
+          .updateAndGet(
+            _.updatedWith(jobId)(_.map(_.copy(state = Model.JobState.Pending, lastRunStarted = Some(CrawlerJob.LastRunStarted(now)))))
+          )
+          .map(_.get(jobId))
+      }
       override def jobs: fs2.Stream[IO, CrawlerJob] = fs2.Stream.evals(initialJobsRef.get.map(_.view.values.toList))
     }
 

@@ -31,15 +31,15 @@ object Model {
     from: ListingId,
     to: ListingId,
     state: JobState,
-    lastRunScheduled: Option[LastRunScheduled],
+    lastRunStarted: Option[LastRunStarted],
     lastRunCompleted: Option[LastRunCompleted],
     lastChange: Option[LastChange],
     latestDateAdded: Option[DateAdded]
   )
 
   object CrawlerJob {
-    type LastRunScheduled = LastRunScheduled.Type
-    object LastRunScheduled extends NewtypeWrapped[Instant] with DerivedCirceCodec
+    type LastRunStarted = LastRunStarted.Type
+    object LastRunStarted extends NewtypeWrapped[Instant] with DerivedCirceCodec
 
     type LastRunCompleted = LastRunCompleted.Type
     object LastRunCompleted extends NewtypeWrapped[Instant] with DerivedCirceCodec
