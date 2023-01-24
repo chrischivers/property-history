@@ -4,6 +4,7 @@ import cats.effect.{IO, Ref}
 import io.circe.Encoder
 import software.amazon.awssdk.services.sqs.SqsAsyncClient
 import uk.co.thirdthing.sqs.SqsPublisher
+import uk.co.thirdthing.sqs.SqsConfig._
 
 object MockSqsPublisher {
 
@@ -12,7 +13,7 @@ object MockSqsPublisher {
     override def close(): Unit         = ???
   }
 
-  def apply[A: Encoder](messagesRef: Ref[IO, List[A]]) = new SqsPublisher[IO, A](fakeSqsClient)("blah") {
+  def apply[A: Encoder](messagesRef: Ref[IO, List[A]]) = new SqsPublisher[IO, A](fakeSqsClient)(QueueUrl("blah")) {
     override def publish(msg: A): IO[Unit] = messagesRef.update(_ :+ msg)
   }
 }

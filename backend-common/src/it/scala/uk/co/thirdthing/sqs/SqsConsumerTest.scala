@@ -9,6 +9,8 @@ import software.amazon.awssdk.auth.credentials.{AwsBasicCredentials, StaticCrede
 import software.amazon.awssdk.regions.Region
 import software.amazon.awssdk.services.sqs.SqsAsyncClient
 import software.amazon.awssdk.services.sqs.model.{CreateQueueRequest, DeleteQueueRequest, SendMessageRequest}
+import uk.co.thirdthing.sqs.SqsConsumer._
+import uk.co.thirdthing.sqs.SqsConfig._
 
 import java.net.URI
 import scala.concurrent.duration._
@@ -18,7 +20,15 @@ import scala.util.Random
 class SqsConsumerTest extends munit.CatsEffectSuite {
 
   val queueName = "test"
-  val config    = SqsConfig("http://localhost:4566/000000000000/test", 1.second, 5.seconds, 4.seconds, 2.seconds, 10.milliseconds, 10)
+  val config = SqsConfig(
+    QueueUrl("http://localhost:4566/000000000000/test"),
+    WaitTime(1.second),
+    VisibilityTimeout(5.seconds),
+    HeartbeatInterval(4.seconds),
+    RetrySleepTime(2.seconds),
+    StreamThrottlingRate(10.milliseconds),
+    Parallelism(10)
+  )
   case class TestMessage(message: String)
   implicit val testMessageCodec: Codec[TestMessage] = deriveCodec
 
@@ -30,7 +40,7 @@ class SqsConsumerTest extends munit.CatsEffectSuite {
       .flatMap(client => Resource.eval(Ref.of[IO, List[TestMessage]](List.empty)).map(_ -> client))
       .use { case (consumedMessagesRef, client) =>
         val consumer = stubConsumer(consumedMessagesRef)
-        val stream   = new SqsProcessingStream[IO](client, config, "name")
+        val stream   = new SqsProcessingStream[IO](client, config, ConsumerName("name"))
 
         sendMessage(client, testMessage.asJson.spaces2) *>
           stream.startStream(consumer).compile.drain.timeout(10.seconds).attempt.void *>
@@ -49,7 +59,7 @@ class SqsConsumerTest extends munit.CatsEffectSuite {
       .flatMap(client => Resource.eval(Ref.of[IO, List[TestMessage]](List.empty)).map(_ -> client))
       .use { case (consumedMessagesRef, client) =>
         val consumer = stubConsumer(consumedMessagesRef)
-        val stream   = new SqsProcessingStream[IO](client, config, "name")
+        val stream   = new SqsProcessingStream[IO](client, config, ConsumerName("name"))
 
         testMessages.traverse(msg => sendMessage(client, msg.asJson.spaces2)) *>
           stream.startStream(consumer).compile.drain.timeout(5.seconds).attempt.void *>
@@ -66,7 +76,7 @@ class SqsConsumerTest extends munit.CatsEffectSuite {
       .flatMap(client => Resource.eval(Ref.of[IO, List[TestMessage]](List.empty)).map(_ -> client))
       .use { case (consumedMessagesRef, client) =>
         val consumer = stubConsumer(consumedMessagesRef, 10.seconds.some)
-        val stream   = new SqsProcessingStream[IO](client, config, "name")
+        val stream   = new SqsProcessingStream[IO](client, config, ConsumerName("name"))
 
         sendMessage(client, testMessage.asJson.spaces2) *>
           stream.startStream(consumer).compile.drain.timeout(12.seconds).attempt.void *>
@@ -88,7 +98,7 @@ class SqsConsumerTest extends munit.CatsEffectSuite {
             IO.sleep(Random.nextInt(1000).milliseconds) *> consumedMessagesRef.update(_ :+ msg)
         }
 
-        val stream = new SqsProcessingStream[IO](client, config, "name")
+        val stream = new SqsProcessingStream[IO](client, config, ConsumerName("name"))
         testMessages.parTraverse(msg => sendMessage(client, msg.asJson.spaces2)) *>
           stream.startStream(randomDelayConsumer).compile.drain.timeout(25.seconds).attempt.void *>
           consumedMessagesRef.get
@@ -105,7 +115,7 @@ class SqsConsumerTest extends munit.CatsEffectSuite {
           .sendMessage(
             SendMessageRequest
               .builder()
-              .queueUrl(config.queueUrl)
+              .queueUrl(config.queueUrl.value)
               .messageBody(messageBody)
               .build()
           )
@@ -134,7 +144,7 @@ class SqsConsumerTest extends munit.CatsEffectSuite {
         )
       )
       .evalTap(client =>
-        IO.fromFuture(IO.delay(client.deleteQueue(DeleteQueueRequest.builder().queueUrl(config.queueUrl).build()).asScala)).attempt.void
+        IO.fromFuture(IO.delay(client.deleteQueue(DeleteQueueRequest.builder().queueUrl(config.queueUrl.value).build()).asScala)).attempt.void
       )
       .evalTap(client => IO.fromFuture(IO.delay(client.createQueue(CreateQueueRequest.builder().queueName(queueName).build()).asScala)))
   }
