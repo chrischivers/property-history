@@ -27,7 +27,7 @@ object Dependencies {
     val scalaCss              = "1.0.0"
     val http4sDom             = "0.2.3"
     val smithy4s              = "0.17.1"
-    val coursier = "2.1.0-RC4"
+    val coursier              = "2.1.0-RC4"
   }
 
   private val munit = Seq(
@@ -106,8 +106,8 @@ object Dependencies {
 
   val commonDependencies = enumeration ++ circe ++ newtype
   val backendCommonDependencies: Seq[ModuleID] =
-    http4s ++ refined ++ circe ++ logging ++ skunk ++ newtype ++ awsSqs ++ awsSecretsManager ++ awsCloudwatch ++ apacheCommonsLang ++ enumeration ++ test
+    http4s ++ refined ++ circe ++ logging ++ skunk ++ newtype ++ awsSecretsManager ++ awsCloudwatch ++ apacheCommonsLang ++ enumeration ++ test
   val publicApiDependencies: Seq[ModuleID] = http4s ++ refined ++ circe ++ logging ++ newtype ++ smithy4s ++ test
   val crawlerDependencies: Seq[ModuleID] =
-    http4s ++ refined ++ circe ++ logging ++ newtype ++ diffx ++ test
+    http4s ++ refined ++ circe ++ logging ++ newtype ++ diffx ++ awsSqs ++ test
 }

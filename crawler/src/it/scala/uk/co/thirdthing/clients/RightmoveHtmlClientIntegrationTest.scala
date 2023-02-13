@@ -17,7 +17,7 @@ class RightmoveHtmlClientIntegrationTest extends munit.CatsEffectSuite {
   test("Scrape the correct result") {
 
     val expectedResult = RightmoveHtmlScrapeResult(410, Some(PropertyId(81536734)))
-    buildClient(client => assertIO(client.scrapeDetails(ListingId(124999760)), expectedResult))
+    buildClient(client => assertIO(client.scrapeDetails(ListingId(104510633)), expectedResult))
   }
 
   test("Conduct random bulk test") {

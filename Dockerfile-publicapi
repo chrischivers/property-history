@@ -8,8 +8,8 @@ RUN apk upgrade
 RUN apk add openssl
 RUN echo -n | openssl s_client -connect repo.scala-sbt.org:443 | sed -ne '/-BEGIN CERTIFICATE-/,/-END CERTIFICATE-/p' > /root/scala-sbt.cert
 RUN keytool -noprompt -storepass changeit -import -cacerts -alias "scala-sbt server" -file /root/scala-sbt.cert
-RUN sbt "clean;project publicApi;universal:packageBin"
-RUN unzip -o public-api/target/jvm-2.13/universal/$SERVICE_ENV*.zip
+RUN sbt "clean;project publicApi3;universal:packageBin"
+RUN unzip -o public-api/target/jvm-3/universal/$SERVICE_ENV*.zip
 RUN mkdir /build
 RUN mv ${SERVICE_ENV}-*-SNAPSHOT /build/app
 RUN mv /build/app/bin/${SERVICE_ENV} /build/app/bin/service
