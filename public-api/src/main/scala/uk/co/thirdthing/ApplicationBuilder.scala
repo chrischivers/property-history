@@ -3,21 +3,21 @@ package uk.co.thirdthing
 import cats.effect.{IO, Resource}
 import cats.syntax.all.*
 import com.comcast.ip4s.{Host, Port}
-import org.http4s.{HttpApp, Uri}
+import natchez.Trace.Implicits.noop
+import org.http4s.blaze.client.{BlazeClientBuilder, ParserMode}
 import org.http4s.ember.server.EmberServerBuilder
 import org.http4s.implicits.*
 import org.http4s.server.Router
 import org.http4s.server.defaults.HttpPort
+import org.http4s.{HttpApp, Uri}
 import skunk.Session
+import smithy4s.http4s.SimpleRestJsonBuilder
+import software.amazon.awssdk.services.secretsmanager.SecretsManagerClient
+import uk.co.thirdthing.clients.{RightmoveApiClient, RightmoveHtmlClient}
 import uk.co.thirdthing.routes.*
 import uk.co.thirdthing.secrets.{AmazonSecretsManager, SecretsManager}
-import uk.co.thirdthing.service.{HistoryService, ThumbnailService}
-import natchez.Trace.Implicits.noop
-import org.http4s.blaze.client.BlazeClientBuilder
-import software.amazon.awssdk.services.secretsmanager.SecretsManagerClient
+import uk.co.thirdthing.service.{HistoryService, RetrievalService, ThumbnailService}
 import uk.co.thirdthing.store.{PostgresInitializer, PostgresPropertyStore, PropertyStore}
-import uk.co.thirdthing.clients.RightmoveApiClient
-import smithy4s.http4s.SimpleRestJsonBuilder
 
 import scala.concurrent.duration.*
 
@@ -28,16 +28,42 @@ object ApplicationBuilder:
       dbPool         <- databaseSessionPool(secretsManager)
       _              <- Resource.eval(PostgresInitializer.createPropertiesTableIfNotExisting[IO](dbPool))
       propertyStore = PostgresPropertyStore.apply[IO](dbPool)
-      httpClient <- BlazeClientBuilder[IO].withMaxTotalConnections(30).withRequestTimeout(20.seconds).withMaxWaitQueueLimit(1500).resource
-      rightmoveApiClient = RightmoveApiClient.apply[IO](httpClient, Uri.unsafeFromString("https://api.rightmove.co.uk"))
-      historyService   <- Resource.pure[IO, HistoryService[IO]](HistoryService.apply[IO](propertyStore))
-      thumbnailService <- Resource.pure[IO, ThumbnailService[IO]](ThumbnailService.apply[IO](rightmoveApiClient, httpClient))
-      httpApp          <- router(historyService, thumbnailService)
-      _                <- serverResource(httpApp)
+      apiHttpClient         <- buildApiHttpClient
+      htmlScraperHtmlClient <- buildHtmlScraperHttpClient
+      rightmoveApiClient = RightmoveApiClient
+        .apply[IO](apiHttpClient, Uri.unsafeFromString("https://api.rightmove.co.uk"))
+      rightmoveHtmlClient = RightmoveHtmlClient
+        .apply[IO](htmlScraperHtmlClient, Uri.unsafeFromString("https://www.rightmove.co.uk"))
+      retrievalService = RetrievalService[IO](rightmoveApiClient, rightmoveHtmlClient)
+      historyService <- Resource.pure[IO, HistoryService[IO]](HistoryService.apply[IO](propertyStore, retrievalService))
+      thumbnailService <- Resource.pure[IO, ThumbnailService[IO]](
+        ThumbnailService.apply[IO](rightmoveApiClient, apiHttpClient)
+      )
+      httpApp <- router(historyService, thumbnailService)
+      _       <- serverResource(httpApp)
     } yield ()
 
+  private def buildApiHttpClient =
+    BlazeClientBuilder[IO]
+      .withMaxTotalConnections(30)
+      .withRequestTimeout(20.seconds)
+      .withMaxWaitQueueLimit(1500)
+      .resource
+
+  private def buildHtmlScraperHttpClient =
+    BlazeClientBuilder[IO]
+      .withParserMode(ParserMode.Lenient)
+      .withMaxResponseLineSize(8192)
+      .withMaxTotalConnections(30)
+      .withMaxWaitQueueLimit(1500)
+      .withBufferSize(16384)
+      .withRequestTimeout(20.seconds)
+      .resource
+
   private def buildSecretsManager: Resource[IO, SecretsManager[IO]] =
-    Resource.fromAutoCloseable[IO, SecretsManagerClient](IO(SecretsManagerClient.builder().build())).map(AmazonSecretsManager(_))
+    Resource
+      .fromAutoCloseable[IO, SecretsManagerClient](IO(SecretsManagerClient.builder().build()))
+      .map(AmazonSecretsManager(_))
 
   private def envOrSecretsManager(key: String, secretsManager: SecretsManager[IO]) =
     val envKey = key.toUpperCase.replace("-", "_")
@@ -65,7 +91,10 @@ object ApplicationBuilder:
     }
   }
 
-  private def router(historyService: HistoryService[IO], thumbnailService: ThumbnailService[IO]): Resource[IO, HttpApp[IO]] =
+  private def router(
+    historyService: HistoryService[IO],
+    thumbnailService: ThumbnailService[IO]
+  ): Resource[IO, HttpApp[IO]] =
     SimpleRestJsonBuilder.routes(ApiRouteSmithy(historyService)).resource.map { apiRoutesSmithy =>
       Router(
         "/api/v1" -> ApiRoute.routes[IO](historyService, thumbnailService),

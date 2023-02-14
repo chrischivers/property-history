@@ -4,13 +4,14 @@ import org.http4s.Uri
 import org.scalacheck.{Arbitrary, Gen}
 import uk.co.thirdthing.clients.RightmoveApiClient.ListingDetails
 import uk.co.thirdthing.model.Types.ListingSnapshot.ListingSnapshotId
-import uk.co.thirdthing.model.Types._
+import uk.co.thirdthing.model.Types.*
+import uk.co.thirdthing.service.RetrievalService.RetrievalResult
 
 import java.time.Instant
 
 object Generators {
 
-  val instantGen: Gen[Instant]                     = Gen.chooseNum(0L, System.currentTimeMillis()).map(Instant.ofEpochMilli)
+  val instantGen: Gen[Instant] = Gen.chooseNum(0L, System.currentTimeMillis()).map(Instant.ofEpochMilli)
   val listingSnapshotIdGen: Gen[ListingSnapshotId] = Gen.long.map(ListingSnapshotId(_))
   val listingIdGen: Gen[ListingId]                 = Gen.long.map(ListingId(_))
   val propertyIdGen: Gen[PropertyId]               = Gen.long.map(PropertyId(_))
@@ -76,7 +77,15 @@ object Generators {
     longitude
   )
 
+  val retrievalResultGen: Gen[RetrievalResult] = for {
+    listingId  <- listingIdGen
+    propertyId <- propertyIdGen
+    dateAdded  <- instantGen
+    details    <- propertyDetailsGen
+  } yield RetrievalResult(listingId, propertyId, DateAdded(dateAdded), details)
+
   implicit val propertyIdArb: Arbitrary[PropertyId]           = Arbitrary(propertyIdGen)
   implicit val listingSnapshotArb: Arbitrary[ListingSnapshot] = Arbitrary(listingSnapshotGen)
+  implicit val retrievalResultArb: Arbitrary[RetrievalResult] = Arbitrary(retrievalResultGen)
 
 }

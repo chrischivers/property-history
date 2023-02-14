@@ -38,6 +38,7 @@ object UI {
         table(
           cls := "table",
           tr(
+            th(""),
             th("Date Added"),
             th("Sale/Rental"),
             th("Status"),
@@ -55,12 +56,12 @@ object UI {
       a(href := toUrl(ls.listingId), target := "_blank", mod)
     tr(
       List(
+        td(link(img(src := thumbnailUrl(ls), height := "150px", width := "auto"))),
         td(ls.dateAdded.value.toLocalDate.toString),
         ls.details.transactionTypeId.fold(unknownTd)(tt => td(tt.string)),
         ls.details.status.fold(unknownTd)(s => td(s.value)),
         ls.details.price.fold(unknownTd)(p => td(formatPrice(p))),
-        td(link("[link]")),
-        td(link(img(src := thumbnailUrl(ls), height := "150px", width := "auto")))
+        td(link("[link]"))
       ): _*
     )
   }
