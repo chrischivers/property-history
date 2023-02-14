@@ -30,7 +30,8 @@ class RetrievalServiceIntegrationTest extends munit.CatsEffectSuite {
         status = ListingStatus.Hidden.some,
         rentFrequency = None,
         latitude = 53.05996.some,
-        longitude = -2.195873.some
+        longitude = -2.195873.some,
+        thumbnailUrl = ThumbnailUrl("https://media.rightmove.co.uk/19k/18654/124999760/18654_11600008_IMG_00_0000.jpeg").some
       )
     )
     buildService(service => assertIO(service.retrieve(listingId), expectedResult.some))

@@ -6,8 +6,8 @@ import fs2.io.file.{Path => Fs2Path}
 import org.http4s.client.Client
 import org.http4s.dsl.io._
 import org.http4s.{HttpRoutes, StaticFile, Uri}
-import uk.co.thirdthing.model.Types._
 import uk.co.thirdthing.clients.{RightmoveApiClient, RightmoveHtmlClient}
+import uk.co.thirdthing.model.Types._
 import uk.co.thirdthing.service.RetrievalService.RetrievalResult
 
 import java.time.Instant
@@ -30,7 +30,7 @@ class RetrievalServiceTest extends munit.CatsEffectSuite {
         rentFrequency = None,
         latitude = 53.060074.some,
         longitude = -2.195828.some,
-        thumbnailUrl = ThumbnailUrl("http://thumbnail.com").some
+        thumbnailUrl = ThumbnailUrl("https://media.rightmove.co.uk/19k/18654/124999760/18654_11600008_IMG_00_0000.jpeg").some
       )
     )
 

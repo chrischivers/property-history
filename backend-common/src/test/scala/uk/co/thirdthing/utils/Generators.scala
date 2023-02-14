@@ -4,7 +4,7 @@ import org.http4s.Uri
 import org.scalacheck.{Arbitrary, Gen}
 import uk.co.thirdthing.clients.RightmoveApiClient.ListingDetails
 import uk.co.thirdthing.model.Types.ListingSnapshot.ListingSnapshotId
-import uk.co.thirdthing.model.Types.*
+import uk.co.thirdthing.model.Types._
 
 import java.time.Instant
 

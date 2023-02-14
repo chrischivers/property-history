@@ -3,6 +3,7 @@ package uk.co.thirdthing.service
 import cats.data.OptionT
 import cats.effect.Sync
 import cats.syntax.all._
+import org.typelevel.log4cats.SelfAwareStructuredLogger
 import org.typelevel.log4cats.slf4j.Slf4jLogger
 import uk.co.thirdthing.model.Types._
 import uk.co.thirdthing.clients.RightmoveApiClient.ListingDetails
@@ -25,7 +26,7 @@ object RetrievalService {
   def apply[F[_]: Sync](rightmoveApiClient: RightmoveApiClient[F], rightmoveHtmlClient: RightmoveHtmlClient[F]): RetrievalService[F] =
     new RetrievalService[F] {
 
-      implicit val logger = Slf4jLogger.getLogger[F]
+      implicit val logger: SelfAwareStructuredLogger[F] = Slf4jLogger.getLogger[F]
 
       override def retrieve(listingId: ListingId): F[Option[RetrievalResult]] =
         logger.debug(s"Handling retrieval request for listing ${listingId.value}") *>

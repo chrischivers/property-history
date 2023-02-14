@@ -15,7 +15,16 @@ class PostgresPropertyListingStoreTest extends munit.CatsEffectSuite with Postgr
   val lastChange = LastChange(Instant.ofEpochMilli(1658264481000L))
   val dateAdded  = DateAdded(lastChange.value.minus(1, ChronoUnit.DAYS))
 
-  val details = PropertyDetails.from(Price(100000), TransactionType.Sale, visible = true, ListingStatus.SoldSTC, "weekly", 100.5, 90.1)
+  val details = PropertyDetails.from(
+    price = Price(100000),
+    transactionTypeId = TransactionType.Sale,
+    visible = true,
+    status = ListingStatus.SoldSTC,
+    rentFrequency = "weekly",
+    latitude = 100.5,
+    longitude = 90.1,
+    thumbnailUrl = ThumbnailUrl("http://thumbnail.com")
+  )
 
   val listingSnapshot1 = ListingSnapshot(listingId, lastChange, propertyId, dateAdded, details, ListingSnapshotId(1).some)
   val listingSnapshot2 =

@@ -1,6 +1,7 @@
 package uk.co.thirdthing
 
 import cats.effect.{IO, Resource}
+import cats.syntax.all.*
 import com.comcast.ip4s.{Host, Port}
 import org.http4s.{HttpApp, Uri}
 import org.http4s.ember.server.EmberServerBuilder
@@ -40,7 +41,10 @@ object ApplicationBuilder:
 
   private def envOrSecretsManager(key: String, secretsManager: SecretsManager[IO]) =
     val envKey = key.toUpperCase.replace("-", "_")
-    IO.delay(System.getenv(envKey)).orElse(secretsManager.secretFor(key))
+    IO.delay(sys.env.get(envKey)).flatMap {
+      case None    => secretsManager.secretFor(key)
+      case Some(v) => v.pure[IO]
+    }
 
   private def databaseSessionPool(secretsManager: SecretsManager[IO]): Resource[IO, Resource[IO, Session[IO]]] = {
     val secrets = for {
