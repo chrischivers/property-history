@@ -33,7 +33,8 @@ object PropertyStore {
     status: Option[String],
     rentFrequency: Option[String],
     latitude: Option[Double],
-    longitude: Option[Double]
+    longitude: Option[Double],
+    thumbnailUrl: Option[String]
   ) {
     // TODO this is not safe
     def toListingSnapshot: ListingSnapshot =
@@ -49,7 +50,8 @@ object PropertyStore {
           this.status.map(ListingStatus.withValue),
           this.rentFrequency,
           this.latitude,
-          this.longitude
+          this.longitude,
+          this.thumbnailUrl.map(ThumbnailUrl(_)),
         ),
         this.recordId.map(ListingSnapshotId(_))
       )
@@ -62,17 +64,17 @@ object PostgresPropertyStore {
 
     private val insertPropertyRecordCommand: Command[PropertyRecord] =
       sql"""
-             INSERT INTO properties(listingId, propertyId, dateAdded, lastChange, price, transactionTypeId, visible, listingStatus, rentFrequency, latitude, longitude) VALUES
+             INSERT INTO properties(listingId, propertyId, dateAdded, lastChange, price, transactionTypeId, visible, listingStatus, rentFrequency, latitude, longitude, thumbnailUrl) VALUES
              ($int8, $int8, $timestamp, $timestamp, ${int4.opt}, ${int4.opt}, ${bool.opt}, ${varchar(24).opt}, ${varchar(
           32
-        ).opt}, ${float8.opt}, ${float8.opt})
+        ).opt}, ${float8.opt}, ${float8.opt}, ${varchar(256).opt})
          """.command.contramap { (pr: PropertyRecord) =>
-        pr.listingId ~ pr.propertyId ~ pr.dateAdded ~ pr.lastChange ~ pr.price ~ pr.transactionTypeId ~ pr.visible ~ pr.status ~ pr.rentFrequency ~ pr.latitude ~ pr.longitude
+        pr.listingId ~ pr.propertyId ~ pr.dateAdded ~ pr.lastChange ~ pr.price ~ pr.transactionTypeId ~ pr.visible ~ pr.status ~ pr.rentFrequency ~ pr.latitude ~ pr.longitude ~ pr.thumbnailUrl
       }
 
     private val getMostRecentListingCommand: Query[Long, PropertyRecord] =
       sql"""
-           SELECT recordId, listingId, propertyId, dateAdded, lastChange, price, transactionTypeId, visible, listingStatus, rentFrequency, latitude, longitude
+           SELECT recordId, listingId, propertyId, dateAdded, lastChange, price, transactionTypeId, visible, listingStatus, rentFrequency, latitude, longitude,  thumbnailUrl
            FROM properties
            WHERE listingId = $int8
            ORDER BY lastChange DESC
@@ -81,7 +83,7 @@ object PostgresPropertyStore {
         .query(
           int8.opt ~ int8 ~ int8 ~ timestamp ~ timestamp ~ int4.opt ~ int4.opt ~ bool.opt ~ varchar(24).opt ~ varchar(
             32
-          ).opt ~ float8.opt ~ float8.opt
+          ).opt ~ float8.opt ~ float8.opt ~ varchar(256).opt
         )
         .gmap[PropertyRecord]
 
@@ -97,12 +99,14 @@ object PostgresPropertyStore {
 
     private val getMostRecentListingsCommand: Query[Long, PropertyRecord] =
       sql"""
-     SELECT DISTINCT ON (listingId) recordId, listingId, propertyId, dateAdded, lastChange, price, transactionTypeId, visible, listingStatus, rentFrequency, latitude, longitude
+     SELECT DISTINCT ON (listingId) recordId, listingId, propertyId, dateAdded, lastChange, price, transactionTypeId, visible, listingStatus, rentFrequency, latitude, longitude, thumbnailUrl
      FROM properties
      WHERE propertyId = $int8
      ORDER BY listingId DESC, lastChange DESC
    """.query(
-        int8.opt ~ int8 ~ int8 ~ timestamp ~ timestamp ~ int4.opt ~ int4.opt ~ bool.opt ~ varchar(24).opt ~ varchar(32).opt ~ float8.opt ~ float8.opt
+        int8.opt ~ int8 ~ int8 ~ timestamp ~ timestamp ~ int4.opt ~ int4.opt ~ bool.opt ~ varchar(24).opt ~ varchar(
+          32
+        ).opt ~ float8.opt ~ float8.opt ~ varchar(256).opt
       ).gmap[PropertyRecord]
 
     override def propertyIdFor(listingId: ListingId): F[Option[PropertyId]] =
@@ -129,7 +133,8 @@ object PostgresPropertyStore {
         details.status.map(_.value),
         details.rentFrequency,
         details.latitude,
-        details.longitude
+        details.longitude,
+        details.thumbnailUrl.map(_.value)
       )
       pool.use(_.prepare(insertPropertyRecordCommand).use(_.execute(propertyRecord).void))
     }

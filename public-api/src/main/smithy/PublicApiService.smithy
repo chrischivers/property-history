@@ -3,6 +3,14 @@ namespace smithy4s.hello
 use alloy#simpleRestJson
 use smithy4s.meta#packedInputs
 
+@error("client")
+@httpError(404)
+structure ListingNotFound {}
+
+@error("client")
+@httpError(404)
+structure ThumbnailNotFound {}
+
 @packedInputs
 @simpleRestJson
 service PublicApiService {
@@ -16,7 +24,6 @@ operation GetHistoryOperation {
   output: GetHistoryResponse,
   errors: [ListingNotFound]
 }
-
 
 structure GetHistoryRequest {
     @httpLabel
@@ -35,7 +42,8 @@ structure HistoryRecordDetails {
   status: String,
   rentFrequency: String,
   latitude: Double,
-  longitude: Double
+  longitude: Double,
+  thumbnailUrl: String
 }
 
 structure HistoryRecord {

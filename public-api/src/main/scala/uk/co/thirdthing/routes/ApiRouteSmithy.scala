@@ -6,9 +6,9 @@ import org.http4s.HttpRoutes
 import org.http4s.circe.CirceEntityEncoder.*
 import org.http4s.dsl.Http4sDsl
 import uk.co.thirdthing.model.Types.*
-import uk.co.thirdthing.service.HistoryService
+import uk.co.thirdthing.service.{HistoryService, ThumbnailService}
 import cats.effect.IO
-import smithy4s.hello._
+import smithy4s.hello.*
 
 object ApiRouteSmithy:
 
@@ -38,5 +38,6 @@ object ApiRouteSmithy:
       details.status.map(_.value),
       details.rentFrequency,
       details.latitude,
-      details.longitude
+      details.longitude,
+      details.thumbnailUrl.map(_.value)
     )

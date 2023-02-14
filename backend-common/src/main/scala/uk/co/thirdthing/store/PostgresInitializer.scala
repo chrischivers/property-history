@@ -25,6 +25,7 @@ object PostgresInitializer {
          rentFrequency VARCHAR(32),
          latitude DOUBLE PRECISION,
          longitude DOUBLE PRECISION,
+         thumbnailUrl VARCHAR(256),
          CONSTRAINT listingId_lastChange_unique UNIQUE (listingId, lastChange)
          )""".command
 

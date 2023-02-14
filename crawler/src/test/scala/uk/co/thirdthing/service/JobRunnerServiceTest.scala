@@ -44,7 +44,16 @@ class JobRunnerServiceTest extends munit.CatsEffectSuite {
     listingId,
     propertyId,
     DateAdded(Instant.now.truncatedTo(ChronoUnit.MILLIS)),
-    PropertyDetails.from(Price(100000), TransactionType.Sale, visible = true, ListingStatus.SoldSTC, "weekly", 100.5, 90.1)
+    PropertyDetails.from(
+      Price(100000),
+      TransactionType.Sale,
+      visible = true,
+      ListingStatus.SoldSTC,
+      "weekly",
+      100.5,
+      90.1,
+      ThumbnailUrl("http://thumbnail.com")
+    )
   )
 
   test("Run a job successfully and update the records") {

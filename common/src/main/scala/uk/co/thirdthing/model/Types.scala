@@ -23,6 +23,9 @@ object Types {
   type Price = Price.Type
   object Price extends NewtypeWrapped[Int] with DerivedCirceCodec
 
+  type ThumbnailUrl = ThumbnailUrl.Type
+  object ThumbnailUrl extends NewtypeWrapped[String] with DerivedCirceCodec
+
   final case class ListingSnapshot(
     listingId: ListingId,
     lastChange: LastChange,
@@ -87,13 +90,14 @@ object Types {
     status: Option[ListingStatus],
     rentFrequency: Option[String],
     latitude: Option[Double],
-    longitude: Option[Double]
+    longitude: Option[Double],
+    thumbnailUrl: Option[ThumbnailUrl]
   )
 
   object PropertyDetails {
     implicit val codec: Codec[PropertyDetails] = deriveCodec
-    val Deleted                                = PropertyDetails(None, None, None, Some(ListingStatus.Deleted), None, None, None)
-    val Empty                                  = PropertyDetails(None, None, None, None, None, None, None)
+    val Deleted                                = PropertyDetails(None, None, None, Some(ListingStatus.Deleted), None, None, None, None)
+    val Empty                                  = PropertyDetails(None, None, None, None, None, None, None, None)
     def from(
       price: Price,
       transactionTypeId: TransactionType,
@@ -101,9 +105,10 @@ object Types {
       status: ListingStatus,
       rentFrequency: String,
       latitude: Double,
-      longitude: Double
+      longitude: Double,
+      thumbnailUrl: ThumbnailUrl
     ): PropertyDetails =
-      PropertyDetails(Some(price), Some(transactionTypeId), Some(visible), Some(status), Some(rentFrequency), Some(latitude), Some(longitude))
+      PropertyDetails(Some(price), Some(transactionTypeId), Some(visible), Some(status), Some(rentFrequency), Some(latitude), Some(longitude), Some(thumbnailUrl))
   }
 
 }

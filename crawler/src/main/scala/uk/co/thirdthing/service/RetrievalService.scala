@@ -43,7 +43,8 @@ object RetrievalService {
                     listingStatusFrom(scrapeResult, listingDetails).some,
                     listingDetails.rentFrequency,
                     listingDetails.latitude,
-                    listingDetails.longitude
+                    listingDetails.longitude,
+                    listingDetails.photoThumbnailUrl
                   )
                 )
               }

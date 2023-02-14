@@ -3,12 +3,12 @@ package uk.co.thirdthing.clients
 import cats.MonadThrow
 import cats.effect.Async
 import cats.implicits._
-import io.circe.generic.JsonCodec
 import io.circe.generic.semiauto.{deriveDecoder, deriveEncoder}
 import io.circe.{Decoder, DecodingFailure, Encoder}
 import org.http4s.circe._
 import org.http4s.client.Client
 import org.http4s.{EntityDecoder, Response, Status, Uri}
+import org.typelevel.log4cats.SelfAwareStructuredLogger
 import org.typelevel.log4cats.slf4j.Slf4jLogger
 import uk.co.thirdthing.clients.RightmoveApiClient.ListingDetails
 import uk.co.thirdthing.model.Types._
@@ -33,6 +33,7 @@ object RightmoveApiClient {
     updateDate: Long,
     rentFrequency: Option[String],
     publicsiteUrl: Uri,
+    photoThumbnailUrl: Option[ThumbnailUrl],
     latitude: Option[Double],
     longitude: Option[Double]
   )
@@ -61,7 +62,7 @@ object RightmoveApiClient {
 
   def apply[F[_]: Async](client: Client[F], baseUrl: Uri) = new RightmoveApiClient[F] {
 
-    implicit val logger = Slf4jLogger.getLogger[F]
+    implicit val logger: SelfAwareStructuredLogger[F] = Slf4jLogger.getLogger[F]
 
     implicit private val entityDecoder: EntityDecoder[F, ResultWrapper] = jsonOf[F, ResultWrapper]
 

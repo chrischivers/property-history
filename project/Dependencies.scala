@@ -106,8 +106,8 @@ object Dependencies {
 
   val commonDependencies = enumeration ++ circe ++ newtype
   val backendCommonDependencies: Seq[ModuleID] =
-    http4s ++ refined ++ circe ++ logging ++ skunk ++ newtype ++ awsSecretsManager ++ awsCloudwatch ++ apacheCommonsLang ++ enumeration ++ test
+    http4s ++ refined ++ circe ++ logging ++ skunk ++ newtype ++ awsSecretsManager ++ awsCloudwatch ++ apacheCommonsLang ++ enumeration ++ logging ++ test
   val publicApiDependencies: Seq[ModuleID] = http4s ++ refined ++ circe ++ logging ++ newtype ++ smithy4s ++ test
   val crawlerDependencies: Seq[ModuleID] =
-    http4s ++ refined ++ circe ++ logging ++ newtype ++ diffx ++ awsSqs ++ test
+    http4s ++ refined ++ circe ++ newtype ++ diffx ++ awsSqs ++ test
 }
