@@ -13,7 +13,7 @@ import org.http4s.{HttpApp, Uri}
 import skunk.Session
 import smithy4s.http4s.SimpleRestJsonBuilder
 import software.amazon.awssdk.services.secretsmanager.SecretsManagerClient
-import uk.co.thirdthing.clients.{RightmoveApiClient, RightmoveHtmlClient}
+import uk.co.thirdthing.clients.{RightmoveApiClient, RightmoveListingHtmlClient}
 import uk.co.thirdthing.routes.*
 import uk.co.thirdthing.secrets.{AmazonSecretsManager, SecretsManager}
 import uk.co.thirdthing.service.{HistoryService, RetrievalService, ThumbnailService}
@@ -32,7 +32,7 @@ object ApplicationBuilder:
       htmlScraperHtmlClient <- buildHtmlScraperHttpClient
       rightmoveApiClient = RightmoveApiClient
         .apply[IO](apiHttpClient, Uri.unsafeFromString("https://api.rightmove.co.uk"))
-      rightmoveHtmlClient = RightmoveHtmlClient
+      rightmoveHtmlClient = RightmoveListingHtmlClient
         .apply[IO](htmlScraperHtmlClient, Uri.unsafeFromString("https://www.rightmove.co.uk"))
       retrievalService = RetrievalService[IO](rightmoveApiClient, rightmoveHtmlClient)
       historyService <- Resource.pure[IO, HistoryService[IO]](HistoryService.apply[IO](propertyStore, retrievalService))

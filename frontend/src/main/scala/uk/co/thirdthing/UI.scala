@@ -11,6 +11,7 @@ import org.scalajs.dom
 import org.scalajs.dom.{XMLHttpRequest, html}
 import uk.co.thirdthing.model.Types.{ListingId, ListingSnapshot, Price}
 import uk.co.thirdthing.utils.TimeUtils._
+import uk.co.thirdthing.views.PageHeader
 
 import java.time.ZoneId
 import scala.scalajs.js.URIUtils
@@ -138,6 +139,7 @@ object UI {
 
   def apply: ReactiveHtmlElement[html.Div] =
     div(
+      PageHeader.render,
       urlEntryElem,
       buttonElem,
       errorElem,

@@ -3,14 +3,6 @@ namespace smithy4s.hello
 use alloy#simpleRestJson
 use smithy4s.meta#packedInputs
 
-@error("client")
-@httpError(404)
-structure ListingNotFound {}
-
-@error("client")
-@httpError(404)
-structure ThumbnailNotFound {}
-
 @packedInputs
 @simpleRestJson
 service PublicApiService {

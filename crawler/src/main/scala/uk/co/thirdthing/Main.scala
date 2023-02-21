@@ -9,23 +9,19 @@ import skunk.Session
 import software.amazon.awssdk.services.cloudwatch.CloudWatchAsyncClient
 import software.amazon.awssdk.services.secretsmanager.SecretsManagerClient
 import software.amazon.awssdk.services.sqs.SqsAsyncClient
-import uk.co.thirdthing.clients.{RightmoveApiClient, RightmoveHtmlClient}
-import uk.co.thirdthing.config.{JobSeederConfig, JobSchedulingConfig}
+import uk.co.thirdthing.clients.{RightmoveApiClient, RightmoveListingHtmlClient}
+import uk.co.thirdthing.config.{JobRunnerPollerConfig, JobSchedulingConfig, JobSeederConfig}
 import uk.co.thirdthing.consumer.JobSeedTriggerConsumer
 import uk.co.thirdthing.metrics.{CloudWatchMetricsRecorder, MetricsRecorder}
-import uk.co.thirdthing.model.Model.RunJobCommand
+import uk.co.thirdthing.pollers.JobRunnerPoller
 import uk.co.thirdthing.secrets.{AmazonSecretsManager, SecretsManager}
-import uk.co.thirdthing.service.{JobSeeder, RetrievalService}
-import uk.co.thirdthing.sqs.{SqsProcessingStream, SqsPublisher}
-import uk.co.thirdthing.sqs.SqsConfig
+import uk.co.thirdthing.service.{JobRunnerService, JobSeeder, RetrievalService}
 import uk.co.thirdthing.sqs.SqsConfig._
 import uk.co.thirdthing.sqs.SqsConsumer._
+import uk.co.thirdthing.sqs.{SqsConfig, SqsProcessingStream}
 import uk.co.thirdthing.store.{JobStore, PostgresInitializer, PostgresJobStore, PostgresPropertyStore}
 
 import scala.concurrent.duration._
-import uk.co.thirdthing.service.JobRunnerPoller
-import uk.co.thirdthing.config.JobRunnerPollerConfig
-import uk.co.thirdthing.service.JobRunnerService
 
 object Main extends IOApp {
 
@@ -40,26 +36,27 @@ object Main extends IOApp {
   override def run(args: List[String]): IO[ExitCode] =
     buildSecretsManager.use { secretsManager =>
       resources(secretsManager).use { r =>
-        secretsManager.secretFor("run-job-commands-queue-url").flatMap { runJobCommandQueueUrl =>
-          val metricsRecorder        = CloudWatchMetricsRecorder[IO](r.cloudWatchClient)
-          val jobStore               = PostgresJobStore[IO](r.db, JobSchedulingConfig.default)
-          val runJobCommandPublisher = new SqsPublisher[IO, RunJobCommand](r.sqsClient)(QueueUrl(runJobCommandQueueUrl))
-          val jobRunnerService = buildJobRunnerService(r.apiHttpClient, r.htmlScraperHttpClient, jobStore, r.db, metricsRecorder)
-          val jobRunnerPoller  = JobRunnerPoller[IO](jobStore, jobRunnerService, JobRunnerPollerConfig.default)
+        val metricsRecorder = CloudWatchMetricsRecorder[IO](r.cloudWatchClient)
+        val jobStore        = PostgresJobStore[IO](r.db, JobSchedulingConfig.default)
+        val jobRunnerService =
+          buildJobRunnerService(r.apiHttpClient, r.htmlScraperHttpClient, jobStore, r.db, metricsRecorder)
+        val jobRunnerPoller = pollers.JobRunnerPoller[IO](jobStore, jobRunnerService)
 
-          PostgresInitializer.createPropertiesTableIfNotExisting[IO](r.db) *>
-            PostgresInitializer.createJobsTableIfNotExisting[IO](r.db) *>
-            startJobSeedTriggerProcessingStream(r.apiHttpClient, r.sqsClient, secretsManager, jobStore)
-              .concurrently(jobRunnerPoller.start)
-              .compile
-              .drain
-              .as(ExitCode.Success)
-        }
+        PostgresInitializer.createPropertiesTableIfNotExisting[IO](r.db) *>
+          PostgresInitializer.createJobsTableIfNotExisting[IO](r.db) *>
+          startJobSeedTriggerProcessingStream(r.apiHttpClient, r.sqsClient, secretsManager, jobStore)
+            .concurrently(jobRunnerPoller.startPolling(JobRunnerPollerConfig.default.minimumPollingInterval))
+            .compile
+            .drain
+            .as(ExitCode.Success)
+
       }
     }
 
   private def buildSecretsManager: Resource[IO, SecretsManager[IO]] =
-    Resource.fromAutoCloseable[IO, SecretsManagerClient](IO(SecretsManagerClient.builder().build())).map(AmazonSecretsManager[IO](_))
+    Resource
+      .fromAutoCloseable[IO, SecretsManagerClient](IO(SecretsManagerClient.builder().build()))
+      .map(AmazonSecretsManager[IO](_))
 
   private def buildJobSeedTriggerConsumer(apiHttpClient: Client[IO], jobStore: JobStore[IO]) = {
     val rightmoveApiClient = RightmoveApiClient(apiHttpClient, Uri.unsafeFromString("https://api.rightmove.co.uk"))
@@ -74,7 +71,7 @@ object Main extends IOApp {
     jobStore: JobStore[IO]
   ): fs2.Stream[IO, Unit] =
     fs2.Stream.eval(secretsManager.secretFor("job-seeder-queue-url")).flatMap { queueUrl =>
-      val consumer  = buildJobSeedTriggerConsumer(apiHttpClient, jobStore)
+      val consumer = buildJobSeedTriggerConsumer(apiHttpClient, jobStore)
       val sqsConfig = SqsConfig(
         QueueUrl(queueUrl),
         WaitTime(20.seconds),
@@ -96,7 +93,7 @@ object Main extends IOApp {
   ) = {
     val postgresPropertyStore = PostgresPropertyStore[IO](dbPool)
     val rightmoveApiClient    = RightmoveApiClient(apiHttpClient, Uri.unsafeFromString("https://api.rightmove.co.uk"))
-    val rightmoveHtmlClient   = RightmoveHtmlClient(htmlHttpClient, Uri.unsafeFromString("https://www.rightmove.co.uk"))
+    val rightmoveHtmlClient   = RightmoveListingHtmlClient(htmlHttpClient, Uri.unsafeFromString("https://www.rightmove.co.uk"))
     val retrievalService      = RetrievalService[IO](rightmoveApiClient, rightmoveHtmlClient)
     JobRunnerService[IO](jobStore, postgresPropertyStore, retrievalService, metricsRecorder)
   }
@@ -122,7 +119,11 @@ object Main extends IOApp {
 
   private def resources(secretsManager: SecretsManager[IO]): Resource[IO, Resources] =
     for {
-      apiHttpClient <- BlazeClientBuilder[IO].withMaxTotalConnections(30).withRequestTimeout(20.seconds).withMaxWaitQueueLimit(1500).resource
+      apiHttpClient <- BlazeClientBuilder[IO]
+        .withMaxTotalConnections(30)
+        .withRequestTimeout(20.seconds)
+        .withMaxWaitQueueLimit(1500)
+        .resource
       htmlScraperHtmlClient <- BlazeClientBuilder[IO]
         .withParserMode(ParserMode.Lenient)
         .withMaxResponseLineSize(8192)
@@ -131,8 +132,10 @@ object Main extends IOApp {
         .withBufferSize(16384)
         .withRequestTimeout(20.seconds)
         .resource
-      sqsClient        <- Resource.fromAutoCloseable[IO, SqsAsyncClient](IO(SqsAsyncClient.builder().build()))
-      cloudwatchClient <- Resource.fromAutoCloseable[IO, CloudWatchAsyncClient](IO(CloudWatchAsyncClient.builder().build()))
-      dbPool           <- databaseSessionPool(secretsManager)
+      sqsClient <- Resource.fromAutoCloseable[IO, SqsAsyncClient](IO(SqsAsyncClient.builder().build()))
+      cloudwatchClient <- Resource.fromAutoCloseable[IO, CloudWatchAsyncClient](
+        IO(CloudWatchAsyncClient.builder().build())
+      )
+      dbPool <- databaseSessionPool(secretsManager)
     } yield Resources(apiHttpClient, htmlScraperHtmlClient, sqsClient, dbPool, cloudwatchClient)
 }

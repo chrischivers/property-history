@@ -7,8 +7,8 @@ import org.typelevel.log4cats.SelfAwareStructuredLogger
 import org.typelevel.log4cats.slf4j.Slf4jLogger
 import uk.co.thirdthing.model.Types._
 import uk.co.thirdthing.clients.RightmoveApiClient.ListingDetails
-import uk.co.thirdthing.clients.RightmoveHtmlClient.RightmoveHtmlScrapeResult
-import uk.co.thirdthing.clients.{RightmoveApiClient, RightmoveHtmlClient}
+import uk.co.thirdthing.clients.RightmoveListingHtmlClient.RightmoveHtmlScrapeResult
+import uk.co.thirdthing.clients.{RightmoveApiClient, RightmoveListingHtmlClient}
 import uk.co.thirdthing.service.RetrievalService.RetrievalResult
 
 import java.time.Instant
@@ -23,7 +23,7 @@ object RetrievalService {
 
   final case class RetrievalResult(listingId: ListingId, propertyId: PropertyId, dateAdded: DateAdded, propertyDetails: PropertyDetails)
 
-  def apply[F[_]: Sync](rightmoveApiClient: RightmoveApiClient[F], rightmoveHtmlClient: RightmoveHtmlClient[F]): RetrievalService[F] =
+  def apply[F[_]: Sync](rightmoveApiClient: RightmoveApiClient[F], rightmoveHtmlClient: RightmoveListingHtmlClient[F]): RetrievalService[F] =
     new RetrievalService[F] {
 
       implicit val logger: SelfAwareStructuredLogger[F] = Slf4jLogger.getLogger[F]

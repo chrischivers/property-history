@@ -6,12 +6,9 @@ Global / onChangedBuildSource := ReloadOnSourceChanges
 
 lazy val common = projectMatrix
   .in(file("common"))
-  .jsPlatform(Seq(Versions.scala2))
-  .jvmPlatform(Seq(Versions.scala2, Versions.scala3))
+  .jsPlatform(Seq(Versions.scala3))
+  .jvmPlatform(Seq(Versions.scala3))
   .settings(CompilerSettings.settings)
-  .settings(
-    scalacOptions := CompilerSettings.scalacOptionsVersion(scalaVersion.value)
-  )
   .settings(libraryDependencies ++= commonDependencies)
   .configs(IntegrationTest)
   .settings(inConfig(IntegrationTest)(org.scalafmt.sbt.ScalafmtPlugin.scalafmtConfigSettings))
@@ -21,7 +18,7 @@ lazy val common = projectMatrix
 
 lazy val backendCommon = projectMatrix
   .in(file("backend-common"))
-  .jvmPlatform(Seq(Versions.scala2, Versions.scala3))
+  .jvmPlatform(Seq(Versions.scala3))
   .settings(CompilerSettings.settings)
   .settings(libraryDependencies ++= backendCommonDependencies)
   .configs(IntegrationTest)
@@ -47,15 +44,18 @@ lazy val publicApi = projectMatrix
   .settings(
     Compile / resourceGenerators += {
       Def.task[Seq[File]] {
-        val _        = (frontend.js(Versions.scala2) / Compile / fastLinkJS).value
-        val location = (frontend.js(Versions.scala2) / Compile / fastLinkJS / scalaJSLinkerOutputDirectory).value
+        val _            = (frontend.js(Versions.scala3) / Compile / fastLinkJS).value
+        val jsOutputDir  = (frontend.js(Versions.scala3) / Compile / fastLinkJS / scalaJSLinkerOutputDirectory).value
+        val resourcesDir = (frontend.js(Versions.scala3) / Compile / resourceDirectory).value
 
         val outDir = (Compile / resourceManaged).value / "assets"
-        IO.listFiles(location).toList.map { file =>
-          val (name, ext) = file.baseAndExt
-          val out         = outDir / (name + "." + ext)
-          IO.copyFile(file, out)
-          out
+        List(jsOutputDir, resourcesDir).flatMap { location =>
+          IO.listFiles(location).toList.map { file =>
+            val (name, ext) = file.baseAndExt
+            val out         = outDir / (name + "." + ext)
+            IO.copyFile(file, out)
+            out
+          }
         }
       }
     },
@@ -68,7 +68,7 @@ lazy val publicApi = projectMatrix
 
 lazy val crawler = projectMatrix
   .in(file("crawler"))
-  .jvmPlatform(Seq(Versions.scala2))
+  .jvmPlatform(Seq(Versions.scala3))
   .settings(CompilerSettings.settings)
   .settings(libraryDependencies ++= crawlerDependencies)
   .configs(IntegrationTest)
@@ -85,8 +85,9 @@ lazy val frontend =
   projectMatrix
     .in(file("frontend"))
     .enablePlugins(ScalaJSPlugin)
-    .jsPlatform(Seq(Versions.scala2))
-    .settings(Seq(scalaVersion := Versions.scala2))
+    .jsPlatform(Seq(Versions.scala3))
+    .settings(Seq(scalaVersion := Versions.scala3))
+    .settings(CompilerSettings.settings)
     .settings(
       scalaJSUseMainModuleInitializer := true,
       libraryDependencies ++= Seq(

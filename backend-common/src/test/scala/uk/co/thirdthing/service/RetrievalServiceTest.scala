@@ -6,7 +6,7 @@ import fs2.io.file.{Path => Fs2Path}
 import org.http4s.client.Client
 import org.http4s.dsl.io._
 import org.http4s.{HttpRoutes, StaticFile, Uri}
-import uk.co.thirdthing.clients.{RightmoveApiClient, RightmoveHtmlClient}
+import uk.co.thirdthing.clients.{RightmoveApiClient, RightmoveHousePricesListingHtmlClient}
 import uk.co.thirdthing.model.Types._
 import uk.co.thirdthing.service.RetrievalService.RetrievalResult
 
@@ -53,7 +53,7 @@ class RetrievalServiceTest extends munit.CatsEffectSuite {
       Uri.unsafeFromString("/")
     )
 
-    val htmlClient = RightmoveHtmlClient.apply[IO](
+    val htmlClient = RightmoveHousePricesListingHtmlClient.apply[IO](
       Client.fromHttpApp[IO](
         HttpRoutes
           .of[IO] { case request @ GET -> Root / "properties" / _ =>

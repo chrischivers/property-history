@@ -25,6 +25,9 @@ object Types {
 
   type ThumbnailUrl = ThumbnailUrl.Type
   object ThumbnailUrl extends NewtypeWrapped[String] with DerivedCirceCodec
+  
+  type Postcode = Postcode.Type
+  object Postcode extends NewtypeWrapped[String] with DerivedCirceCodec
 
   final case class ListingSnapshot(
     listingId: ListingId,

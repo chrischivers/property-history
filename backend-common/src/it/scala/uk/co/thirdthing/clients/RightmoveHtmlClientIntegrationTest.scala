@@ -5,7 +5,7 @@ import cats.implicits._
 import org.http4s.Uri
 import org.http4s.blaze.client.BlazeClientBuilder
 import uk.co.thirdthing.model.Types._
-import uk.co.thirdthing.clients.RightmoveHtmlClient.RightmoveHtmlScrapeResult
+import uk.co.thirdthing.clients.RightmoveHousePricesListingHtmlClient.RightmoveHtmlScrapeResult
 
 import scala.concurrent.duration._
 import scala.util.Random
@@ -26,9 +26,9 @@ class RightmoveHtmlClientIntegrationTest extends munit.CatsEffectSuite {
     buildClient(client => assertIO(listingIds.traverse(client.scrapeDetails).void, ()))
   }
 
-  def buildClient(f: RightmoveHtmlClient[IO] => IO[Unit]) =
+  def buildClient(f: RightmoveHousePricesListingHtmlClient[IO] => IO[Unit]) =
     BlazeClientBuilder[IO].resource
-      .map(client => RightmoveHtmlClient.apply[IO](client, Uri.unsafeFromString("https://www.rightmove.co.uk")))
+      .map(client => RightmoveHousePricesListingHtmlClient.apply[IO](client, Uri.unsafeFromString("https://www.rightmove.co.uk")))
       .use(f)
 
 }

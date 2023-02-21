@@ -6,9 +6,9 @@ import org.http4s.client.Client
 import org.http4s.dsl.io._
 import org.http4s.{HttpRoutes, StaticFile, Status, Uri}
 import uk.co.thirdthing.model.Types._
-import uk.co.thirdthing.clients.RightmoveHtmlClient.RightmoveHtmlScrapeResult
+import uk.co.thirdthing.clients.RightmoveHousePricesListingHtmlClient.RightmoveHtmlScrapeResult
 
-class RightmoveHtmlClientTest extends munit.CatsEffectSuite {
+class RightmoveListingHtmlClientTest extends munit.CatsEffectSuite {
 
   val listingId: ListingId = ListingId(12345678)
 
@@ -19,8 +19,8 @@ class RightmoveHtmlClientTest extends munit.CatsEffectSuite {
     assertIO(apiClient("/rightmove-html-success-response.html").scrapeDetails(listingId), expectedResult)
   }
 
-  def apiClient(responsePath: String, status: Status = Status.Ok): RightmoveHtmlClient[IO] =
-    RightmoveHtmlClient.apply[IO](
+  def apiClient(responsePath: String, status: Status = Status.Ok): RightmoveHousePricesListingHtmlClient[IO] =
+    RightmoveHousePricesListingHtmlClient.apply[IO](
       Client.fromHttpApp[IO](
         HttpRoutes
           .of[IO] { case request @ GET -> Root / "properties" / _ =>

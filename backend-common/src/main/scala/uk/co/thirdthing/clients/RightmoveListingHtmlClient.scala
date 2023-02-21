@@ -10,20 +10,20 @@ import org.http4s.{Request, Status, Uri}
 import org.typelevel.log4cats.SelfAwareStructuredLogger
 import org.typelevel.log4cats.slf4j.Slf4jLogger
 import uk.co.thirdthing.model.Types._
-import uk.co.thirdthing.clients.RightmoveHtmlClient.RightmoveHtmlScrapeResult
+import uk.co.thirdthing.clients.RightmoveListingHtmlClient.RightmoveHtmlScrapeResult
 import uk.co.thirdthing.utils.CatsEffectUtils._
 import scala.concurrent.duration._
 
-trait RightmoveHtmlClient[F[_]] {
+trait RightmoveListingHtmlClient[F[_]] {
 
   def scrapeDetails(listingId: ListingId): F[RightmoveHtmlScrapeResult]
 
 }
 
-object RightmoveHtmlClient {
+object RightmoveListingHtmlClient {
   final case class RightmoveHtmlScrapeResult(statusCode: Int, propertyId: Option[PropertyId])
 
-  def apply[F[_]: Async](client: Client[F], baseUrl: Uri): RightmoveHtmlClient[F] = new RightmoveHtmlClient[F] {
+  def apply[F[_]: Async](client: Client[F], baseUrl: Uri): RightmoveListingHtmlClient[F] = new RightmoveListingHtmlClient[F] {
 
     implicit def logger: SelfAwareStructuredLogger[F] = Slf4jLogger.getLogger[F]
 

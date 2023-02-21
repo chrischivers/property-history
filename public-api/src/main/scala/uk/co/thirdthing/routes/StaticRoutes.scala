@@ -12,7 +12,7 @@ object StaticRoutes:
     val dsl = Http4sDsl[F]
     import dsl._
 
-    val ACCEPTABLE_ENDINGS = Set(".js", "js.map")
+    val ACCEPTABLE_ENDINGS = Set(".js", "js.map", "css")
 
     val indexHtml = StaticFile
       .fromResource[F](
