@@ -4,6 +4,9 @@ import Dependencies._
 
 Global / onChangedBuildSource := ReloadOnSourceChanges
 
+Global / scalaVersion := Versions.scala3
+
+
 lazy val common = projectMatrix
   .in(file("common"))
   .jsPlatform(Seq(Versions.scala3))
@@ -86,7 +89,6 @@ lazy val frontend =
     .in(file("frontend"))
     .enablePlugins(ScalaJSPlugin)
     .jsPlatform(Seq(Versions.scala3))
-    .settings(Seq(scalaVersion := Versions.scala3))
     .settings(CompilerSettings.settings)
     .settings(
       scalaJSUseMainModuleInitializer := true,
