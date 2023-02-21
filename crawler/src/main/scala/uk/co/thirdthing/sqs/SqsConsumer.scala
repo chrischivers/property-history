@@ -9,7 +9,13 @@ import io.circe.parser.*
 import org.typelevel.log4cats.SelfAwareStructuredLogger
 import org.typelevel.log4cats.slf4j.Slf4jLogger
 import software.amazon.awssdk.services.sqs.SqsAsyncClient
-import software.amazon.awssdk.services.sqs.model.*
+import software.amazon.awssdk.services.sqs.model.{
+  ReceiveMessageRequest => SqsReceiveMessageRequest,
+  Message,
+  DeleteMessageRequest,
+  ChangeMessageVisibilityRequest,
+  QueueAttributeName
+}
 
 import scala.concurrent.duration.FiniteDuration
 import scala.jdk.CollectionConverters.*
@@ -91,7 +97,7 @@ class SqsProcessingStream[F[_]: Async: Parallel](
       .build()
     Async[F].fromFuture(Sync[F].delay(client.changeMessageVisibility(request).asScala))
 
-  private val request = ReceiveMessageRequest.builder
+  private val request = SqsReceiveMessageRequest.builder
     .queueUrl(sqsConfig.queueUrl.value)
     .waitTimeSeconds(sqsConfig.waitTime.value.toSeconds.toInt)
     .visibilityTimeout(sqsConfig.visibilityTimeout.value.toSeconds.toInt)

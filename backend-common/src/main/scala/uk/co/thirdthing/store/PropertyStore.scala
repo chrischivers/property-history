@@ -109,12 +109,12 @@ object PostgresPropertyStore:
       ).gmap[PropertyRecord]
 
     override def propertyIdFor(listingId: ListingId): F[Option[PropertyId]] =
-      pool.use(_.prepare(getPropertyIdCommand).use(_.option(listingId.value).map(_.map(PropertyId(_)))))
+      pool.use(_.prepare(getPropertyIdCommand).flatMap(_.option(listingId.value).map(_.map(PropertyId(_)))))
 
     override def latestListingsFor(propertyId: PropertyId): fs2.Stream[F, ListingSnapshot] =
       for
         db               <- fs2.Stream.resource(pool)
-        getLatestListing <- fs2.Stream.resource(db.prepare(getMostRecentListingsCommand))
+        getLatestListing <- fs2.Stream.eval(db.prepare(getMostRecentListingsCommand))
         result           <- getLatestListing.stream(propertyId.value, 16).map(_.toListingSnapshot)
       yield result
 
@@ -135,11 +135,11 @@ object PostgresPropertyStore:
         details.longitude,
         details.thumbnailUrl.map(_.value)
       )
-      pool.use(_.prepare(insertPropertyRecordCommand).use(_.execute(propertyRecord).void))
+      pool.use(_.prepare(insertPropertyRecordCommand).flatMap(_.execute(propertyRecord).void))
 
     override def getMostRecentListing(listingId: ListingId): F[Option[ListingSnapshot]] = pool.use { session =>
       session
         .prepare(getMostRecentListingCommand)
-        .use(_.option(listingId.value))
+        .flatMap(_.option(listingId.value))
         .map(_.map(_.toListingSnapshot))
     }

@@ -129,9 +129,9 @@ object PostgresJobStore:
           val jobRecord = JobStore.jobStoreRecordFrom(job)
           session
             .prepare(insertJobCommand)
-            .use(_.execute(jobRecord).void)
+            .flatMap(_.execute(jobRecord).void)
             .recoverWith { case SqlState.UniqueViolation(ex) =>
-              session.prepare(updateJobCommand).use(_.execute(jobRecord).void)
+              session.prepare(updateJobCommand).flatMap(_.execute(jobRecord).void)
             }
         }
 
@@ -141,7 +141,7 @@ object PostgresJobStore:
         pool
           .use(
             _.prepare(updateJobStateToPendingCommand)
-              .use(_.option((now.toLocalDateTime, jobId.value), pendingJobExpiredCutoff))
+              .flatMap(_.option((now.toLocalDateTime, jobId.value), pendingJobExpiredCutoff))
           )
           .map(_.map(_.toCrawlerJob))
       }
@@ -149,15 +149,15 @@ object PostgresJobStore:
       override def jobs: fs2.Stream[F, CrawlerJob] =
         for
           db      <- fs2.Stream.resource(pool)
-          getJobs <- fs2.Stream.resource(db.prepare(getJobsQuery))
+          getJobs <- fs2.Stream.eval(db.prepare(getJobsQuery))
           result  <- getJobs.stream(Void, 16).map(_.toCrawlerJob)
         yield result
 
       override def getLatestJob: F[Option[CrawlerJob]] =
-        pool.use(_.prepare(getLatestJobQuery).use(_.option(Void))).map(_.map(_.toCrawlerJob))
+        pool.use(_.prepare(getLatestJobQuery).flatMap(_.option(Void))).map(_.map(_.toCrawlerJob))
 
       override def nextJobToRun: F[Option[CrawlerJob]] = Clock[F].realTimeInstant.flatMap { now =>
         val pendingJobExpiredCutoff =
           now.minusMillis(jobSchedulingConfig.jobExpiryTimeSinceScheduled.toMillis).toLocalDateTime
-        pool.use(_.prepare(getNextJobQuery).use(_.option(pendingJobExpiredCutoff))).map(_.map(_.toCrawlerJob))
+        pool.use(_.prepare(getNextJobQuery).flatMap(_.option(pendingJobExpiredCutoff))).map(_.map(_.toCrawlerJob))
       }

@@ -4,21 +4,22 @@ import sbt._
 object Dependencies {
 
   object Versions {
-    val scala3                = "3.2.1"
-    val http4s                = "0.23.12"
+    val scala3                = "3.3.1-RC1-bin-20230218-7c9c72a-NIGHTLY"
+    val http4s                = "0.23.18"
+    val http4sBlaze                = "0.23.13"
     val munit                 = "0.7.29"
     val munitCatsEffect       = "1.0.7"
     val munitScalaCheckEffect = "1.0.4"
-    val http4sMunit           = "0.14.0"
-    val refined               = "0.9.29"
-    val circe                 = "0.14.3"
+    val http4sMunit           = "0.15.0"
+    val refined               = "0.10.1"
+    val circe                 = "0.14.4"
     val typesafeLogging       = "3.9.5"
     val log4cats              = "2.4.0"
-    val logbackClassic        = "1.2.11"
-    val skunk                 = "0.3.2"
+    val logbackClassic        = "1.4.5"
+    val skunk                 = "0.5.1"
     val newtype               = "0.2.3"
     val enumeration           = "1.7.2"
-    val aws                   = "2.18.10"
+    val aws                   = "2.20.8"
     val diffx                 = "0.8.2"
     val apacheCommonsLang     = "3.12.0"
     val laminar               = "0.14.2"
@@ -42,7 +43,7 @@ object Dependencies {
     "org.http4s" %% "http4s-dsl"          % Versions.http4s,
     "org.http4s" %% "http4s-circe"        % Versions.http4s,
     "org.http4s" %% "http4s-ember-server" % Versions.http4s,
-    "org.http4s" %% "http4s-blaze-client" % Versions.http4s
+    "org.http4s" %% "http4s-blaze-client" % Versions.http4sBlaze
   )
 
   private val smithy4s = Seq(
