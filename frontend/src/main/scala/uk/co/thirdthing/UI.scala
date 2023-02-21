@@ -1,39 +1,43 @@
 package uk.co.thirdthing
 
-import cats.syntax.all._
+import cats.syntax.all.*
 import com.raquo.airstream.state.Var
 import com.raquo.airstream.web.AjaxEventStream
 import com.raquo.airstream.web.AjaxEventStream.{AjaxStatusError, AjaxStreamError}
-import com.raquo.laminar.api.L._
+import com.raquo.laminar.api.L.*
 import com.raquo.laminar.nodes.ReactiveHtmlElement
-import io.circe.parser._
+import io.circe.parser.*
 import org.scalajs.dom
 import org.scalajs.dom.{XMLHttpRequest, html}
 import uk.co.thirdthing.model.Types.{ListingId, ListingSnapshot, Price}
-import uk.co.thirdthing.utils.TimeUtils._
+import uk.co.thirdthing.utils.TimeUtils.*
 import uk.co.thirdthing.views.PageHeader
 
 import java.time.ZoneId
 import scala.scalajs.js.URIUtils
 
-object UI {
+object UI:
 
   private val validatedListingId: Var[Option[ListingId]] = Var(initial = None)
   private val resultsVar: Var[List[ListingSnapshot]]     = Var(initial = List.empty)
   private val errorVar: Var[Option[String]]              = Var(None)
   private val submittedVar: Var[Boolean]                 = Var(false)
 
-  private def validateUrl(url: String): Option[ListingId] = {
+  private def validateUrl(url: String): Option[ListingId] =
     val regex = "^(https://|http://)?www.rightmove.co.uk/properties/([0-9]+)".r
-    regex.findAllIn(url).matchData.flatMap(m => Option(m.group(2)).flatMap(_.toLongOption.map(ListingId(_)))).toList.headOption
-  }
+    regex
+      .findAllIn(url)
+      .matchData
+      .flatMap(m => Option(m.group(2)).flatMap(_.toLongOption.map(ListingId(_))))
+      .toList
+      .headOption
 
   private def toUrl(listingId: ListingId) =
     s"https://www.rightmove.co.uk/properties/$listingId"
 
   private def formatListingResults(results: List[ListingSnapshot]) =
-    if (results.isEmpty) div()
-    else {
+    if results.isEmpty then div()
+    else
       div(
         "The following listings were found for that property",
         table(
@@ -49,9 +53,8 @@ object UI {
             results.map(formatRow)
         )
       )
-    }
 
-  private def formatRow(ls: ListingSnapshot) = {
+  private def formatRow(ls: ListingSnapshot) =
     val unknownTd = td("unknown")
     def link(mod: Modifier[ReactiveHtmlElement[html.Anchor]]) =
       a(href := toUrl(ls.listingId), target := "_blank", mod)
@@ -63,9 +66,8 @@ object UI {
         ls.details.status.fold(unknownTd)(s => td(s.value)),
         ls.details.price.fold(unknownTd)(p => td(formatPrice(p))),
         td(link("[link]"))
-      ): _*
+      )*
     )
-  }
 
   private def formatPrice(price: Price) =
     String.format("£%,d", price.value)
@@ -73,7 +75,7 @@ object UI {
   private val urlEntryElem = div(
     label(cls := "form-label", "Enter Rightmove property link: "),
     input(
-      cls <-- validatedListingId.signal.map(id => if (id.isDefined) "form-control is-valid" else "form-control"),
+      cls <-- validatedListingId.signal.map(id => if id.isDefined then "form-control is-valid" else "form-control"),
       onMountFocus,
       placeholder := "E.g. https://www.rightmove.co.uk/properties/xxxxxxxxx",
       onInput.mapToValue.map(validateUrl) --> validatedListingId,
@@ -112,11 +114,12 @@ object UI {
       )
     )
 
-  private def thumbnailUrl(snapshot: ListingSnapshot): String = {
+  private def thumbnailUrl(snapshot: ListingSnapshot): String =
     val queryParams =
-      snapshot.details.thumbnailUrl.fold(s"listingId=${snapshot.listingId.value}")(url => s"thumbnailUrl=${URIUtils.encodeURI(url.value)}")
+      snapshot.details.thumbnailUrl.fold(s"listingId=${snapshot.listingId.value}")(url =>
+        s"thumbnailUrl=${URIUtils.encodeURI(url.value)}"
+      )
     s"api/v1/thumbnail?$queryParams"
-  }
 
   private def makeListingsRequest(listingId: ListingId): EventStream[List[ListingSnapshot]] =
     AjaxEventStream
@@ -135,7 +138,9 @@ object UI {
       }
 
   private def parseResponse(response: XMLHttpRequest): EventStream[List[ListingSnapshot]] =
-    EventStream.fromTry(parse(response.responseText).flatMap(_.hcursor.downField("records").as[List[ListingSnapshot]]).toTry)
+    EventStream.fromTry(
+      parse(response.responseText).flatMap(_.hcursor.downField("records").as[List[ListingSnapshot]]).toTry
+    )
 
   def apply: ReactiveHtmlElement[html.Div] =
     div(
@@ -145,5 +150,3 @@ object UI {
       errorElem,
       resultsElem
     )
-
-}

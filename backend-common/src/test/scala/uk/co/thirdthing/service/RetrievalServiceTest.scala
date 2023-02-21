@@ -1,18 +1,18 @@
 package uk.co.thirdthing.service
 
 import cats.effect.IO
-import cats.syntax.all._
-import fs2.io.file.{Path => Fs2Path}
+import cats.syntax.all.*
+import fs2.io.file.Path as Fs2Path
 import org.http4s.client.Client
-import org.http4s.dsl.io._
+import org.http4s.dsl.io.*
 import org.http4s.{HttpRoutes, StaticFile, Uri}
-import uk.co.thirdthing.clients.{RightmoveApiClient, RightmoveHousePricesListingHtmlClient}
-import uk.co.thirdthing.model.Types._
+import uk.co.thirdthing.clients.{RightmoveApiClient, RightmoveListingHtmlClient}
+import uk.co.thirdthing.model.Types.*
 import uk.co.thirdthing.service.RetrievalService.RetrievalResult
 
 import java.time.Instant
 
-class RetrievalServiceTest extends munit.CatsEffectSuite {
+class RetrievalServiceTest extends munit.CatsEffectSuite:
 
   val listingId: ListingId = ListingId(12345678)
 
@@ -30,14 +30,18 @@ class RetrievalServiceTest extends munit.CatsEffectSuite {
         rentFrequency = None,
         latitude = 53.060074.some,
         longitude = -2.195828.some,
-        thumbnailUrl = ThumbnailUrl("https://media.rightmove.co.uk/19k/18654/124999760/18654_11600008_IMG_00_0000.jpeg").some
+        thumbnailUrl =
+          ThumbnailUrl("https://media.rightmove.co.uk/19k/18654/124999760/18654_11600008_IMG_00_0000.jpeg").some
       )
     )
 
-    assertIO(service("/rightmove-html-success-response.html", "/rightmove-api-success-response.json").retrieve(listingId), expectedResult.some)
+    assertIO(
+      service("/rightmove-html-success-response.html", "/rightmove-api-success-response.json").retrieve(listingId),
+      expectedResult.some
+    )
   }
 
-  def service(htmlClientResponse: String, apiClientResponse: String): RetrievalService[IO] = {
+  def service(htmlClientResponse: String, apiClientResponse: String): RetrievalService[IO] =
 
     val apiClient: RightmoveApiClient[IO] = RightmoveApiClient.apply[IO](
       Client.fromHttpApp[IO](
@@ -53,7 +57,7 @@ class RetrievalServiceTest extends munit.CatsEffectSuite {
       Uri.unsafeFromString("/")
     )
 
-    val htmlClient = RightmoveHousePricesListingHtmlClient.apply[IO](
+    val htmlClient = RightmoveListingHtmlClient.apply[IO](
       Client.fromHttpApp[IO](
         HttpRoutes
           .of[IO] { case request @ GET -> Root / "properties" / _ =>
@@ -66,5 +70,3 @@ class RetrievalServiceTest extends munit.CatsEffectSuite {
       Uri.unsafeFromString("/")
     )
     RetrievalService.apply[IO](apiClient, htmlClient)
-  }
-}

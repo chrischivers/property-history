@@ -1,16 +1,16 @@
 package uk.co.thirdthing.clients
 
 import cats.effect.IO
-import uk.co.thirdthing.model.Types._
+import uk.co.thirdthing.model.Types.*
 import org.http4s.Uri
 import uk.co.thirdthing.clients.RightmoveApiClient.ListingDetails
-import cats.implicits._
+import cats.implicits.*
 import org.http4s.blaze.client.BlazeClientBuilder
 
-import scala.concurrent.duration._
+import scala.concurrent.duration.*
 import scala.util.Random
 
-class RightmoveApiClientIntegrationTest extends munit.CatsEffectSuite {
+class RightmoveApiClientIntegrationTest extends munit.CatsEffectSuite:
 
   override def munitTimeout: Duration = 5.minutes
 
@@ -27,7 +27,8 @@ class RightmoveApiClientIntegrationTest extends munit.CatsEffectSuite {
       publicsiteUrl = Uri.unsafeFromString("https://www.rightmove.co.uk/property-for-sale/property-124999760.html"),
       latitude = 53.05996.some,
       longitude = -2.195873.some,
-      photoThumbnailUrl = ThumbnailUrl("https://media.rightmove.co.uk/19k/18654/124999760/18654_11600008_IMG_00_0000.jpeg").some
+      photoThumbnailUrl =
+        ThumbnailUrl("https://media.rightmove.co.uk/19k/18654/124999760/18654_11600008_IMG_00_0000.jpeg").some
     )
 
     buildClient(client => assertIO(client.listingDetails(ListingId(124999760)), Some(expectedListingDetails)))
@@ -47,5 +48,3 @@ class RightmoveApiClientIntegrationTest extends munit.CatsEffectSuite {
     BlazeClientBuilder[IO].resource
       .map(client => RightmoveApiClient.apply[IO](client, Uri.unsafeFromString("https://api.rightmove.co.uk")))
       .use(f)
-
-}

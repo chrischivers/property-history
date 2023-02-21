@@ -2,32 +2,34 @@ package uk.co.thirdthing.sqs
 
 import cats.Parallel
 import cats.effect.{Async, Sync}
-import cats.syntax.all._
+import cats.syntax.all.*
 import io.circe
 import io.circe.Decoder
-import io.circe.parser._
+import io.circe.parser.*
 import org.typelevel.log4cats.SelfAwareStructuredLogger
 import org.typelevel.log4cats.slf4j.Slf4jLogger
 import software.amazon.awssdk.services.sqs.SqsAsyncClient
-import software.amazon.awssdk.services.sqs.model._
+import software.amazon.awssdk.services.sqs.model.*
 
 import scala.concurrent.duration.FiniteDuration
-import scala.jdk.CollectionConverters._
-import scala.jdk.FutureConverters._
+import scala.jdk.CollectionConverters.*
+import scala.jdk.FutureConverters.*
 import scala.util.control.NonFatal
 import monix.newtypes.NewtypeWrapped
 import uk.co.thirdthing.sqs.SqsConsumer.ConsumerName
 
-abstract class SqsConsumer[F[_], A: Decoder] {
+abstract class SqsConsumer[F[_], A: Decoder]:
   def handle(msg: A): F[Unit]
-}
 
-object SqsConsumer {
+object SqsConsumer:
   type ConsumerName = ConsumerName.Type
   object ConsumerName extends NewtypeWrapped[String]
-}
 
-class SqsProcessingStream[F[_]: Async: Parallel](client: SqsAsyncClient, sqsConfig: SqsConfig, consumerName: ConsumerName) {
+class SqsProcessingStream[F[_]: Async: Parallel](
+  client: SqsAsyncClient,
+  sqsConfig: SqsConfig,
+  consumerName: ConsumerName
+):
 
   private implicit val logger: SelfAwareStructuredLogger[F] = Slf4jLogger.getLogger[F]
 
@@ -56,7 +58,9 @@ class SqsProcessingStream[F[_]: Async: Parallel](client: SqsAsyncClient, sqsConf
     fs2.Stream
       .repeatEval(poll)
       .meteredStartImmediately(sqsConfig.streamThrottlingRate.value)
-      .evalTap(msgs => if (msgs.nonEmpty) logger.info(s"${consumerName.value} retrieved ${msgs.size} messages") else ().pure[F])
+      .evalTap(msgs =>
+        if msgs.nonEmpty then logger.info(s"${consumerName.value} retrieved ${msgs.size} messages") else ().pure[F]
+      )
       .flatMap(fs2.Stream.emits)
 
   private def updateVisibilityTimeoutStream(messageReceiptHandle: String) =
@@ -70,16 +74,15 @@ class SqsProcessingStream[F[_]: Async: Parallel](client: SqsAsyncClient, sqsConf
       .compile
       .drain
 
-  private def deleteMesage(messageReceiptHandle: String) = {
+  private def deleteMesage(messageReceiptHandle: String) =
     val request = DeleteMessageRequest
       .builder()
       .queueUrl(sqsConfig.queueUrl.value)
       .receiptHandle(messageReceiptHandle)
       .build()
     Async[F].fromFuture(Sync[F].delay(client.deleteMessage(request).asScala))
-  }
 
-  private def updateVisibilityTimeout(messageReceiptHandle: String, timeout: FiniteDuration) = {
+  private def updateVisibilityTimeout(messageReceiptHandle: String, timeout: FiniteDuration) =
     val request = ChangeMessageVisibilityRequest
       .builder()
       .queueUrl(sqsConfig.queueUrl.value)
@@ -87,7 +90,6 @@ class SqsProcessingStream[F[_]: Async: Parallel](client: SqsAsyncClient, sqsConf
       .visibilityTimeout(timeout.toSeconds.toInt)
       .build()
     Async[F].fromFuture(Sync[F].delay(client.changeMessageVisibility(request).asScala))
-  }
 
   private val request = ReceiveMessageRequest.builder
     .queueUrl(sqsConfig.queueUrl.value)
@@ -104,7 +106,8 @@ class SqsProcessingStream[F[_]: Async: Parallel](client: SqsAsyncClient, sqsConf
         .fromFuture(Sync[F].delay(client.receiveMessage(request).asScala))
         .map(_.messages().asScala.toList)
         .recoverWith { case NonFatal(t) =>
-          logger.error(t)(s"$consumerName got error polling queue ${sqsConfig.queueUrl.value} - sleeping for ${sqsConfig.retrySleepTime.value}") *>
+          logger.error(t)(
+            s"$consumerName got error polling queue ${sqsConfig.queueUrl.value} - sleeping for ${sqsConfig.retrySleepTime.value}"
+          ) *>
             Sync[F].sleep(sqsConfig.retrySleepTime.value).as(List.empty)
         }
-}

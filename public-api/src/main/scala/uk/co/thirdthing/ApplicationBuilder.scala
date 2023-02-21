@@ -23,7 +23,7 @@ import scala.concurrent.duration.*
 
 object ApplicationBuilder:
   def build: Resource[IO, Unit] =
-    for {
+    for
       secretsManager <- buildSecretsManager
       dbPool         <- databaseSessionPool(secretsManager)
       _              <- Resource.eval(PostgresInitializer.createPropertiesTableIfNotExisting[IO](dbPool))
@@ -41,7 +41,7 @@ object ApplicationBuilder:
       )
       httpApp <- router(historyService, thumbnailService)
       _       <- serverResource(httpApp)
-    } yield ()
+    yield ()
 
   private def buildApiHttpClient =
     BlazeClientBuilder[IO]
@@ -72,12 +72,12 @@ object ApplicationBuilder:
       case Some(v) => v.pure[IO]
     }
 
-  private def databaseSessionPool(secretsManager: SecretsManager[IO]): Resource[IO, Resource[IO, Session[IO]]] = {
-    val secrets = for {
+  private def databaseSessionPool(secretsManager: SecretsManager[IO]): Resource[IO, Resource[IO, Session[IO]]] =
+    val secrets = for
       host     <- envOrSecretsManager("postgres-host", secretsManager)
       username <- envOrSecretsManager("postgres-user", secretsManager)
       password <- envOrSecretsManager("postgres-password", secretsManager)
-    } yield (host, username, password)
+    yield (host, username, password)
 
     Resource.eval(secrets).flatMap { case (host, username, password) =>
       Session.pooled[IO](
@@ -89,7 +89,6 @@ object ApplicationBuilder:
         max = 16
       )
     }
-  }
 
   private def router(
     historyService: HistoryService[IO],

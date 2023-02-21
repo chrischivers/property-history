@@ -1,6 +1,6 @@
 package uk.co.thirdthing.model
 
-import enumeratum.values._
+import enumeratum.values.*
 import io.circe.generic.semiauto.deriveCodec
 import io.circe.{Codec, Decoder}
 import monix.newtypes.NewtypeWrapped
@@ -9,7 +9,7 @@ import uk.co.thirdthing.model.Types.ListingSnapshot.ListingSnapshotId
 
 import java.time.Instant
 
-object Types {
+object Types:
 
   type ListingId = ListingId.Type
   object ListingId extends NewtypeWrapped[Long] with DerivedCirceCodec
@@ -25,7 +25,7 @@ object Types {
 
   type ThumbnailUrl = ThumbnailUrl.Type
   object ThumbnailUrl extends NewtypeWrapped[String] with DerivedCirceCodec
-  
+
   type Postcode = Postcode.Type
   object Postcode extends NewtypeWrapped[String] with DerivedCirceCodec
 
@@ -38,29 +38,27 @@ object Types {
     listingSnapshotId: Option[ListingSnapshotId] = None
   )
 
-  object ListingSnapshot {
+  object ListingSnapshot:
     type ListingSnapshotId = ListingSnapshotId.Type
     object ListingSnapshotId extends NewtypeWrapped[Long] with DerivedCirceCodec
 
     implicit val codec: Codec[ListingSnapshot] = deriveCodec
-  }
 
   type LastChange = LastChange.Type
   object LastChange extends NewtypeWrapped[Instant] with DerivedCirceCodec
 
   sealed abstract class TransactionType(override val value: Int, val string: String) extends IntEnumEntry
 
-  object TransactionType extends IntEnum[TransactionType] with IntCirceEnum[TransactionType] {
+  object TransactionType extends IntEnum[TransactionType] with IntCirceEnum[TransactionType]:
     case object Sale extends TransactionType(1, "Sale")
 
     case object Rental extends TransactionType(2, "Rental")
 
     override def values: IndexedSeq[TransactionType] = findValues
-  }
 
   sealed abstract class ListingStatus(override val value: String) extends StringEnumEntry
 
-  object ListingStatus extends StringEnum[ListingStatus] with StringCirceEnum[ListingStatus] {
+  object ListingStatus extends StringEnum[ListingStatus] with StringCirceEnum[ListingStatus]:
     case object SoldSTC extends ListingStatus("Sold STC")
 
     case object SoldSTCM extends ListingStatus("Sold STCM")
@@ -84,7 +82,6 @@ object Types {
     override implicit val circeDecoder: Decoder[ListingStatus] = Decoder.instance { cursor =>
       cursor.as[String].map(c => valuesToEntriesMap.getOrElse(c, Other))
     }
-  }
 
   final case class PropertyDetails(
     price: Option[Price],
@@ -97,10 +94,10 @@ object Types {
     thumbnailUrl: Option[ThumbnailUrl]
   )
 
-  object PropertyDetails {
+  object PropertyDetails:
     implicit val codec: Codec[PropertyDetails] = deriveCodec
-    val Deleted                                = PropertyDetails(None, None, None, Some(ListingStatus.Deleted), None, None, None, None)
-    val Empty                                  = PropertyDetails(None, None, None, None, None, None, None, None)
+    val Deleted = PropertyDetails(None, None, None, Some(ListingStatus.Deleted), None, None, None, None)
+    val Empty   = PropertyDetails(None, None, None, None, None, None, None, None)
     def from(
       price: Price,
       transactionTypeId: TransactionType,
@@ -111,7 +108,13 @@ object Types {
       longitude: Double,
       thumbnailUrl: ThumbnailUrl
     ): PropertyDetails =
-      PropertyDetails(Some(price), Some(transactionTypeId), Some(visible), Some(status), Some(rentFrequency), Some(latitude), Some(longitude), Some(thumbnailUrl))
-  }
-
-}
+      PropertyDetails(
+        Some(price),
+        Some(transactionTypeId),
+        Some(visible),
+        Some(status),
+        Some(rentFrequency),
+        Some(latitude),
+        Some(longitude),
+        Some(thumbnailUrl)
+      )

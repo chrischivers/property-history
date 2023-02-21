@@ -1,18 +1,18 @@
 package uk.co.thirdthing.service
 
 import cats.effect.IO
-import cats.implicits._
+import cats.implicits.*
 import org.http4s.Uri
 import org.http4s.blaze.client.BlazeClientBuilder
 import uk.co.thirdthing.clients.{RightmoveApiClient, RightmoveHousePricesListingHtmlClient}
-import uk.co.thirdthing.model.Types._
+import uk.co.thirdthing.model.Types.*
 import uk.co.thirdthing.service.RetrievalService.RetrievalResult
 
 import java.time.Instant
-import scala.concurrent.duration._
+import scala.concurrent.duration.*
 import scala.util.Random
 
-class RetrievalServiceIntegrationTest extends munit.CatsEffectSuite {
+class RetrievalServiceIntegrationTest extends munit.CatsEffectSuite:
 
   override def munitTimeout: Duration = 5.minutes
 
@@ -31,7 +31,8 @@ class RetrievalServiceIntegrationTest extends munit.CatsEffectSuite {
         rentFrequency = None,
         latitude = 53.05996.some,
         longitude = -2.195873.some,
-        thumbnailUrl = ThumbnailUrl("https://media.rightmove.co.uk/19k/18654/124999760/18654_11600008_IMG_00_0000.jpeg").some
+        thumbnailUrl =
+          ThumbnailUrl("https://media.rightmove.co.uk/19k/18654/124999760/18654_11600008_IMG_00_0000.jpeg").some
       )
     )
     buildService(service => assertIO(service.retrieve(listingId), expectedResult.some))
@@ -46,10 +47,9 @@ class RetrievalServiceIntegrationTest extends munit.CatsEffectSuite {
   def buildService(f: RetrievalService[IO] => IO[Unit]) =
     BlazeClientBuilder[IO].resource
       .map { client =>
-        val apiClient  = RightmoveApiClient.apply[IO](client, Uri.unsafeFromString("https://api.rightmove.co.uk"))
-        val htmlClient = RightmoveHousePricesListingHtmlClient.apply[IO](client, Uri.unsafeFromString("https://www.rightmove.co.uk"))
+        val apiClient = RightmoveApiClient.apply[IO](client, Uri.unsafeFromString("https://api.rightmove.co.uk"))
+        val htmlClient =
+          RightmoveHousePricesListingHtmlClient.apply[IO](client, Uri.unsafeFromString("https://www.rightmove.co.uk"))
         RetrievalService.apply[IO](apiClient, htmlClient)
       }
       .use(f)
-
-}

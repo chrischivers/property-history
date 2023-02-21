@@ -1,23 +1,23 @@
 package uk.co.thirdthing.sqs
 
 import cats.effect.{IO, Ref, Resource}
-import cats.syntax.all._
+import cats.syntax.all.*
 import io.circe.Codec
-import io.circe.generic.semiauto._
-import io.circe.syntax._
+import io.circe.generic.semiauto.*
+import io.circe.syntax.*
 import software.amazon.awssdk.auth.credentials.{AwsBasicCredentials, StaticCredentialsProvider}
 import software.amazon.awssdk.regions.Region
 import software.amazon.awssdk.services.sqs.SqsAsyncClient
 import software.amazon.awssdk.services.sqs.model.{CreateQueueRequest, DeleteQueueRequest, SendMessageRequest}
-import uk.co.thirdthing.sqs.SqsConsumer._
-import uk.co.thirdthing.sqs.SqsConfig._
+import uk.co.thirdthing.sqs.SqsConsumer.*
+import uk.co.thirdthing.sqs.SqsConfig.*
 
 import java.net.URI
-import scala.concurrent.duration._
-import scala.jdk.FutureConverters._
+import scala.concurrent.duration.*
+import scala.jdk.FutureConverters.*
 import scala.util.Random
 
-class SqsConsumerTest extends munit.CatsEffectSuite {
+class SqsConsumerTest extends munit.CatsEffectSuite:
 
   val queueName = "test"
   val config = SqsConfig(
@@ -93,10 +93,9 @@ class SqsConsumerTest extends munit.CatsEffectSuite {
     val messagesConsumed = clientResource(queueName)
       .flatMap(client => Resource.eval(Ref.of[IO, List[TestMessage]](List.empty)).map(_ -> client))
       .use { case (consumedMessagesRef, client) =>
-        val randomDelayConsumer = new SqsConsumer[IO, TestMessage] {
+        val randomDelayConsumer = new SqsConsumer[IO, TestMessage]:
           override def handle(msg: TestMessage): IO[Unit] =
             IO.sleep(Random.nextInt(1000).milliseconds) *> consumedMessagesRef.update(_ :+ msg)
-        }
 
         val stream = new SqsProcessingStream[IO](client, config, ConsumerName("name"))
         testMessages.parTraverse(msg => sendMessage(client, msg.asJson.spaces2)) *>
@@ -124,11 +123,11 @@ class SqsConsumerTest extends munit.CatsEffectSuite {
     ).void
 
   private def stubConsumer(consumedRef: Ref[IO, List[TestMessage]], processingDelay: Option[FiniteDuration] = None) =
-    new SqsConsumer[IO, TestMessage] {
-      override def handle(msg: TestMessage): IO[Unit] = processingDelay.fold(IO.unit)(IO.sleep) *> consumedRef.update(_ :+ msg)
-    }
+    new SqsConsumer[IO, TestMessage]:
+      override def handle(msg: TestMessage): IO[Unit] =
+        processingDelay.fold(IO.unit)(IO.sleep) *> consumedRef.update(_ :+ msg)
 
-  private def clientResource(queueName: String) = {
+  private def clientResource(queueName: String) =
 
     val dummyCreds = AwsBasicCredentials.create("dummy-access-key", "dummy-secret-key")
 
@@ -144,9 +143,11 @@ class SqsConsumerTest extends munit.CatsEffectSuite {
         )
       )
       .evalTap(client =>
-        IO.fromFuture(IO.delay(client.deleteQueue(DeleteQueueRequest.builder().queueUrl(config.queueUrl.value).build()).asScala)).attempt.void
+        IO.fromFuture(
+          IO.delay(client.deleteQueue(DeleteQueueRequest.builder().queueUrl(config.queueUrl.value).build()).asScala)
+        ).attempt
+          .void
       )
-      .evalTap(client => IO.fromFuture(IO.delay(client.createQueue(CreateQueueRequest.builder().queueName(queueName).build()).asScala)))
-  }
-
-}
+      .evalTap(client =>
+        IO.fromFuture(IO.delay(client.createQueue(CreateQueueRequest.builder().queueName(queueName).build()).asScala))
+      )

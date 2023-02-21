@@ -21,10 +21,9 @@ class ThumbnailServiceTest extends munit.CatsEffectSuite:
 
   private val returnedData = "Some stuff"
 
-  private def apiClientMock(details: Map[ListingId, ListingDetails]) = new RightmoveApiClient[IO] {
+  private def apiClientMock(details: Map[ListingId, ListingDetails]) = new RightmoveApiClient[IO]:
     override def listingDetails(listingId: ListingId): IO[Option[ListingDetails]] =
       details.get(listingId).pure[IO]
-  }
 
   private def httpClientMock(url: String) = Client.fromHttpApp(
     HttpRoutes
@@ -55,9 +54,9 @@ class ThumbnailServiceTest extends munit.CatsEffectSuite:
 
   test("Thumbnail call fails if there is no thumbnail url") {
     val thumbnailUrl = Generators.thumbnailUrlGen.sample.get
-    val listingId = Generators.listingIdGen.sample.get
-    val apiClient = apiClientMock(Map.empty)
-    val httpClient = httpClientMock(thumbnailUrl.value)
-    val service = ThumbnailService[IO](apiClient, httpClient)
+    val listingId    = Generators.listingIdGen.sample.get
+    val apiClient    = apiClientMock(Map.empty)
+    val httpClient   = httpClientMock(thumbnailUrl.value)
+    val service      = ThumbnailService[IO](apiClient, httpClient)
     assertIO(service.thumbnailFor(listingId).compile.toList.attempt, Left(NoThumbnailAvailable))
   }

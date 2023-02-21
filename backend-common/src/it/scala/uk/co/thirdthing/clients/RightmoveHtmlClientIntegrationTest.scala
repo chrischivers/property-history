@@ -1,16 +1,16 @@
 package uk.co.thirdthing.clients
 
 import cats.effect.IO
-import cats.implicits._
+import cats.implicits.*
 import org.http4s.Uri
 import org.http4s.blaze.client.BlazeClientBuilder
-import uk.co.thirdthing.model.Types._
+import uk.co.thirdthing.model.Types.*
 import uk.co.thirdthing.clients.RightmoveHousePricesListingHtmlClient.RightmoveHtmlScrapeResult
 
-import scala.concurrent.duration._
+import scala.concurrent.duration.*
 import scala.util.Random
 
-class RightmoveHtmlClientIntegrationTest extends munit.CatsEffectSuite {
+class RightmoveHtmlClientIntegrationTest extends munit.CatsEffectSuite:
 
   override def munitTimeout: Duration = 5.minutes
 
@@ -28,7 +28,7 @@ class RightmoveHtmlClientIntegrationTest extends munit.CatsEffectSuite {
 
   def buildClient(f: RightmoveHousePricesListingHtmlClient[IO] => IO[Unit]) =
     BlazeClientBuilder[IO].resource
-      .map(client => RightmoveHousePricesListingHtmlClient.apply[IO](client, Uri.unsafeFromString("https://www.rightmove.co.uk")))
+      .map(client =>
+        RightmoveHousePricesListingHtmlClient.apply[IO](client, Uri.unsafeFromString("https://www.rightmove.co.uk"))
+      )
       .use(f)
-
-}

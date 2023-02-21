@@ -3,25 +3,25 @@ package uk.co.thirdthing.service
 import cats.effect.Sync
 import cats.kernel.Order
 import uk.co.thirdthing.model.Model.{CrawlerJob, JobId, JobState}
-import cats.syntax.all._
+import cats.syntax.all.*
+import org.typelevel.log4cats.SelfAwareStructuredLogger
 import org.typelevel.log4cats.slf4j.Slf4jLogger
 import uk.co.thirdthing.clients.RightmoveApiClient
 import uk.co.thirdthing.config.JobSeederConfig
 import uk.co.thirdthing.model.Types.ListingId
 import uk.co.thirdthing.store.JobStore
 
-trait JobSeeder[F[_]] {
+trait JobSeeder[F[_]]:
   def seed: F[Unit]
-}
 
-object JobSeeder {
+object JobSeeder:
 
   def apply[F[_]: Sync](rightmoveApiClient: RightmoveApiClient[F], jobStore: JobStore[F], config: JobSeederConfig) =
-    new JobSeeder[F] {
+    new JobSeeder[F]:
 
-      implicit val logger = Slf4jLogger.getLogger[F]
+      implicit val logger: SelfAwareStructuredLogger[F] = Slf4jLogger.getLogger[F]
 
-      private def getLatestListingIdFrom(from: ListingId): F[Option[ListingId]] = {
+      private def getLatestListingIdFrom(from: ListingId): F[Option[ListingId]] =
 
         def helper(
           lastFoundListing: Option[ListingId],
@@ -29,13 +29,15 @@ object JobSeeder {
           chunkStartedAt: ListingId,
           emptyRecordsSince: Long
         ): F[Option[ListingId]] =
-          if (emptyRecordsSince >= config.emptyRecordsToDetermineLatest) lastFoundListing.pure
-          else {
+          if emptyRecordsSince >= config.emptyRecordsToDetermineLatest then lastFoundListing.pure
+          else
             rightmoveApiClient.listingDetails(nextToTry).flatMap {
               case None =>
-                (if (emptyRecordsSince % 100 == 0) logger.info(s"Empty records since last record found: $emptyRecordsSince") else ().pure[F]) *> {
+                (if emptyRecordsSince % 100 == 0 then
+                   logger.info(s"Empty records since last record found: $emptyRecordsSince")
+                 else ().pure[F]) *> {
                   val next       = nextToTry.value + 1
-                  val chunkStart = if (next % config.jobChunkSize == 0) ListingId(next) else chunkStartedAt
+                  val chunkStart = if next % config.jobChunkSize == 0 then ListingId(next) else chunkStartedAt
                   helper(lastFoundListing, ListingId(next), chunkStart, emptyRecordsSince + 1)
                 }
               case Some(_) =>
@@ -44,21 +46,30 @@ object JobSeeder {
                   helper(nextToTry.some, nextChunk, nextChunk, emptyRecordsSince = 0)
                 }
             }
-          }
         logger
-          .info(s"Attempting to get latest listing id, starting at ${from.value}. Empty records required ${config.emptyRecordsToDetermineLatest}") *>
+          .info(
+            s"Attempting to get latest listing id, starting at ${from.value}. Empty records required ${config.emptyRecordsToDetermineLatest}"
+          ) *>
           helper(None, ListingId(from.value), ListingId(from.value), 0)
-      }
 
       private def getLatestListingFor(lastJob: CrawlerJob): F[Option[ListingId]] =
         getLatestListingIdFrom(ListingId(lastJob.to.value + 1))
 
       private def jobsToCreate(from: ListingId, to: ListingId): List[CrawlerJob] =
         (from.value to to.value).foldLeft(List.empty[CrawlerJob]) { case (agg, id) =>
-          if ((id - 1) % config.jobChunkSize == 0) {
+          if (id - 1) % config.jobChunkSize == 0 then
             val jobId = JobId((id - 1) / config.jobChunkSize + 1)
-            agg :+ CrawlerJob(jobId, ListingId(id), ListingId(id + (config.jobChunkSize - 1)), JobState.NeverRun, None, None, None, None)
-          } else agg
+            agg :+ CrawlerJob(
+              jobId,
+              ListingId(id),
+              ListingId(id + (config.jobChunkSize - 1)),
+              JobState.NeverRun,
+              None,
+              None,
+              None,
+              None
+            )
+          else agg
         }
 
       private def persistJobs(jobs: List[CrawlerJob]): F[Unit] =
@@ -85,7 +96,3 @@ object JobSeeder {
             .flatTap(persistJobs)
             .flatTap(_ => logger.info("Job insertion complete"))
             .void
-
-    }
-
-}

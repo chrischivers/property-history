@@ -1,16 +1,16 @@
 package uk.co.thirdthing.store
 
 import cats.effect.{Async, Resource, Sync}
-import cats.syntax.all._
+import cats.syntax.all.*
 import skunk.Session
-import skunk.implicits._
+import skunk.implicits.*
 import uk.co.thirdthing.model.Types.ListingId
 
 import java.time.Instant
 
-object PostgresInitializer {
+object PostgresInitializer:
 
-  def createPropertiesTableIfNotExisting[F[_]: Sync](pool: Resource[F, Session[F]]) = {
+  def createPropertiesTableIfNotExisting[F[_]: Sync](pool: Resource[F, Session[F]]) =
     val createPropertiesTable =
       sql"""CREATE TABLE IF NOT EXISTS properties(
          recordId BIGSERIAL NOT NULL PRIMARY KEY,
@@ -47,9 +47,7 @@ object PostgresInitializer {
         session.execute(createListingIdIndex)
     }
 
-  }
-
-  def createJobsTableIfNotExisting[F[_]: Sync](pool: Resource[F, Session[F]]) = {
+  def createJobsTableIfNotExisting[F[_]: Sync](pool: Resource[F, Session[F]]) =
     val createJobsTable =
       sql"""CREATE TABLE IF NOT EXISTS jobs(
          jobId BIGINT NOT NULL PRIMARY KEY,
@@ -93,7 +91,3 @@ object PostgresInitializer {
         session.execute(createLastRunStartedIndex) *>
         session.execute(createStateIndex)
     }
-
-  }
-
-}

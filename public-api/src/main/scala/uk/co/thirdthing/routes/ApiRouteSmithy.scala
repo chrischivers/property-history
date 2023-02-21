@@ -12,13 +12,12 @@ import smithy4s.hello.*
 
 object ApiRouteSmithy:
 
-  def apply[F[_]: Sync](historyService: HistoryService[F]) = new PublicApiService[F] {
+  def apply[F[_]: Sync](historyService: HistoryService[F]) = new PublicApiService[F]:
     override def getHistoryOperation(input: GetHistoryRequest): F[GetHistoryResponse] =
       historyService.historyFor(ListingId(input.listingId)).compile.toList.flatMap {
         case Nil => Sync[F].raiseError(ListingNotFound())
         case l   => Sync[F].pure(GetHistoryResponse(l.map(toHistoryRecord)))
       }
-  }
 
   private def toHistoryRecord(snapshot: ListingSnapshot): HistoryRecord =
     HistoryRecord(

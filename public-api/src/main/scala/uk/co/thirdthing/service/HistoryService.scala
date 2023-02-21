@@ -13,7 +13,7 @@ object HistoryService:
   def apply[F[_]: Sync](propertyStore: PropertyStore[F], retrievalService: RetrievalService[F])(implicit
     clock: Clock[F]
   ): HistoryService[F] =
-    new HistoryService[F] {
+    new HistoryService[F]:
       override def historyFor(id: ListingId): fs2.Stream[F, ListingSnapshot] = retrievePropertyId(id)
 
       def retrievePropertyId(listingId: ListingId) =
@@ -34,4 +34,3 @@ object HistoryService:
         clock.realTimeInstant.map { now =>
           ListingSnapshot(result.listingId, LastChange(now), result.propertyId, DateAdded(now), result.propertyDetails)
         }
-    }

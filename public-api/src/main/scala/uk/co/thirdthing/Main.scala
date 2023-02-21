@@ -1,6 +1,6 @@
 package uk.co.thirdthing
 
-import cats.effect._
+import cats.effect.*
 
 object Main extends IOApp:
   override def run(args: List[String]): IO[ExitCode] =

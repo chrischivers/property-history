@@ -3,10 +3,10 @@ package uk.co.thirdthing.store
 import cats.effect.{IO, Resource}
 import natchez.Trace.Implicits.noop
 import skunk.Session
-import skunk.implicits._
-import uk.co.thirdthing.model.Types._
+import skunk.implicits.*
+import uk.co.thirdthing.model.Types.*
 
-trait PostgresPropertyListingStoreIntegration extends munit.CatsEffectSuite {
+trait PostgresPropertyListingStoreIntegration extends munit.CatsEffectSuite:
 
   case class PropertiesRecord(listingId: ListingId, dateAdded: DateAdded, propertyId: PropertyId, url: String)
 
@@ -32,5 +32,3 @@ trait PostgresPropertyListingStoreIntegration extends munit.CatsEffectSuite {
 
   def withPostgresPropertyListingStore(f: PropertyStore[IO] => IO[Unit]): Unit =
     withPostgresClient(session => f(PostgresPropertyStore.apply[IO](session))).unsafeRunSync()
-
-}

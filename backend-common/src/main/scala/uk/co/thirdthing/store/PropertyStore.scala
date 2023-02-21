@@ -2,25 +2,24 @@ package uk.co.thirdthing.store
 
 import cats.effect.Resource
 import cats.effect.kernel.Sync
-import cats.syntax.all._
-import skunk._
-import skunk.codec.all._
-import skunk.implicits._
+import cats.syntax.all.*
+import skunk.*
+import skunk.codec.all.*
+import skunk.implicits.*
 import uk.co.thirdthing.model.Types.ListingSnapshot.ListingSnapshotId
-import uk.co.thirdthing.model.Types._
+import uk.co.thirdthing.model.Types.*
 import uk.co.thirdthing.store.PropertyStore.PropertyRecord
-import uk.co.thirdthing.utils.TimeUtils._
+import uk.co.thirdthing.utils.TimeUtils.*
 
 import java.time.{LocalDateTime, ZoneId}
 
-trait PropertyStore[F[_]] {
+trait PropertyStore[F[_]]:
   def propertyIdFor(listingId: ListingId): F[Option[PropertyId]]
   def latestListingsFor(propertyId: PropertyId): fs2.Stream[F, ListingSnapshot]
   def putListingSnapshot(listingSnapshot: ListingSnapshot): F[Unit]
   def getMostRecentListing(listingId: ListingId): F[Option[ListingSnapshot]]
-}
 
-object PropertyStore {
+object PropertyStore:
   private[store] final case class PropertyRecord(
     recordId: Option[Long],
     listingId: Long,
@@ -35,7 +34,7 @@ object PropertyStore {
     latitude: Option[Double],
     longitude: Option[Double],
     thumbnailUrl: Option[String]
-  ) {
+  ):
     // TODO this is not safe
     def toListingSnapshot: ListingSnapshot =
       ListingSnapshot(
@@ -51,21 +50,21 @@ object PropertyStore {
           this.rentFrequency,
           this.latitude,
           this.longitude,
-          this.thumbnailUrl.map(ThumbnailUrl(_)),
+          this.thumbnailUrl.map(ThumbnailUrl(_))
         ),
         this.recordId.map(ListingSnapshotId(_))
       )
-  }
-}
 
-object PostgresPropertyStore {
+object PostgresPropertyStore:
 
-  def apply[F[_]: Sync](pool: Resource[F, Session[F]]) = new PropertyStore[F] {
+  def apply[F[_]: Sync](pool: Resource[F, Session[F]]) = new PropertyStore[F]:
 
     private val insertPropertyRecordCommand: Command[PropertyRecord] =
       sql"""
              INSERT INTO properties(listingId, propertyId, dateAdded, lastChange, price, transactionTypeId, visible, listingStatus, rentFrequency, latitude, longitude, thumbnailUrl) VALUES
-             ($int8, $int8, $timestamp, $timestamp, ${int4.opt}, ${int4.opt}, ${bool.opt}, ${varchar(24).opt}, ${varchar(
+             ($int8, $int8, $timestamp, $timestamp, ${int4.opt}, ${int4.opt}, ${bool.opt}, ${varchar(
+          24
+        ).opt}, ${varchar(
           32
         ).opt}, ${float8.opt}, ${float8.opt}, ${varchar(256).opt})
          """.command.contramap { (pr: PropertyRecord) =>
@@ -113,14 +112,14 @@ object PostgresPropertyStore {
       pool.use(_.prepare(getPropertyIdCommand).use(_.option(listingId.value).map(_.map(PropertyId(_)))))
 
     override def latestListingsFor(propertyId: PropertyId): fs2.Stream[F, ListingSnapshot] =
-      for {
+      for
         db               <- fs2.Stream.resource(pool)
         getLatestListing <- fs2.Stream.resource(db.prepare(getMostRecentListingsCommand))
         result           <- getLatestListing.stream(propertyId.value, 16).map(_.toListingSnapshot)
-      } yield result
+      yield result
 
-    override def putListingSnapshot(listingSnapshot: ListingSnapshot): F[Unit] = {
-      import listingSnapshot._
+    override def putListingSnapshot(listingSnapshot: ListingSnapshot): F[Unit] =
+      import listingSnapshot.*
       val propertyRecord = PropertyRecord(
         recordId = None,
         listingId.value,
@@ -137,7 +136,6 @@ object PostgresPropertyStore {
         details.thumbnailUrl.map(_.value)
       )
       pool.use(_.prepare(insertPropertyRecordCommand).use(_.execute(propertyRecord).void))
-    }
 
     override def getMostRecentListing(listingId: ListingId): F[Option[ListingSnapshot]] = pool.use { session =>
       session
@@ -145,6 +143,3 @@ object PostgresPropertyStore {
         .use(_.option(listingId.value))
         .map(_.map(_.toListingSnapshot))
     }
-  }
-
-}

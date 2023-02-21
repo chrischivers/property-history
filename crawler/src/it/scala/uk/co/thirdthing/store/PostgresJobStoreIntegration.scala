@@ -3,11 +3,11 @@ package uk.co.thirdthing.store
 import cats.effect.{IO, Resource}
 import natchez.Trace.Implicits.noop
 import skunk.Session
-import skunk.implicits._
-import uk.co.thirdthing.model.Types._
+import skunk.implicits.*
+import uk.co.thirdthing.model.Types.*
 import uk.co.thirdthing.config.JobSchedulingConfig
 
-trait PostgresJobStoreIntegration extends munit.CatsEffectSuite {
+trait PostgresJobStoreIntegration extends munit.CatsEffectSuite:
 
   private def deleteJobsTable(session: Session[IO]) =
     session.execute(sql"DROP TABLE IF EXISTS jobs".command).void
@@ -31,5 +31,3 @@ trait PostgresJobStoreIntegration extends munit.CatsEffectSuite {
 
   def withPostgresJobStore(f: JobStore[IO] => IO[Unit]): Unit =
     withPostgresClient(session => f(PostgresJobStore.apply[IO](session, JobSchedulingConfig.default))).unsafeRunSync()
-
-}

@@ -16,7 +16,7 @@ object ThumbnailService:
   case object NoThumbnailAvailable extends Throwable
 
   def apply[F[_]: Sync](rightmoveApiClient: RightmoveApiClient[F], httpClient: Client[F]): ThumbnailService[F] =
-    new ThumbnailService[F] {
+    new ThumbnailService[F]:
       override def thumbnailFor(id: ListingId): fs2.Stream[F, Byte] =
         fs2.Stream
           .eval(rightmoveApiClient.listingDetails(id))
@@ -28,5 +28,3 @@ object ThumbnailService:
             .stream(Request.apply[F](uri = uri))
             .flatMap(_.body)
         }
-
-    }

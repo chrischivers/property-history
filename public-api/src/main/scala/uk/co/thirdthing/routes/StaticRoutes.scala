@@ -10,7 +10,7 @@ import java.nio.file.Paths
 object StaticRoutes:
   def routes[F[_]: Sync]: HttpRoutes[F] =
     val dsl = Http4sDsl[F]
-    import dsl._
+    import dsl.*
 
     val ACCEPTABLE_ENDINGS = Set(".js", "js.map", "css")
 

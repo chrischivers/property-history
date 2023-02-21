@@ -16,14 +16,14 @@ import uk.co.thirdthing.metrics.{CloudWatchMetricsRecorder, MetricsRecorder}
 import uk.co.thirdthing.pollers.JobRunnerPoller
 import uk.co.thirdthing.secrets.{AmazonSecretsManager, SecretsManager}
 import uk.co.thirdthing.service.{JobRunnerService, JobSeeder, RetrievalService}
-import uk.co.thirdthing.sqs.SqsConfig._
-import uk.co.thirdthing.sqs.SqsConsumer._
+import uk.co.thirdthing.sqs.SqsConfig.*
+import uk.co.thirdthing.sqs.SqsConsumer.*
 import uk.co.thirdthing.sqs.{SqsConfig, SqsProcessingStream}
 import uk.co.thirdthing.store.{JobStore, PostgresInitializer, PostgresJobStore, PostgresPropertyStore}
 
-import scala.concurrent.duration._
+import scala.concurrent.duration.*
 
-object Main extends IOApp {
+object Main extends IOApp:
 
   final case class Resources(
     apiHttpClient: Client[IO],
@@ -58,11 +58,10 @@ object Main extends IOApp {
       .fromAutoCloseable[IO, SecretsManagerClient](IO(SecretsManagerClient.builder().build()))
       .map(AmazonSecretsManager[IO](_))
 
-  private def buildJobSeedTriggerConsumer(apiHttpClient: Client[IO], jobStore: JobStore[IO]) = {
+  private def buildJobSeedTriggerConsumer(apiHttpClient: Client[IO], jobStore: JobStore[IO]) =
     val rightmoveApiClient = RightmoveApiClient(apiHttpClient, Uri.unsafeFromString("https://api.rightmove.co.uk"))
     val jobSeeder          = JobSeeder[IO](rightmoveApiClient, jobStore, JobSeederConfig.default)
     JobSeedTriggerConsumer(jobSeeder)
-  }
 
   private def startJobSeedTriggerProcessingStream(
     apiHttpClient: Client[IO],
@@ -90,20 +89,20 @@ object Main extends IOApp {
     jobStore: JobStore[IO],
     dbPool: Resource[IO, Session[IO]],
     metricsRecorder: MetricsRecorder[IO]
-  ) = {
+  ) =
     val postgresPropertyStore = PostgresPropertyStore[IO](dbPool)
     val rightmoveApiClient    = RightmoveApiClient(apiHttpClient, Uri.unsafeFromString("https://api.rightmove.co.uk"))
-    val rightmoveHtmlClient   = RightmoveListingHtmlClient(htmlHttpClient, Uri.unsafeFromString("https://www.rightmove.co.uk"))
-    val retrievalService      = RetrievalService[IO](rightmoveApiClient, rightmoveHtmlClient)
+    val rightmoveHtmlClient =
+      RightmoveListingHtmlClient(htmlHttpClient, Uri.unsafeFromString("https://www.rightmove.co.uk"))
+    val retrievalService = RetrievalService[IO](rightmoveApiClient, rightmoveHtmlClient)
     JobRunnerService[IO](jobStore, postgresPropertyStore, retrievalService, metricsRecorder)
-  }
 
-  private def databaseSessionPool(secretsManager: SecretsManager[IO]): Resource[IO, Resource[IO, Session[IO]]] = {
-    val secrets = for {
+  private def databaseSessionPool(secretsManager: SecretsManager[IO]): Resource[IO, Resource[IO, Session[IO]]] =
+    val secrets = for
       host     <- secretsManager.secretFor("postgres-host")
       username <- secretsManager.secretFor("postgres-user")
       password <- secretsManager.secretFor("postgres-password")
-    } yield (host, username, password)
+    yield (host, username, password)
 
     Resource.eval(secrets).flatMap { case (host, username, password) =>
       Session.pooled[IO](
@@ -115,10 +114,9 @@ object Main extends IOApp {
         max = 10
       )
     }
-  }
 
   private def resources(secretsManager: SecretsManager[IO]): Resource[IO, Resources] =
-    for {
+    for
       apiHttpClient <- BlazeClientBuilder[IO]
         .withMaxTotalConnections(30)
         .withRequestTimeout(20.seconds)
@@ -137,5 +135,4 @@ object Main extends IOApp {
         IO(CloudWatchAsyncClient.builder().build())
       )
       dbPool <- databaseSessionPool(secretsManager)
-    } yield Resources(apiHttpClient, htmlScraperHtmlClient, sqsClient, dbPool, cloudwatchClient)
-}
+    yield Resources(apiHttpClient, htmlScraperHtmlClient, sqsClient, dbPool, cloudwatchClient)

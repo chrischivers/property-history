@@ -19,18 +19,17 @@ import scala.concurrent.duration.*
 class HistoryServiceTest extends ScalaCheckSuite:
 
   private val now = Instant.now().truncatedTo(ChronoUnit.MILLIS)
-  private implicit val staticClock: Clock[IO] = new Clock[IO] {
+  private implicit val staticClock: Clock[IO] = new Clock[IO]:
     override def applicative: Applicative[IO] = implicitly
 
     override def monotonic: IO[FiniteDuration] = now.toEpochMilli.millis.pure[IO]
 
     override def realTime: IO[FiniteDuration] = now.toEpochMilli.millis.pure[IO]
-  }
 
   private def propertyStoreMock(
     rightmovePropertyId: Option[PropertyId],
     listings: List[ListingSnapshot]
-  ): PropertyStore[IO] = new PropertyStore[IO] {
+  ): PropertyStore[IO] = new PropertyStore[IO]:
     override def propertyIdFor(listingId: ListingId): IO[Option[PropertyId]] = IO(rightmovePropertyId)
 
     override def latestListingsFor(propertyId: PropertyId): fs2.Stream[IO, ListingSnapshot] =
@@ -39,7 +38,6 @@ class HistoryServiceTest extends ScalaCheckSuite:
     override def putListingSnapshot(listingSnapshot: ListingSnapshot): IO[Unit] = fail("should not be called")
 
     override def getMostRecentListing(listingId: ListingId): IO[Option[ListingSnapshot]] = fail("should not be called")
-  }
 
   private def retrievalServiceMock(retrievalResult: Option[RetrievalResult]): RetrievalService[IO] =
     new RetrievalService[IO]:
@@ -56,10 +54,9 @@ class HistoryServiceTest extends ScalaCheckSuite:
         val historyService   = HistoryService.apply[IO](propertyStore, retrievalService)
         val results          = historyService.historyFor(ListingId(123)).compile.toList.unsafeRunSync()
 
-        (propertyId, retrievalResult) match {
+        (propertyId, retrievalResult) match
           case (None, None)         => assertEquals(results, List.empty)
           case (Some(_), _)         => assertEquals(results, listings)
           case (None, Some(result)) => assertEquals(results, listingSnapshotFrom(result) +: listings)
-        }
     }
   }

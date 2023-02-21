@@ -2,28 +2,27 @@ package uk.co.thirdthing.service
 
 import cats.Applicative
 import cats.effect.{Clock, IO, Ref}
-import cats.syntax.all._
+import cats.syntax.all.*
 import uk.co.thirdthing.model.Model.CrawlerJob.LastRunCompleted
-import uk.co.thirdthing.model.Model._
+import uk.co.thirdthing.model.Model.*
 import uk.co.thirdthing.model.Types.ListingSnapshot.ListingSnapshotId
-import uk.co.thirdthing.model.Types._
+import uk.co.thirdthing.model.Types.*
 import uk.co.thirdthing.service.RetrievalService.RetrievalResult
 import uk.co.thirdthing.utils.{MockJobStore, MockPropertyStore, NoOpMetricsRecorder}
 
 import java.time.Instant
 import java.time.temporal.ChronoUnit
-import scala.concurrent.duration._
+import scala.concurrent.duration.*
 
-class JobRunnerServiceTest extends munit.CatsEffectSuite {
+class JobRunnerServiceTest extends munit.CatsEffectSuite:
 
   private val now = Instant.now().truncatedTo(ChronoUnit.MILLIS)
-  private val staticClock = new Clock[IO] {
+  private val staticClock = new Clock[IO]:
     override def applicative: Applicative[IO] = implicitly
 
     override def monotonic: IO[FiniteDuration] = now.toEpochMilli.millis.pure[IO]
 
     override def realTime: IO[FiniteDuration] = now.toEpochMilli.millis.pure[IO]
-  }
   private val staticListingSnapshotId = ListingSnapshotId(12345)
 
   private val jobId = JobId(98765)
@@ -109,8 +108,10 @@ class JobRunnerServiceTest extends munit.CatsEffectSuite {
           state = JobState.Completed
         )
       ),
-      expectedListingSnapshots =
-        Set(existingListingSnapshot, existingListingSnapshot.copy(lastChange = LastChange(now), details = retrievalResult1.propertyDetails))
+      expectedListingSnapshots = Set(
+        existingListingSnapshot,
+        existingListingSnapshot.copy(lastChange = LastChange(now), details = retrievalResult1.propertyDetails)
+      )
     )
   }
 
@@ -121,38 +122,39 @@ class JobRunnerServiceTest extends munit.CatsEffectSuite {
     initialListingSnapshots: Set[ListingSnapshot],
     expectedJobs: Set[CrawlerJob],
     expectedListingSnapshots: Set[ListingSnapshot]
-  ) = {
-    val result = for {
+  ) =
+    val result = for
       jobsStoreRef <- Ref.of[IO, Map[JobId, CrawlerJob]](initialJobs.map(job => job.jobId -> job).toMap)
       listingSnapshotRef <- Ref.of[IO, Map[(ListingId, LastChange), ListingSnapshot]](
         initialListingSnapshots.map(ls => (ls.listingId, ls.lastChange) -> ls).toMap
       )
-      jobRunner        <- service(retrievalServiceResults.map(r => r.listingId -> r).toMap, jobsStoreRef, listingSnapshotRef)
-      _                <- jobRunner.run(jobId)
-      jobs             <- jobsStoreRef.get.map(_.view.values.toSet)
-      listingSnapshots <- listingSnapshotRef.get.map(_.view.values.map(_.copy(listingSnapshotId = staticListingSnapshotId.some)).toSet)
-    } yield (jobs, listingSnapshots)
+      jobRunner <- service(retrievalServiceResults.map(r => r.listingId -> r).toMap, jobsStoreRef, listingSnapshotRef)
+      _         <- jobRunner.run(jobId)
+      jobs      <- jobsStoreRef.get.map(_.view.values.toSet)
+      listingSnapshots <- listingSnapshotRef.get.map(
+        _.view.values.map(_.copy(listingSnapshotId = staticListingSnapshotId.some)).toSet
+      )
+    yield (jobs, listingSnapshots)
 
     assertIO(
       result,
       (expectedJobs, expectedListingSnapshots)
     )
-  }
 
   def service(
     retrievalServiceResults: Map[ListingId, RetrievalResult],
     jobStoreRef: Ref[IO, Map[JobId, CrawlerJob]],
     listingSnapshotStoreRef: Ref[IO, Map[(ListingId, LastChange), ListingSnapshot]]
-  ): IO[JobRunnerService[IO]] = {
+  ): IO[JobRunnerService[IO]] =
 
-    val mockRetrievalService = new RetrievalService[IO] {
-      override def retrieve(listingId: ListingId): IO[Option[RetrievalService.RetrievalResult]] = retrievalServiceResults.get(listingId).pure[IO]
-    }
+    val mockRetrievalService = new RetrievalService[IO]:
+      override def retrieve(listingId: ListingId): IO[Option[RetrievalService.RetrievalResult]] =
+        retrievalServiceResults.get(listingId).pure[IO]
 
-    for {
+    for
       jobStore             <- MockJobStore(jobStoreRef)
       propertyListingStore <- MockPropertyStore(listingSnapshotStoreRef)
-    } yield JobRunnerService.apply(jobStore, propertyListingStore, mockRetrievalService, NoOpMetricsRecorder.apply)(implicitly, staticClock)
-  }
-
-}
+    yield JobRunnerService.apply(jobStore, propertyListingStore, mockRetrievalService, NoOpMetricsRecorder.apply)(
+      implicitly,
+      staticClock
+    )

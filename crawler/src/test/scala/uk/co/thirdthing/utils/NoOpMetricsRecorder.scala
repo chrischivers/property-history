@@ -5,10 +5,7 @@ import uk.co.thirdthing.metrics.MetricsRecorder
 
 import scala.concurrent.duration.FiniteDuration
 
-object NoOpMetricsRecorder {
+object NoOpMetricsRecorder:
 
-  def apply: MetricsRecorder[IO] = new MetricsRecorder[IO] {
+  def apply: MetricsRecorder[IO] = new MetricsRecorder[IO]:
     override def recordJobDuration(duration: FiniteDuration): IO[Unit] = IO.unit
-  }
-
-}

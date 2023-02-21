@@ -2,7 +2,7 @@ package uk.co.thirdthing.sqs
 
 import scala.concurrent.duration.FiniteDuration
 import monix.newtypes.NewtypeWrapped
-import uk.co.thirdthing.sqs.SqsConfig._
+import uk.co.thirdthing.sqs.SqsConfig.*
 
 final case class SqsConfig(
   queueUrl: QueueUrl,
@@ -14,7 +14,7 @@ final case class SqsConfig(
   parallelism: Parallelism
 )
 
-object SqsConfig {
+object SqsConfig:
   type QueueUrl = QueueUrl.Type
   object QueueUrl extends NewtypeWrapped[String]
 
@@ -35,4 +35,3 @@ object SqsConfig {
 
   type Parallelism = Parallelism.Type
   object Parallelism extends NewtypeWrapped[Int]
-}

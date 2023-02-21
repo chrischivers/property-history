@@ -1,14 +1,14 @@
 package uk.co.thirdthing.store
 
-import cats.syntax.all._
+import cats.syntax.all.*
 import skunk.exception.PostgresErrorException
 import uk.co.thirdthing.model.Types.ListingSnapshot.ListingSnapshotId
-import uk.co.thirdthing.model.Types._
+import uk.co.thirdthing.model.Types.*
 
 import java.time.Instant
 import java.time.temporal.ChronoUnit
 
-class PostgresPropertyListingStoreTest extends munit.CatsEffectSuite with PostgresPropertyListingStoreIntegration {
+class PostgresPropertyListingStoreTest extends munit.CatsEffectSuite with PostgresPropertyListingStoreIntegration:
 
   val listingId  = ListingId(12345678)
   val propertyId = PropertyId(987654321)
@@ -26,9 +26,17 @@ class PostgresPropertyListingStoreTest extends munit.CatsEffectSuite with Postgr
     thumbnailUrl = ThumbnailUrl("http://thumbnail.com")
   )
 
-  val listingSnapshot1 = ListingSnapshot(listingId, lastChange, propertyId, dateAdded, details, ListingSnapshotId(1).some)
+  val listingSnapshot1 =
+    ListingSnapshot(listingId, lastChange, propertyId, dateAdded, details, ListingSnapshotId(1).some)
   val listingSnapshot2 =
-    ListingSnapshot(listingId, LastChange(lastChange.value.plusSeconds(5)), propertyId, dateAdded, details, ListingSnapshotId(2).some)
+    ListingSnapshot(
+      listingId,
+      LastChange(lastChange.value.plusSeconds(5)),
+      propertyId,
+      dateAdded,
+      details,
+      ListingSnapshotId(2).some
+    )
 
   test("putListingSnapshot: Store a listing snapshot, and retrieve it again") {
     withPostgresPropertyListingStore { store =>
@@ -101,4 +109,3 @@ class PostgresPropertyListingStoreTest extends munit.CatsEffectSuite with Postgr
       )
     }
   }
-}

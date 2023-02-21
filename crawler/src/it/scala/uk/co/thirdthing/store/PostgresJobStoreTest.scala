@@ -1,16 +1,16 @@
 package uk.co.thirdthing.store
 
-import cats.syntax.all._
+import cats.syntax.all.*
 import skunk.exception.PostgresErrorException
 import uk.co.thirdthing.model.Types.ListingSnapshot.ListingSnapshotId
-import uk.co.thirdthing.model.Types._
-import uk.co.thirdthing.store._
+import uk.co.thirdthing.model.Types.*
+import uk.co.thirdthing.store.*
 
 import java.time.Instant
 import java.time.temporal.ChronoUnit
 import uk.co.thirdthing.model.Model
 
-class PostgresJobStoreTest extends munit.CatsEffectSuite with PostgresJobStoreIntegration {
+class PostgresJobStoreTest extends munit.CatsEffectSuite with PostgresJobStoreIntegration:
 
   private val jobId1 = Model.JobId(98765)
   private val jobId2 = Model.JobId(32454)
@@ -54,11 +54,11 @@ class PostgresJobStoreTest extends munit.CatsEffectSuite with PostgresJobStoreIn
     }
   }
 
-    test("Store a job, retrieve it again, but not a second time") {
+  test("Store a job, retrieve it again, but not a second time") {
     withPostgresJobStore { store =>
       val result = store.put(job1) *>
         store.getAndLock(jobId1) *>
-         store.getAndLock(jobId1)
+        store.getAndLock(jobId1)
 
       assertIO(result, None)
     }
@@ -84,10 +84,11 @@ class PostgresJobStoreTest extends munit.CatsEffectSuite with PostgresJobStoreIn
 
   test("Retrieve next job to schedule where lastRunCompleted is null") {
     withPostgresJobStore { store =>
-      val result = store.put(job2.copy(state = Model.JobState.Completed)) *> store.put(job1.copy(state = Model.JobState.Completed)) *>
+      val result = store.put(job2.copy(state = Model.JobState.Completed)) *> store.put(
+        job1.copy(state = Model.JobState.Completed)
+      ) *>
         store.nextJobToRun
 
       assertIO(result, Some(job2.copy(state = Model.JobState.Completed)))
     }
   }
-}

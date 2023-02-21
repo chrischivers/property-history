@@ -1,14 +1,14 @@
 package uk.co.thirdthing.clients
 
 import cats.effect.IO
-import fs2.io.file.{Path => Fs2Path}
+import fs2.io.file.Path as Fs2Path
 import org.http4s.client.Client
-import org.http4s.dsl.io._
+import org.http4s.dsl.io.*
 import org.http4s.{HttpRoutes, StaticFile, Status, Uri}
-import uk.co.thirdthing.model.Types._
-import uk.co.thirdthing.clients.RightmoveHousePricesListingHtmlClient.RightmoveHtmlScrapeResult
+import uk.co.thirdthing.model.Types.*
+import uk.co.thirdthing.clients.RightmoveListingHtmlClient.RightmoveHtmlScrapeResult
 
-class RightmoveListingHtmlClientTest extends munit.CatsEffectSuite {
+class RightmoveListingHtmlClientTest extends munit.CatsEffectSuite:
 
   val listingId: ListingId = ListingId(12345678)
 
@@ -19,8 +19,8 @@ class RightmoveListingHtmlClientTest extends munit.CatsEffectSuite {
     assertIO(apiClient("/rightmove-html-success-response.html").scrapeDetails(listingId), expectedResult)
   }
 
-  def apiClient(responsePath: String, status: Status = Status.Ok): RightmoveHousePricesListingHtmlClient[IO] =
-    RightmoveHousePricesListingHtmlClient.apply[IO](
+  def apiClient(responsePath: String, status: Status = Status.Ok): RightmoveListingHtmlClient[IO] =
+    RightmoveListingHtmlClient.apply[IO](
       Client.fromHttpApp[IO](
         HttpRoutes
           .of[IO] { case request @ GET -> Root / "properties" / _ =>
@@ -34,5 +34,3 @@ class RightmoveListingHtmlClientTest extends munit.CatsEffectSuite {
       ),
       Uri.unsafeFromString("/")
     )
-
-}

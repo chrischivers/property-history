@@ -9,7 +9,7 @@ import uk.co.thirdthing.service.RetrievalService.RetrievalResult
 
 import java.time.Instant
 
-object Generators {
+object Generators:
 
   val instantGen: Gen[Instant] = Gen.chooseNum(0L, System.currentTimeMillis()).map(Instant.ofEpochMilli)
   val listingSnapshotIdGen: Gen[ListingSnapshotId] = Gen.long.map(ListingSnapshotId(_))
@@ -23,7 +23,7 @@ object Generators {
   val thumbnailUrlGen: Gen[ThumbnailUrl]           = Gen.alphaStr.map(ThumbnailUrl(_))
   val uriGen: Gen[Uri]                             = Gen.alphaStr.map(str => Uri.unsafeFromString(s"http://$str.com"))
 
-  val propertyDetailsGen: Gen[PropertyDetails] = for {
+  val propertyDetailsGen: Gen[PropertyDetails] = for
     price           <- Gen.option(priceGen)
     transactionType <- Gen.option(transactionTypeGen)
     visible         <- Gen.option(Gen.oneOf(true, false))
@@ -32,17 +32,16 @@ object Generators {
     latitude        <- Gen.option(Gen.double)
     longitude       <- Gen.option(Gen.double)
     thumbnailUrl    <- Gen.option(thumbnailUrlGen)
-  } yield PropertyDetails(price, transactionType, visible, status, rentFrequency, latitude, longitude, thumbnailUrl)
+  yield PropertyDetails(price, transactionType, visible, status, rentFrequency, latitude, longitude, thumbnailUrl)
 
-  val listingSnapshotGen: Gen[ListingSnapshot] = for {
+  val listingSnapshotGen: Gen[ListingSnapshot] = for
     snapshotId <- Gen.option(listingSnapshotIdGen)
     listingId  <- listingIdGen
     lastChange <- lastChangeGen
     propertyId <- propertyIdGen
     dateAdded  <- dateAddedGen
     details    <- propertyDetailsGen
-
-  } yield ListingSnapshot(
+  yield ListingSnapshot(
     listingId,
     lastChange,
     propertyId,
@@ -51,7 +50,7 @@ object Generators {
     snapshotId
   )
 
-  val listingDetailsGen: Gen[ListingDetails] = for {
+  val listingDetailsGen: Gen[ListingDetails] = for
     price           <- priceGen
     transactionType <- transactionTypeGen
     visible         <- Gen.oneOf(true, false)
@@ -63,7 +62,7 @@ object Generators {
     thumbnailUrl    <- Gen.option(thumbnailUrlGen)
     sortDate        <- Gen.option(instantGen.map(_.toEpochMilli))
     updateDate      <- instantGen.map(_.toEpochMilli)
-  } yield ListingDetails(
+  yield ListingDetails(
     price,
     transactionType,
     visible,
@@ -77,15 +76,13 @@ object Generators {
     longitude
   )
 
-  val retrievalResultGen: Gen[RetrievalResult] = for {
+  val retrievalResultGen: Gen[RetrievalResult] = for
     listingId  <- listingIdGen
     propertyId <- propertyIdGen
     dateAdded  <- instantGen
     details    <- propertyDetailsGen
-  } yield RetrievalResult(listingId, propertyId, DateAdded(dateAdded), details)
+  yield RetrievalResult(listingId, propertyId, DateAdded(dateAdded), details)
 
   implicit val propertyIdArb: Arbitrary[PropertyId]           = Arbitrary(propertyIdGen)
   implicit val listingSnapshotArb: Arbitrary[ListingSnapshot] = Arbitrary(listingSnapshotGen)
   implicit val retrievalResultArb: Arbitrary[RetrievalResult] = Arbitrary(retrievalResultGen)
-
-}

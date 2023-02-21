@@ -15,7 +15,10 @@ import scala.util.Try
 
 object ApiRoute:
 
-  def routes[F[_]: Concurrent](historyService: HistoryService[F], thumbnailService: ThumbnailService[F]): HttpRoutes[F] =
+  def routes[F[_]: Concurrent](
+    historyService: HistoryService[F],
+    thumbnailService: ThumbnailService[F]
+  ): HttpRoutes[F] =
     val dsl = Http4sDsl[F]
     import dsl.*
 
