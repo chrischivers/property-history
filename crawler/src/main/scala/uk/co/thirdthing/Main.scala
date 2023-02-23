@@ -42,8 +42,7 @@ object Main extends IOApp:
           buildJobRunnerService(r.apiHttpClient, r.htmlScraperHttpClient, jobStore, r.db, metricsRecorder)
         val jobRunnerPoller = pollers.JobRunnerPoller[IO](jobStore, jobRunnerService)
 
-        PostgresInitializer.createPropertiesTableIfNotExisting[IO](r.db) *>
-          PostgresInitializer.createJobsTableIfNotExisting[IO](r.db) *>
+        PostgresInitializer.initializeAll[IO](r.db) *>
           startJobSeedTriggerProcessingStream(r.apiHttpClient, r.sqsClient, secretsManager, jobStore)
             .concurrently(jobRunnerPoller.startPolling(JobRunnerPollerConfig.default.minimumPollingInterval))
             .compile

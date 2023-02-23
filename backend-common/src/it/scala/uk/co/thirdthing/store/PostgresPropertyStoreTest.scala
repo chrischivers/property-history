@@ -8,7 +8,7 @@ import uk.co.thirdthing.model.Types.*
 import java.time.Instant
 import java.time.temporal.ChronoUnit
 
-class PostgresPropertyListingStoreTest extends munit.CatsEffectSuite with PostgresPropertyListingStoreIntegration:
+class PostgresPropertyStoreTest extends munit.CatsEffectSuite with PostgresPropertyStoreIntegration:
 
   val listingId  = ListingId(12345678)
   val propertyId = PropertyId(987654321)

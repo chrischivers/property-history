@@ -4,7 +4,7 @@ import cats.effect.IO
 import cats.implicits.*
 import org.http4s.Uri
 import org.http4s.blaze.client.BlazeClientBuilder
-import uk.co.thirdthing.clients.{RightmoveApiClient, RightmoveHousePricesListingHtmlClient}
+import uk.co.thirdthing.clients.{RightmoveApiClient, RightmoveListingHtmlClient}
 import uk.co.thirdthing.model.Types.*
 import uk.co.thirdthing.service.RetrievalService.RetrievalResult
 
@@ -49,7 +49,7 @@ class RetrievalServiceIntegrationTest extends munit.CatsEffectSuite:
       .map { client =>
         val apiClient = RightmoveApiClient.apply[IO](client, Uri.unsafeFromString("https://api.rightmove.co.uk"))
         val htmlClient =
-          RightmoveHousePricesListingHtmlClient.apply[IO](client, Uri.unsafeFromString("https://www.rightmove.co.uk"))
+          RightmoveListingHtmlClient.apply[IO](client, Uri.unsafeFromString("https://www.rightmove.co.uk"))
         RetrievalService.apply[IO](apiClient, htmlClient)
       }
       .use(f)

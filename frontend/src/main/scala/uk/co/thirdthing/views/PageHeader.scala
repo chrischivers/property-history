@@ -21,6 +21,6 @@ object PageHeader:
     div(
       cls := "container d-flex align-items-center flex-column",
       h1(cls := "masthead-heading text-uppercase mb-0", "Rightmove Property History"),
-      p(cls  := "masthead-subheading font-weight-light mb-0", "Blah blah blah")
+      p(cls  := "masthead-subheading font-weight-light mb-0", "Discover more information about a Rightmove listing")
     )
   )

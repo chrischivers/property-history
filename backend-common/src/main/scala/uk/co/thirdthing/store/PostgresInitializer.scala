@@ -10,6 +10,12 @@ import java.time.Instant
 
 object PostgresInitializer:
 
+  def initializeAll[F[_]: Sync](pool: Resource[F, Session[F]]) =
+    createPropertiesTableIfNotExisting(pool) *>
+      createJobsTableIfNotExisting(pool) *>
+      createAddressesTableIfNotExisting(pool) *>
+      createPostcodesTableIfNotExisting(pool)
+
   def createPropertiesTableIfNotExisting[F[_]: Sync](pool: Resource[F, Session[F]]) =
     val createPropertiesTable =
       sql"""CREATE TABLE IF NOT EXISTS properties(
@@ -90,4 +96,69 @@ object PostgresInitializer:
         session.execute(createLastRunCompletedIndex) *>
         session.execute(createLastRunStartedIndex) *>
         session.execute(createStateIndex)
+    }
+
+  def createAddressesTableIfNotExisting[F[_]: Sync](pool: Resource[F, Session[F]]) =
+    val createAddressesTable =
+      sql"""CREATE TABLE IF NOT EXISTS addresses(
+         address VARCHAR(300) PRIMARY KEY,
+         propertyId BIGINT,
+         postcode VARCHAR(12) NOT NULL,
+         transactions JSON,
+         updated TIMESTAMP NOT NULL,
+         UNIQUE(propertyId)
+         )""".command
+
+    val createPropertyIdIndex =
+      sql"""
+             CREATE INDEX IF NOT EXISTS property_id_idx
+              ON addresses (propertyId);
+              """.command
+
+    val createPostcodeIndex =
+      sql"""
+             CREATE INDEX IF NOT EXISTS postcode_idx
+              ON addresses (postcode);
+              """.command
+
+    pool.use { session =>
+      session.execute(createAddressesTable) *>
+        session.execute(createPropertyIdIndex) *>
+        session.execute(createPostcodeIndex)
+    }
+
+  def createPostcodesTableIfNotExisting[F[_] : Sync](pool: Resource[F, Session[F]]) =
+    val createPostcodesTable =
+      sql"""CREATE TABLE IF NOT EXISTS postcodes(
+         postcode VARCHAR(12) PRIMARY KEY,
+         inuse BOOLEAN NOT NULL,
+         lockedat TIMESTAMP,
+         lastscraped TIMESTAMP
+         )""".command
+
+    val createInUseIndex =
+      sql"""
+             CREATE INDEX IF NOT EXISTS inuse_idx
+              ON postcodes (inuse);
+              """.command
+
+    val createlockedAtIndex =
+      sql"""
+             CREATE INDEX IF NOT EXISTS lockedat_idx
+              ON postcodes (lockedat);
+              """.command
+
+
+    val createLastScrapedIndex =
+      sql"""
+             CREATE INDEX IF NOT EXISTS lastscraped_idx
+              ON postcodes (lastscraped);
+              """.command
+
+
+    pool.use { session =>
+      session.execute(createPostcodesTable) *>
+        session.execute(createInUseIndex) *>
+        session.execute(createlockedAtIndex) *>
+        session.execute(createLastScrapedIndex)
     }

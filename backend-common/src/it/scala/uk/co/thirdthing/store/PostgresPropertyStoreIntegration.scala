@@ -6,22 +6,12 @@ import skunk.Session
 import skunk.implicits.*
 import uk.co.thirdthing.model.Types.*
 
-trait PostgresPropertyListingStoreIntegration extends munit.CatsEffectSuite:
+trait PostgresPropertyStoreIntegration extends munit.CatsEffectSuite with PostgresIntegration:
 
   case class PropertiesRecord(listingId: ListingId, dateAdded: DateAdded, propertyId: PropertyId, url: String)
 
   private def deletePropertiesTable(session: Session[IO]) =
     session.execute(sql"DROP TABLE IF EXISTS properties".command).void
-
-  private def database: Resource[IO, Resource[IO, Session[IO]]] =
-    Session.pooled[IO](
-      host = "localhost",
-      port = 5432,
-      user = "postgres",
-      database = "propertyhistory",
-      password = Some("postgres"),
-      max = 16
-    )
 
   private def withPostgresClient(f: Resource[IO, Session[IO]] => IO[Unit]): IO[Unit] =
     database.use { pool =>
