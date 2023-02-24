@@ -8,4 +8,4 @@ import scala.concurrent.duration.FiniteDuration
 object NoOpMetricsRecorder:
 
   def apply: MetricsRecorder[IO] = new MetricsRecorder[IO]:
-    override def recordJobDuration(duration: FiniteDuration): IO[Unit] = IO.unit
+    override def recordJobDuration(namespace: String)(duration: FiniteDuration): IO[Unit] = IO.unit

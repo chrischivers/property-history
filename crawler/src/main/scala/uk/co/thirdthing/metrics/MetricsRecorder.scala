@@ -9,14 +9,13 @@ import scala.jdk.FutureConverters.*
 import scala.concurrent.duration.FiniteDuration
 
 trait MetricsRecorder[F[_]]:
-  def recordJobDuration(duration: FiniteDuration): F[Unit]
+  def recordJobDuration(namespace: String)(duration: FiniteDuration): F[Unit]
 
 object CloudWatchMetricsRecorder:
-  private val namespace             = "property-history-crawler"
   private val jobDurationMetricName = "jobDurationMillis"
 
   def apply[F[_]: Async](cloudWatchClient: CloudWatchAsyncClient) = new MetricsRecorder[F]:
-    override def recordJobDuration(duration: FiniteDuration): F[Unit] =
+    override def recordJobDuration(namespace: String)(duration: FiniteDuration): F[Unit] =
       val request =
         PutMetricDataRequest
           .builder()

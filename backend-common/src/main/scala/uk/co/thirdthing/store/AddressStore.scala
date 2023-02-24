@@ -19,7 +19,7 @@ import uk.co.thirdthing.utils.TimeUtils.*
 import java.time.{Instant, LocalDateTime, ZoneId}
 
 trait AddressStore[F[_]]:
-  def putAddress(addressDetails: AddressDetails): F[Unit]
+  def putAddresses(addressDetails: List[AddressDetails]): F[Unit]
   def getAddressFor(propertyId: PropertyId): F[Option[AddressDetails]]
 
 object AddressStore:
@@ -35,13 +35,17 @@ object PostgresAddressStore:
 
   def apply[F[_]: Sync: Clock](pool: Resource[F, Session[F]]) = new AddressStore[F]:
 
-    private val insertAddressRecordCommand: Command[AddressRecord] =
+    /*
+    def insertExactly(ps: List[(String, Short)]): Command[ps.type] = {
+      val enc = (varchar ~ int2).values.list(ps)
+      sql"INSERT INTO pets VALUES $enc".command
+    }
+    */
+    private def insertAddressRecordCommands(ars: List[AddressRecord]): Command[ars.type] =
+      val enc = (varchar(300) ~ int8.opt ~ varchar(12) ~ json ~ timestamp).gcontramap[AddressRecord].values.list(ars)
       sql"""
-             INSERT INTO addresses(address, propertyId, postcode, transactions, updated) VALUES
-             (${varchar(300)}, ${int8.opt}, ${varchar(12)}, $json, $timestamp)
-         """.command.contramap { (ar: AddressRecord) =>
-        ar.address ~ ar.propertyId ~ ar.postcode ~ ar.transactions ~ ar.updated
-      }
+             INSERT INTO addresses(address, propertyId, postcode, transactions, updated) VALUES $enc
+         """.command
 
     private val getAddressByPropertyId: Query[Long, AddressRecord] =
       sql"""
@@ -54,16 +58,19 @@ object PostgresAddressStore:
         )
         .gmap[AddressRecord]
 
-    override def putAddress(addressDetails: AddressDetails): F[Unit] =
+
+    override def putAddresses(addressDetails: List[AddressDetails]): F[Unit] =
       Clock[F].realTimeInstant.flatMap { now =>
-        val addressRecord = AddressRecord(
-          addressDetails.address.value,
-          addressDetails.propertyId.map(_.value),
-          addressDetails.postcode.value,
-          transactions = addressDetails.transactions.asJson,
-          now.toLocalDateTime
-        )
-        pool.use(_.prepare(insertAddressRecordCommand).flatMap(_.execute(addressRecord).void))
+        val addressRecords = addressDetails.map { details =>
+          AddressRecord(
+            details.address.value,
+            details.propertyId.map(_.value),
+            details.postcode.value,
+            transactions = details.transactions.asJson,
+            now.toLocalDateTime
+          )
+        }
+        pool.use(_.prepare(insertAddressRecordCommands(addressRecords)).flatMap(_.execute(addressRecords).void))
       }
 
     override def getAddressFor(propertyId: PropertyId): F[Option[AddressDetails]] =

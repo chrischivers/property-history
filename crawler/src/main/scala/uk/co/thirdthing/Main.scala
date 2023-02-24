@@ -9,17 +9,24 @@ import skunk.Session
 import software.amazon.awssdk.services.cloudwatch.CloudWatchAsyncClient
 import software.amazon.awssdk.services.secretsmanager.SecretsManagerClient
 import software.amazon.awssdk.services.sqs.SqsAsyncClient
-import uk.co.thirdthing.clients.{RightmoveApiClient, RightmoveListingHtmlClient}
+import uk.co.thirdthing.clients.{RightmoveApiClient, RightmoveListingHtmlClient, RightmovePostcodeSearchHtmlClient}
 import uk.co.thirdthing.config.{JobRunnerPollerConfig, JobSchedulingConfig, JobSeederConfig}
 import uk.co.thirdthing.consumer.JobSeedTriggerConsumer
 import uk.co.thirdthing.metrics.{CloudWatchMetricsRecorder, MetricsRecorder}
-import uk.co.thirdthing.pollers.JobRunnerPoller
+import uk.co.thirdthing.pollers.UpdatePropertyHistoryPoller
 import uk.co.thirdthing.secrets.{AmazonSecretsManager, SecretsManager}
-import uk.co.thirdthing.service.{JobRunnerService, JobSeeder, RetrievalService}
+import uk.co.thirdthing.service.{JobSeeder, RetrievalService, UpdateAddressDetailsService, UpdatePropertyHistoryService}
 import uk.co.thirdthing.sqs.SqsConfig.*
 import uk.co.thirdthing.sqs.SqsConsumer.*
 import uk.co.thirdthing.sqs.{SqsConfig, SqsProcessingStream}
-import uk.co.thirdthing.store.{JobStore, PostgresInitializer, PostgresJobStore, PostgresPropertyStore}
+import uk.co.thirdthing.store.{
+  JobStore,
+  PostgresAddressStore,
+  PostgresInitializer,
+  PostgresJobStore,
+  PostgresPostcodeStore,
+  PostgresPropertyStore
+}
 
 import scala.concurrent.duration.*
 
@@ -38,13 +45,21 @@ object Main extends IOApp:
       resources(secretsManager).use { r =>
         val metricsRecorder = CloudWatchMetricsRecorder[IO](r.cloudWatchClient)
         val jobStore        = PostgresJobStore[IO](r.db, JobSchedulingConfig.default)
-        val jobRunnerService =
-          buildJobRunnerService(r.apiHttpClient, r.htmlScraperHttpClient, jobStore, r.db, metricsRecorder)
-        val jobRunnerPoller = pollers.JobRunnerPoller[IO](jobStore, jobRunnerService)
+        val postcodeStore   = PostgresPostcodeStore[IO](r.db, JobSchedulingConfig.default)
+        val updatePropertyHistoryService =
+          buildUpdatePropertyHistoryService(r.apiHttpClient, r.htmlScraperHttpClient, jobStore, r.db, metricsRecorder)
+        val updatePropertyHistoryPoller =
+          pollers.UpdatePropertyHistoryPoller[IO](jobStore, updatePropertyHistoryService)
+        val updateAddressDetailsService =
+          buildUpdateAddressDetailsService(r.htmlScraperHttpClient, r.db, metricsRecorder)
+        val updateAddressDetailsPoller = pollers.AddressDetailsPoller(postcodeStore, updateAddressDetailsService)
 
         PostgresInitializer.initializeAll[IO](r.db) *>
           startJobSeedTriggerProcessingStream(r.apiHttpClient, r.sqsClient, secretsManager, jobStore)
-            .concurrently(jobRunnerPoller.startPolling(JobRunnerPollerConfig.default.minimumPollingInterval))
+            .concurrently(
+              updatePropertyHistoryPoller.startPolling(JobRunnerPollerConfig.default.minimumPollingInterval)
+            )
+            .concurrently(updateAddressDetailsPoller.startPolling(JobRunnerPollerConfig.default.minimumPollingInterval))
             .compile
             .drain
             .as(ExitCode.Success)
@@ -82,7 +97,7 @@ object Main extends IOApp:
       new SqsProcessingStream[IO](sqsClient, sqsConfig, ConsumerName("Job Seed Trigger")).startStream(consumer)
     }
 
-  private def buildJobRunnerService(
+  private def buildUpdatePropertyHistoryService(
     apiHttpClient: Client[IO],
     htmlHttpClient: Client[IO],
     jobStore: JobStore[IO],
@@ -94,7 +109,23 @@ object Main extends IOApp:
     val rightmoveHtmlClient =
       RightmoveListingHtmlClient(htmlHttpClient, Uri.unsafeFromString("https://www.rightmove.co.uk"))
     val retrievalService = RetrievalService[IO](rightmoveApiClient, rightmoveHtmlClient)
-    JobRunnerService[IO](jobStore, postgresPropertyStore, retrievalService, metricsRecorder)
+    UpdatePropertyHistoryService[IO](jobStore, postgresPropertyStore, retrievalService, metricsRecorder)
+
+  private def buildUpdateAddressDetailsService(
+    htmlHttpClient: Client[IO],
+    dbPool: Resource[IO, Session[IO]],
+    metricsRecorder: MetricsRecorder[IO]
+  ) =
+    val postgresAddressStore  = PostgresAddressStore[IO](dbPool)
+    val postgresPropertyStore = PostgresPropertyStore[IO](dbPool)
+    val rightmovePostcodeSearchClient =
+      RightmovePostcodeSearchHtmlClient(htmlHttpClient, Uri.unsafeFromString("https://www.rightmove.co.uk"))
+    UpdateAddressDetailsService[IO](
+      postgresAddressStore,
+      postgresPropertyStore,
+      rightmovePostcodeSearchClient,
+      metricsRecorder
+    )
 
   private def databaseSessionPool(secretsManager: SecretsManager[IO]): Resource[IO, Resource[IO, Session[IO]]] =
     val secrets = for

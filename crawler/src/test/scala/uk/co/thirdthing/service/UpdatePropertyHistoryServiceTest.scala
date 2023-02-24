@@ -14,7 +14,7 @@ import java.time.Instant
 import java.time.temporal.ChronoUnit
 import scala.concurrent.duration.*
 
-class JobRunnerServiceTest extends munit.CatsEffectSuite:
+class UpdatePropertyHistoryServiceTest extends munit.CatsEffectSuite:
 
   private val now = Instant.now().truncatedTo(ChronoUnit.MILLIS)
   private val staticClock = new Clock[IO]:
@@ -145,7 +145,7 @@ class JobRunnerServiceTest extends munit.CatsEffectSuite:
     retrievalServiceResults: Map[ListingId, RetrievalResult],
     jobStoreRef: Ref[IO, Map[JobId, CrawlerJob]],
     listingSnapshotStoreRef: Ref[IO, Map[(ListingId, LastChange), ListingSnapshot]]
-  ): IO[JobRunnerService[IO]] =
+  ): IO[UpdatePropertyHistoryService[IO]] =
 
     val mockRetrievalService = new RetrievalService[IO]:
       override def retrieve(listingId: ListingId): IO[Option[RetrievalService.RetrievalResult]] =
@@ -154,7 +154,7 @@ class JobRunnerServiceTest extends munit.CatsEffectSuite:
     for
       jobStore             <- MockJobStore(jobStoreRef)
       propertyListingStore <- MockPropertyStore(listingSnapshotStoreRef)
-    yield JobRunnerService.apply(jobStore, propertyListingStore, mockRetrievalService, NoOpMetricsRecorder.apply)(
+    yield UpdatePropertyHistoryService.apply(jobStore, propertyListingStore, mockRetrievalService, NoOpMetricsRecorder.apply)(
       implicitly,
       staticClock
     )

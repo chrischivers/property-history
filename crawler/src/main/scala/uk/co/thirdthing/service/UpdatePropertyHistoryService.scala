@@ -11,9 +11,10 @@ import uk.co.thirdthing.model.Types.*
 import uk.co.thirdthing.service.RetrievalService.RetrievalResult
 import uk.co.thirdthing.store.{JobStore, PropertyStore}
 
-trait JobRunnerService[F[_]]:
+trait UpdatePropertyHistoryService[F[_]]:
   def run(jobId: JobId): F[Unit]
-object JobRunnerService:
+  
+object UpdatePropertyHistoryService:
 
   private final case class Result(lastChange: LastChange, dateAdded: DateAdded)
 
@@ -23,7 +24,7 @@ object JobRunnerService:
     retrievalService: RetrievalService[F],
     metricsRecorder: MetricsRecorder[F]
   )(implicit clock: Clock[F]) =
-    new JobRunnerService[F]:
+    new UpdatePropertyHistoryService[F]:
 
       implicit val logger: SelfAwareStructuredLogger[F] = Slf4jLogger.getLogger[F]
 
@@ -41,7 +42,7 @@ object JobRunnerService:
             clock.realTime.flatMap { endTime =>
               val duration = endTime - startTime
               logger.info(s"${jobId.value} finished in ${duration.toMinutes} minutes") *>
-                metricsRecorder.recordJobDuration(duration).as(r)
+                metricsRecorder.recordJobDuration("property-history-crawler")(duration).as(r)
             }
           )
         }
