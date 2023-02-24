@@ -31,7 +31,9 @@ object UpdateAddressDetailsService:
       override def run(postcode: Postcode): F[Unit] =
         withDurationMetricReporting(postcode) {
           rightmovePostcodeSearchHtmlClient.scrapeDetails(postcode).flatMap { results =>
-            results.toList.traverse(addressDetailsFrom).flatMap(addressStore.putAddresses)
+            results.toList.toNel.fold(logger.warn(s"No properties retrieved for postcode ${postcode.value}"))(
+              _.traverse(addressDetailsFrom).flatMap(addressStore.putAddresses)
+            )
           }
         }
 

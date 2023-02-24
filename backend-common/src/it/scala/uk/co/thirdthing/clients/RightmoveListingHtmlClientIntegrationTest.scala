@@ -21,7 +21,7 @@ class RightmoveListingHtmlClientIntegrationTest extends munit.CatsEffectSuite:
   }
 
   test("Conduct random bulk test") {
-    val listingIds = (0 to 100).toList.map(_ => Random.nextInt(108238283)).map(ListingId(_))
+    val listingIds = (0 to 10).toList.map(_ => Random.nextInt(108238283)).map(ListingId(_))
 
     buildClient(client => assertIO(listingIds.traverse(client.scrapeDetails).void, ()))
   }

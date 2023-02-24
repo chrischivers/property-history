@@ -1,5 +1,6 @@
 package uk.co.thirdthing.store
 
+import cats.data.NonEmptyList
 import cats.effect.Resource
 import cats.effect.kernel.{Clock, Sync}
 import cats.syntax.all.*
@@ -19,7 +20,7 @@ import uk.co.thirdthing.utils.TimeUtils.*
 import java.time.{Instant, LocalDateTime, ZoneId}
 
 trait AddressStore[F[_]]:
-  def putAddresses(addressDetails: List[AddressDetails]): F[Unit]
+  def putAddresses(addressDetails: NonEmptyList[AddressDetails]): F[Unit]
   def getAddressFor(propertyId: PropertyId): F[Option[AddressDetails]]
 
 object AddressStore:
@@ -59,7 +60,7 @@ object PostgresAddressStore:
         .gmap[AddressRecord]
 
 
-    override def putAddresses(addressDetails: List[AddressDetails]): F[Unit] =
+    override def putAddresses(addressDetails: NonEmptyList[AddressDetails]): F[Unit] =
       Clock[F].realTimeInstant.flatMap { now =>
         val addressRecords = addressDetails.map { details =>
           AddressRecord(
@@ -69,7 +70,7 @@ object PostgresAddressStore:
             transactions = details.transactions.asJson,
             now.toLocalDateTime
           )
-        }
+        }.toList
         pool.use(_.prepare(insertAddressRecordCommands(addressRecords)).flatMap(_.execute(addressRecords).void))
       }
 

@@ -1,6 +1,7 @@
 package uk.co.thirdthing.store
 
 import cats.syntax.all.*
+import cats.data.NonEmptyList
 import skunk.exception.PostgresErrorException
 import uk.co.thirdthing.model.Types.ListingSnapshot.ListingSnapshotId
 import uk.co.thirdthing.model.Types.*
@@ -27,9 +28,18 @@ class PostgresAddressStoreTest extends munit.CatsEffectSuite with PostgresAddres
 
   test("Stores an address and retrieves by propertyId") {
     withPostgresAddressStore { store =>
-      val result = store.putAddress(addressDetails1) *>
+      val result = store.putAddresses(NonEmptyList.one(addressDetails1)) *>
         store.getAddressFor(addressDetails1.propertyId.get)
       assertIO(result, Some(addressDetails1))
+    }
+  }
+
+  test("Stores multiple addresses and retrieves by propertyId") {
+    withPostgresAddressStore { store =>
+      store.putAddresses(NonEmptyList.of(addressDetails1, addressDetails2)) *>
+        assertIO(store.getAddressFor(addressDetails1.propertyId.get), Some(addressDetails1)) *>
+        assertIO(store.getAddressFor(addressDetails2.propertyId.get), Some(addressDetails2))
+
     }
   }
 
@@ -42,16 +52,16 @@ class PostgresAddressStoreTest extends munit.CatsEffectSuite with PostgresAddres
 
   test("Does not allow the same address to be stored twice") {
     withPostgresAddressStore { store =>
-      val result = store.putAddress(addressDetails1) *>
-        store.putAddress(addressDetails2.copy(address = addressDetails1.address))
+      val result = store.putAddresses(NonEmptyList.one(addressDetails1)) *>
+        store.putAddresses(NonEmptyList.one(addressDetails2.copy(address = addressDetails1.address)))
       interceptIO[PostgresErrorException](result).void
     }
   }
 
   test("Does not allow the same propertyId to be stored twice") {
     withPostgresAddressStore { store =>
-      val result = store.putAddress(addressDetails1) *>
-        store.putAddress(addressDetails2.copy(propertyId = addressDetails1.propertyId))
+      val result = store.putAddresses(NonEmptyList.one(addressDetails1)) *>
+        store.putAddresses(NonEmptyList.one(addressDetails2.copy(propertyId = addressDetails1.propertyId)))
       interceptIO[PostgresErrorException](result).void
     }
   }
