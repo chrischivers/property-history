@@ -141,7 +141,7 @@ object Main extends IOApp:
         user = username,
         database = "propertyhistory",
         password = Some(password),
-        max = 10
+        max = 50
       )
     }
 

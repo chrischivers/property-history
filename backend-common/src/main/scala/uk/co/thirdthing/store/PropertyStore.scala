@@ -73,7 +73,7 @@ object PostgresPropertyStore:
 
     private val getMostRecentListingCommand: Query[Long, PropertyRecord] =
       sql"""
-           SELECT recordId, listingId, propertyId, dateAdded, lastChange, price, transactionTypeId, visible, listingStatus, rentFrequency, latitude, longitude,  thumbnailUrl
+           SELECT recordId, listingId, propertyId, dateAdded, lastChange, price, transactionTypeId, visible, listingStatus, rentFrequency, latitude, longitude, thumbnailUrl
            FROM properties
            WHERE listingId = $int8
            ORDER BY lastChange DESC
