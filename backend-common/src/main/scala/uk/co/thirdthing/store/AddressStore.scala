@@ -21,7 +21,7 @@ import java.time.{Instant, LocalDateTime, ZoneId}
 
 trait AddressStore[F[_]]:
   def putAddresses(addressDetails: NonEmptyList[AddressDetails]): F[Unit]
-  def getAddressFor(propertyId: PropertyId): F[Option[AddressDetails]]
+  def getAddressesFor(propertyId: PropertyId): fs2.Stream[F, AddressDetails]
 
 object AddressStore:
   private[store] final case class AddressRecord(
@@ -74,18 +74,19 @@ object PostgresAddressStore:
         pool.use(_.prepare(insertAddressRecordCommands(addressRecords)).flatMap(_.execute(addressRecords).void))
       }
 
-    override def getAddressFor(propertyId: PropertyId): F[Option[AddressDetails]] =
-      pool
-        .use(_.prepare(getAddressByPropertyId))
-        .flatMap(_.option(propertyId.value))
-        .flatMap(_.traverse(addressDetailsFrom))
+    override def getAddressesFor(propertyId: PropertyId): fs2.Stream[F, AddressDetails] =
+      fs2.Stream
+        .eval(pool.use(_.prepare(getAddressByPropertyId)))
+        .flatMap(_.stream(propertyId.value, 100))
+        .evalMap(addressDetailsFrom)
 
     private def addressDetailsFrom(addressRecord: AddressRecord): F[AddressDetails] =
-      Sync[F].fromEither(addressRecord.transactions.as[List[PropertyTransaction]]).map { transactions =>
-        AddressDetails(
-          FullAddress(addressRecord.address),
-          Postcode(addressRecord.postcode),
-          addressRecord.propertyId.map(PropertyId(_)),
-          transactions
-        )
-      }
+      Sync[F]
+        .fromEither(addressRecord.transactions.as[List[PropertyTransaction]])
+        .map: transactions =>
+          AddressDetails(
+            FullAddress(addressRecord.address),
+            Postcode(addressRecord.postcode),
+            addressRecord.propertyId.map(PropertyId(_)),
+            transactions
+          )

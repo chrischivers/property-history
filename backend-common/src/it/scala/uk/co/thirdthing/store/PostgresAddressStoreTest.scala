@@ -29,24 +29,37 @@ class PostgresAddressStoreTest extends munit.CatsEffectSuite with PostgresAddres
   test("Stores an address and retrieves by propertyId") {
     withPostgresAddressStore { store =>
       val result = store.putAddresses(NonEmptyList.one(addressDetails1)) *>
-        store.getAddressFor(addressDetails1.propertyId.get)
-      assertIO(result, Some(addressDetails1))
+        store.getAddressesFor(addressDetails1.propertyId.get).compile.toList
+      assertIO(result, List(addressDetails1))
     }
   }
 
   test("Stores multiple addresses and retrieves by propertyId") {
     withPostgresAddressStore { store =>
       store.putAddresses(NonEmptyList.of(addressDetails1, addressDetails2)) *>
-        assertIO(store.getAddressFor(addressDetails1.propertyId.get), Some(addressDetails1)) *>
-        assertIO(store.getAddressFor(addressDetails2.propertyId.get), Some(addressDetails2))
+        assertIO(store.getAddressesFor(addressDetails1.propertyId.get).compile.toList, List(addressDetails1)) *>
+        assertIO(store.getAddressesFor(addressDetails2.propertyId.get).compile.toList, List(addressDetails2))
+
+    }
+  }
+
+  test("Stores multiple addresses with the same propertyId") {
+    withPostgresAddressStore { store =>
+      store.putAddresses(
+        NonEmptyList.of(addressDetails1, addressDetails2.copy(propertyId = addressDetails1.propertyId))
+      ) *>
+        assertIO(
+          store.getAddressesFor(addressDetails1.propertyId.get).compile.toList,
+          List(addressDetails1, addressDetails2.copy(propertyId = addressDetails1.propertyId))
+        )
 
     }
   }
 
   test("Returns empty if propertyId does not exist") {
     withPostgresAddressStore { store =>
-      val result = store.getAddressFor(addressDetails1.propertyId.get)
-      assertIO(result, None)
+      val result = store.getAddressesFor(addressDetails1.propertyId.get).compile.toList
+      assertIO(result, List.empty)
     }
   }
 
@@ -54,15 +67,7 @@ class PostgresAddressStoreTest extends munit.CatsEffectSuite with PostgresAddres
     withPostgresAddressStore { store =>
       val result = store.putAddresses(NonEmptyList.one(addressDetails1)) *>
         store.putAddresses(NonEmptyList.one(addressDetails2.copy(address = addressDetails1.address))) *>
-        store.getAddressFor(addressDetails2.propertyId.get)
-      assertIO(result, Some(addressDetails2.copy(address = addressDetails1.address)))
-    }
-  }
-
-  test("Does not allow the same propertyId to be stored twice") {
-    withPostgresAddressStore { store =>
-      val result = store.putAddresses(NonEmptyList.one(addressDetails1)) *>
-        store.putAddresses(NonEmptyList.one(addressDetails2.copy(propertyId = addressDetails1.propertyId)))
-      interceptIO[PostgresErrorException](result).void
+        store.getAddressesFor(addressDetails2.propertyId.get).compile.toList
+      assertIO(result, List(addressDetails2.copy(address = addressDetails1.address)))
     }
   }

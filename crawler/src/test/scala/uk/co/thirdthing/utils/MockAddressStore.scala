@@ -16,7 +16,7 @@ object MockAddressStore:
       override def putAddresses(addressDetails: NonEmptyList[AddressDetails]): IO[Unit] =
         addressRecords.update(_ ++ addressDetails.toList)
 
-      override def getAddressFor(propertyId: PropertyId): IO[Option[AddressDetails]] =
-        addressRecords.get.map(_.find(_.propertyId.contains(propertyId)))
+      override def getAddressesFor(propertyId: PropertyId): fs2.Stream[IO, AddressDetails] =
+        fs2.Stream.evals[IO, List, AddressDetails](addressRecords.get.map(_.filter(_.propertyId.contains(propertyId))))
 
     addressStore.pure[IO]

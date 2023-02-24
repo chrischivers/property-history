@@ -105,8 +105,7 @@ object PostgresInitializer:
          propertyId BIGINT,
          postcode VARCHAR(10) NOT NULL,
          transactions JSON,
-         updated TIMESTAMP NOT NULL,
-         UNIQUE(propertyId)
+         updated TIMESTAMP NOT NULL
          )""".command
 
     val createPropertyIdIndex =
