@@ -33,7 +33,7 @@ trait PostgresPostcodeStoreIntegration extends munit.CatsEffectSuite with Postgr
   private val insertPostcode: Command[PostcodeRecord] =
     sql"""
          INSERT INTO postcodes(postcode, inuse, lockedat, lastscraped) VALUES
-         (${varchar(12)}, $bool, ${timestamp.opt}, ${timestamp.opt})
+         (${varchar(10)}, $bool, ${timestamp.opt}, ${timestamp.opt})
      """.command.contramap { (pr: PostcodeRecord) =>
       pr.postcode.value ~ pr.inUse ~ pr.lockedAt ~ pr.lastScraped
     }

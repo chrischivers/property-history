@@ -42,7 +42,7 @@ object PostgresAddressStore:
     }
     */
     private def insertAddressRecordCommands(ars: List[AddressRecord]): Command[ars.type] =
-      val enc = (varchar(300) ~ int8.opt ~ varchar(12) ~ json ~ timestamp).gcontramap[AddressRecord].values.list(ars)
+      val enc = (varchar(300) ~ int8.opt ~ varchar(10) ~ json ~ timestamp).gcontramap[AddressRecord].values.list(ars)
       sql"""
              INSERT INTO addresses(address, propertyId, postcode, transactions, updated) VALUES $enc
          """.command
@@ -54,7 +54,7 @@ object PostgresAddressStore:
            WHERE propertyId = $int8
      """
         .query(
-          varchar(300) ~ int8.opt ~ varchar(12) ~ json ~ timestamp
+          varchar(300) ~ int8.opt ~ varchar(10) ~ json ~ timestamp
         )
         .gmap[AddressRecord]
 

@@ -103,7 +103,7 @@ object PostgresInitializer:
       sql"""CREATE TABLE IF NOT EXISTS addresses(
          address VARCHAR(300) PRIMARY KEY,
          propertyId BIGINT,
-         postcode VARCHAR(12) NOT NULL,
+         postcode VARCHAR(10) NOT NULL,
          transactions JSON,
          updated TIMESTAMP NOT NULL,
          UNIQUE(propertyId)
@@ -130,7 +130,7 @@ object PostgresInitializer:
   def createPostcodesTableIfNotExisting[F[_] : Sync](pool: Resource[F, Session[F]]) =
     val createPostcodesTable =
       sql"""CREATE TABLE IF NOT EXISTS postcodes(
-         postcode VARCHAR(12) PRIMARY KEY,
+         postcode VARCHAR(10) PRIMARY KEY,
          inuse BOOLEAN NOT NULL,
          lockedat TIMESTAMP,
          lastscraped TIMESTAMP

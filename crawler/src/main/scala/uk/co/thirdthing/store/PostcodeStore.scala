@@ -34,7 +34,7 @@ object PostgresPostcodeStore:
              ORDER BY lastScraped ASC NULLS FIRST
              LIMIT 1
            )
-         RETURNING postcode""".query(varchar(12))
+         RETURNING postcode""".query(varchar(10))
 
     override def getAndLockNextPostcode: F[Option[Postcode]] =
       Clock[F].realTimeInstant.flatMap { now =>
