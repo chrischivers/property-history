@@ -62,7 +62,7 @@ object RightmovePostcodeSearchHtmlClient:
                 case Status.BadRequest =>
                   fs2.Stream
                     .eval(logger.warn(s"400 returned from url $url for postcode ${postcode.value}"))
-                    .flatMap(_ => fs2.Stream.empty)
+                    .flatMap(_ => fs2.Stream.emit(List.empty[RightmovePostcodeSearchResult]))
                 case other =>
                   fs2.Stream.eval(
                     new RuntimeException(s"Unexpected status code ${other.code} returned from uri $url").raiseError
