@@ -59,6 +59,10 @@ object RightmovePostcodeSearchHtmlClient:
               response.status match
                 case Status.Ok =>
                   handleByteStream(response.body).map(_.map(transform(_, postcode)))
+                case Status.BadRequest =>
+                  fs2.Stream
+                    .eval(logger.warn(s"400 returned from url $url for postcode ${postcode.value}"))
+                    .flatMap(_ => fs2.Stream.empty)
                 case other =>
                   fs2.Stream.eval(
                     new RuntimeException(s"Unexpected status code ${other.code} returned from uri $url").raiseError
