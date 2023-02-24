@@ -50,11 +50,12 @@ class PostgresAddressStoreTest extends munit.CatsEffectSuite with PostgresAddres
     }
   }
 
-  test("Does not allow the same address to be stored twice") {
+  test("Overwrites an existing address with an updated one") {
     withPostgresAddressStore { store =>
       val result = store.putAddresses(NonEmptyList.one(addressDetails1)) *>
-        store.putAddresses(NonEmptyList.one(addressDetails2.copy(address = addressDetails1.address)))
-      interceptIO[PostgresErrorException](result).void
+        store.putAddresses(NonEmptyList.one(addressDetails2.copy(address = addressDetails1.address))) *>
+        store.getAddressFor(addressDetails2.propertyId.get)
+      assertIO(result, Some(addressDetails2.copy(address = addressDetails1.address)))
     }
   }
 

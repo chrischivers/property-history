@@ -48,10 +48,10 @@ class PostgresPostcodeStoreTest extends munit.CatsEffectSuite with PostgresPostc
     }
   }
 
-
   test("get and lock the next postcode if it has NOT been recently locked") {
 
-    val initialState = List(PostcodeRecord(Postcode("AR1 1PG"), inUse = true, lockedAt = Some(now.minusDays(1)), lastScraped = None))
+    val initialState =
+      List(PostcodeRecord(Postcode("AR1 1PG"), inUse = true, lockedAt = Some(now.minusDays(1)), lastScraped = None))
 
     withPostgresPostcodeStore(initialState) { store =>
       val result = store.getAndLockNextPostcode
@@ -59,7 +59,6 @@ class PostgresPostcodeStoreTest extends munit.CatsEffectSuite with PostgresPostc
       assertIO(result, Some(initialState.head.postcode))
     }
   }
-
 
   test("return the next postcode sorted by scraped time") {
 
@@ -76,3 +75,18 @@ class PostgresPostcodeStoreTest extends munit.CatsEffectSuite with PostgresPostc
     }
   }
 
+  test("update and release a postcode when completed") {
+
+    val postcode = Postcode("AR1 1PG")
+
+    val initialState = List(
+      PostcodeRecord(postcode, inUse = true, lockedAt = None, lastScraped = Some(now.minusDays(3)))
+    )
+
+    withPostgresPostcodeStore(initialState) { store =>
+      assertIO(store.getAndLockNextPostcode, Some(initialState.head.postcode)) *>
+        assertIO(store.getAndLockNextPostcode, None) *>
+        store.updateAndRelease(postcode) *>
+        assertIO(store.getAndLockNextPostcode, Some(initialState.head.postcode))
+    }
+  }

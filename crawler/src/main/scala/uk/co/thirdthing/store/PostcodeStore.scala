@@ -18,10 +18,14 @@ import java.time.{Instant, LocalDateTime, ZoneId}
 
 trait PostcodeStore[F[_]]:
   def getAndLockNextPostcode: F[Option[Postcode]]
+  def updateAndRelease(postcode: Postcode): F[Unit]
 
 object PostgresPostcodeStore:
 
-  def apply[F[_]: Sync: Clock](pool: Resource[F, Session[F]], jobSchedulingConfig: JobSchedulingConfig): PostcodeStore[F] = new PostcodeStore[F]:
+  def apply[F[_]: Sync: Clock](
+    pool: Resource[F, Session[F]],
+    jobSchedulingConfig: JobSchedulingConfig
+  ): PostcodeStore[F] = new PostcodeStore[F]:
 
     private val getAndLockNextPostcodeQuery: Query[(LocalDateTime, LocalDateTime), String] =
       sql"""
@@ -36,6 +40,12 @@ object PostgresPostcodeStore:
            )
          RETURNING postcode""".query(varchar(10))
 
+    private val updateAndReleaseCommand: Command[(LocalDateTime, String)] =
+      sql"""
+          UPDATE postcodes
+          SET lockedAt=NULL, lastScraped=$timestamp
+          WHERE postcode = ${varchar(10)}""".command
+
     override def getAndLockNextPostcode: F[Option[Postcode]] =
       Clock[F].realTimeInstant.flatMap { now =>
         val expiredCutoff =
@@ -44,4 +54,9 @@ object PostgresPostcodeStore:
           .use(_.prepare(getAndLockNextPostcodeQuery))
           .flatMap(_.option((now.toLocalDateTime, expiredCutoff)))
           .map(_.map(Postcode(_)))
+      }
+
+    override def updateAndRelease(postcode: Postcode): F[Unit] =
+      Clock[F].realTimeInstant.flatMap { now =>
+        pool.use(_.prepare(updateAndReleaseCommand)).flatMap(_.execute((now.toLocalDateTime, postcode.value))).void
       }

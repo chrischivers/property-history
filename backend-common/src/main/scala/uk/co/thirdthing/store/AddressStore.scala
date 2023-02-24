@@ -41,11 +41,12 @@ object PostgresAddressStore:
       val enc = (varchar ~ int2).values.list(ps)
       sql"INSERT INTO pets VALUES $enc".command
     }
-    */
+     */
     private def insertAddressRecordCommands(ars: List[AddressRecord]): Command[ars.type] =
       val enc = (varchar(300) ~ int8.opt ~ varchar(10) ~ json ~ timestamp).gcontramap[AddressRecord].values.list(ars)
       sql"""
              INSERT INTO addresses(address, propertyId, postcode, transactions, updated) VALUES $enc
+               ON CONFLICT(address) DO UPDATE SET propertyId = excluded.propertyId, postcode = excluded.postcode, transactions = excluded.transactions, updated = excluded.updated
          """.command
 
     private val getAddressByPropertyId: Query[Long, AddressRecord] =
@@ -58,7 +59,6 @@ object PostgresAddressStore:
           varchar(300) ~ int8.opt ~ varchar(10) ~ json ~ timestamp
         )
         .gmap[AddressRecord]
-
 
     override def putAddresses(addressDetails: NonEmptyList[AddressDetails]): F[Unit] =
       Clock[F].realTimeInstant.flatMap { now =>
