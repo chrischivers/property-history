@@ -10,7 +10,7 @@ import smithy4s.http4s.SimpleRestJsonBuilder
 
 class ApiRouteSmithyTest extends munit.Http4sHttpRoutesSuite:
 
-  implicit val entityDecoder: EntityDecoder[IO, List[ListingSnapshot]] = jsonOf
+  given EntityDecoder[IO, List[ListingSnapshot]] = jsonOf
 
   val listingSnapshot = listingSnapshotGen.sample.get
 

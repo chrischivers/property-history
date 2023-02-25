@@ -6,9 +6,6 @@ object TimeUtils:
 
   private val zoneId = ZoneId.of("UTC")
 
-  implicit class InstantOps(self: Instant):
-    def toLocalDateTime: LocalDateTime = self.atZone(zoneId).toLocalDateTime
-    def toLocalDate: LocalDate         = self.atZone(zoneId).toLocalDate
-
-  implicit class LocalDateTimeOps(self: LocalDateTime):
-    def asInstant: Instant = self.atZone(zoneId).toInstant
+  extension (self: Instant) def toLocalDateTime: LocalDateTime = self.atZone(zoneId).toLocalDateTime
+  extension (self: Instant) def toLocalDate: LocalDate         = self.atZone(zoneId).toLocalDate
+  extension (self: LocalDateTime) def asInstant: Instant = self.atZone(zoneId).toInstant

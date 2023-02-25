@@ -11,10 +11,10 @@ object AddressDetailsPoller:
   def apply[F[_]: Async](postcodeStore: PostcodeStore[F], updateAddressDetailsService: UpdateAddressDetailsService[F]) =
     new PollingService[F]:
 
-      implicit val logger: SelfAwareStructuredLogger[F] = Slf4jLogger.getLogger[F]
+      private val logger: SelfAwareStructuredLogger[F] = Slf4jLogger.getLogger[F]
 
       override def action: F[Unit] = Resource
-        .make(postcodeStore.getAndLockNextPostcode)(_.fold(().pure[F])(pc => postcodeStore.updateAndRelease(pc)))
+        .make(postcodeStore.getAndLockNextPostcode)(_.fold(().pure[F])(postcodeStore.updateAndRelease))
         .use {
           case Some(postcode) =>
             logger.info(s"Picking up 'address details' job for postcode ${postcode.value}") *>

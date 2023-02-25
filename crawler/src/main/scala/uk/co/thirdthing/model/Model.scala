@@ -46,4 +46,4 @@ object Model:
   final case class RunJobCommand(jobId: JobId)
 
   object RunJobCommand:
-    implicit val codec: Codec[RunJobCommand] = deriveCodec
+    given Codec[RunJobCommand] = deriveCodec

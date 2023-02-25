@@ -39,7 +39,7 @@ object RightmovePostcodeSearchHtmlClient:
   def apply[F[_]: Async](client: Client[F], baseUrl: Uri): RightmovePostcodeSearchHtmlClient[F] =
     new RightmovePostcodeSearchHtmlClient[F]:
 
-      implicit def logger: SelfAwareStructuredLogger[F] = Slf4jLogger.getLogger[F]
+      private given logger: SelfAwareStructuredLogger[F] = Slf4jLogger.getLogger[F]
 
       import io.circe.generic.auto.*
       case class PropertyDetailsTransaction(displayPrice: String, dateSold: String, tenure: String)

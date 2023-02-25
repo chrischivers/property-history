@@ -21,12 +21,12 @@ trait UpdateAddressDetailsService[F[_]]:
 
 object UpdateAddressDetailsService:
 
-  def apply[F[_]: Async](
+  def apply[F[_]: Async: Clock](
     addressStore: AddressStore[F],
     propertyStore: PropertyStore[F],
     rightmovePostcodeSearchHtmlClient: RightmovePostcodeSearchHtmlClient[F],
     metricsRecorder: MetricsRecorder[F]
-  )(implicit clock: Clock[F]) =
+  ) =
     new UpdateAddressDetailsService[F]:
       override def run(postcode: Postcode): F[Unit] =
         withDurationMetricReporting(postcode) {
@@ -37,7 +37,7 @@ object UpdateAddressDetailsService:
           }
         }
 
-      implicit val logger: SelfAwareStructuredLogger[F] = Slf4jLogger.getLogger[F]
+      private val logger: SelfAwareStructuredLogger[F] = Slf4jLogger.getLogger[F]
 
       private def addressDetailsFrom(result: RightmovePostcodeSearchResult): F[AddressDetails] =
         result.listingId.flatTraverse(propertyStore.propertyIdFor).map { propertyIdOpt =>
@@ -50,9 +50,9 @@ object UpdateAddressDetailsService:
         }
 
       private def withDurationMetricReporting[T](postcode: Postcode)(f: F[T]): F[T] =
-        clock.realTime.flatMap { startTime =>
+        Clock[F].realTime.flatMap { startTime =>
           f.flatMap(r =>
-            clock.realTime.flatMap { endTime =>
+            Clock[F].realTime.flatMap { endTime =>
               val duration = endTime - startTime
               logger.info(s"${postcode.value} finished in ${duration.toMinutes} minutes") *>
                 metricsRecorder.recordJobDuration("property-history-postcode-crawler")(duration).as(r)

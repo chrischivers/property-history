@@ -24,7 +24,7 @@ object RightmoveListingHtmlClient:
   def apply[F[_]: Async](client: Client[F], baseUrl: Uri): RightmoveListingHtmlClient[F] =
     new RightmoveListingHtmlClient[F]:
 
-      implicit def logger: SelfAwareStructuredLogger[F] = Slf4jLogger.getLogger[F]
+      private given logger: SelfAwareStructuredLogger[F] = Slf4jLogger.getLogger[F]
 
       override def scrapeDetails(listingId: ListingId): F[RightmoveHtmlScrapeResult] =
         val uri = (baseUrl / "properties" / listingId.value).withQueryParam("channel", "RES_BUY")

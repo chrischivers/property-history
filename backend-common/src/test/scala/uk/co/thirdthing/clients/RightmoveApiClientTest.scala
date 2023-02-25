@@ -46,7 +46,7 @@ class RightmoveApiClientTest extends munit.CatsEffectSuite:
 
   def apiClient(responsePath: String, status: Status = Status.Ok): RightmoveApiClient[IO] =
 
-    implicit val yearQueryParamDecoder: QueryParamDecoder[ListingId] = QueryParamDecoder[Long].map(ListingId.apply)
+    given QueryParamDecoder[ListingId] = QueryParamDecoder[Long].map(ListingId.apply)
     object ListingIdQueryParamMatcher      extends QueryParamDecoderMatcher[ListingId]("propertyId")
     object ApiApplicationQueryParamMatcher extends QueryParamDecoderMatcher[String]("apiApplication")
 

@@ -18,15 +18,15 @@ object UpdatePropertyHistoryService:
 
   private final case class Result(lastChange: LastChange, dateAdded: DateAdded)
 
-  def apply[F[_]: Async](
+  def apply[F[_]: Async: Clock](
     jobStore: JobStore[F],
     propertyStore: PropertyStore[F],
     retrievalService: RetrievalService[F],
     metricsRecorder: MetricsRecorder[F]
-  )(implicit clock: Clock[F]) =
+  ) =
     new UpdatePropertyHistoryService[F]:
 
-      implicit val logger: SelfAwareStructuredLogger[F] = Slf4jLogger.getLogger[F]
+      private val logger: SelfAwareStructuredLogger[F] = Slf4jLogger.getLogger[F]
 
       override def run(jobId: JobId): F[Unit] =
         jobStore.getAndLock(jobId).flatMap {
@@ -37,9 +37,9 @@ object UpdatePropertyHistoryService:
         }
 
       private def withDurationMetricReporting[T](jobId: JobId)(f: F[T]): F[T] =
-        clock.realTime.flatMap { startTime =>
+        Clock[F].realTime.flatMap { startTime =>
           f.flatMap(r =>
-            clock.realTime.flatMap { endTime =>
+            Clock[F].realTime.flatMap { endTime =>
               val duration = endTime - startTime
               logger.info(s"${jobId.value} finished in ${duration.toMinutes} minutes") *>
                 metricsRecorder.recordJobDuration("property-history-crawler")(duration).as(r)
@@ -86,7 +86,7 @@ object UpdatePropertyHistoryService:
         val latestLastChange = results.maxBy(_.lastChange.value).lastChange
         val latestDateAdded  = results.maxBy(_.dateAdded.value).dateAdded
 
-        clock.realTimeInstant.flatMap { now =>
+        Clock[F].realTimeInstant.flatMap { now =>
           jobStore.put(
             job.copy(
               lastRunCompleted = LastRunCompleted(now).some,
@@ -98,7 +98,7 @@ object UpdatePropertyHistoryService:
         }
 
       private def updateJobStoreWhenNoDataChanges(job: CrawlerJob) =
-        clock.realTimeInstant.flatMap(now =>
+        Clock[F].realTimeInstant.flatMap(now =>
           jobStore.put(job.copy(lastRunCompleted = LastRunCompleted(now).some, state = JobState.Completed))
         )
 
@@ -135,7 +135,7 @@ object UpdatePropertyHistoryService:
             updateStores(retrievalResult).map(Some(_))
 
       private def handleDelete(existingRecord: ListingSnapshot): F[Result] =
-        clock.realTimeInstant.flatMap { now =>
+        Clock[F].realTimeInstant.flatMap { now =>
           val snapshotToUpdate =
             ListingSnapshot(
               existingRecord.listingId,
@@ -150,7 +150,7 @@ object UpdatePropertyHistoryService:
         }
 
       private def updateStores(result: RetrievalResult): F[Result] =
-        clock.realTimeInstant.flatMap { now =>
+        Clock[F].realTimeInstant.flatMap { now =>
           val listingSnapshot =
             ListingSnapshot(
               result.listingId,

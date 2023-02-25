@@ -12,7 +12,7 @@ object JobSeedTriggerConsumer:
 
   def apply[F[_]: Sync](jobSeeder: JobSeeder[F]) = new SqsConsumer[F, Json]:
 
-    implicit val logger: SelfAwareStructuredLogger[F] = Slf4jLogger.getLogger[F]
+    private val logger: SelfAwareStructuredLogger[F] = Slf4jLogger.getLogger[F]
 
     override def handle(msg: Json): F[Unit] =
       logger.info("Received seed trigger request") *>

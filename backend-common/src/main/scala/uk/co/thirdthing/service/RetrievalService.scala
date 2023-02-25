@@ -33,7 +33,7 @@ object RetrievalService:
   ): RetrievalService[F] =
     new RetrievalService[F]:
 
-      implicit val logger: SelfAwareStructuredLogger[F] = Slf4jLogger.getLogger[F]
+      private val logger: SelfAwareStructuredLogger[F] = Slf4jLogger.getLogger[F]
 
       override def retrieve(listingId: ListingId): F[Option[RetrievalResult]] =
         logger.debug(s"Handling retrieval request for listing ${listingId.value}") *>

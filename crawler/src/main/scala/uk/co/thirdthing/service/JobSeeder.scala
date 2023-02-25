@@ -19,7 +19,7 @@ object JobSeeder:
   def apply[F[_]: Sync](rightmoveApiClient: RightmoveApiClient[F], jobStore: JobStore[F], config: JobSeederConfig) =
     new JobSeeder[F]:
 
-      implicit val logger: SelfAwareStructuredLogger[F] = Slf4jLogger.getLogger[F]
+      private val logger: SelfAwareStructuredLogger[F] = Slf4jLogger.getLogger[F]
 
       private def getLatestListingIdFrom(from: ListingId): F[Option[ListingId]] =
 

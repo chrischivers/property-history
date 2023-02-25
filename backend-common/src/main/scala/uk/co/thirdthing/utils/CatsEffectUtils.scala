@@ -8,15 +8,14 @@ import scala.concurrent.duration.*
 
 object CatsEffectUtils:
 
-  implicit class CatsEffectOps[F[_]: Async, T](f: F[T]):
-
+  extension [F[_]: Async, T](f: F[T])
     def withBackoffRetry(
       maxDelay: FiniteDuration,
       multiplier: Double,
       maxRetries: Int = 50,
       attemptNumber: Int = 1,
       errorsToHandle: Throwable => Boolean = _ => true
-    )(implicit logger: Logger[F]): F[T] =
+    )(using logger: Logger[F]): F[T] =
 
       val delayInSec  = (Math.pow(2.0, attemptNumber) - 1.0) * .5
       val backOffWait = Math.round(Math.min(delayInSec * multiplier, maxDelay.toSeconds.toDouble))

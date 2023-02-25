@@ -83,6 +83,6 @@ object Generators:
     details    <- propertyDetailsGen
   yield RetrievalResult(listingId, propertyId, DateAdded(dateAdded), details)
 
-  implicit val propertyIdArb: Arbitrary[PropertyId]           = Arbitrary(propertyIdGen)
-  implicit val listingSnapshotArb: Arbitrary[ListingSnapshot] = Arbitrary(listingSnapshotGen)
-  implicit val retrievalResultArb: Arbitrary[RetrievalResult] = Arbitrary(retrievalResultGen)
+  given Arbitrary[PropertyId]           = Arbitrary(propertyIdGen)
+  given Arbitrary[ListingSnapshot] = Arbitrary(listingSnapshotGen)
+  given Arbitrary[RetrievalResult] = Arbitrary(retrievalResultGen)

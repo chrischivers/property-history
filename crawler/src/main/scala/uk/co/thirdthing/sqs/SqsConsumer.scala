@@ -37,7 +37,7 @@ class SqsProcessingStream[F[_]: Async: Parallel](
   consumerName: ConsumerName
 ):
 
-  private implicit val logger: SelfAwareStructuredLogger[F] = Slf4jLogger.getLogger[F]
+  private val logger: SelfAwareStructuredLogger[F] = Slf4jLogger.getLogger[F]
 
   def startStream[A: Decoder](consumer: SqsConsumer[F, A]): fs2.Stream[F, Unit] =
     fs2.Stream.eval(logger.info(s"Consumer ${consumerName.value} started")) *>

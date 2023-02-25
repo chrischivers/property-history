@@ -37,8 +37,8 @@ object RightmoveApiClient:
   )
 
   object ListingDetails:
-    implicit val encoder: Encoder[ListingDetails] = deriveEncoder
-    implicit val decoder: Decoder[ListingDetails] = deriveDecoder
+    given Encoder[ListingDetails] = deriveEncoder
+    given Decoder[ListingDetails] = deriveDecoder
 
   sealed trait ResultWrapper
 
@@ -46,9 +46,9 @@ object RightmoveApiClient:
   private case class FailureResultWrapper(errorInfo: Option[String])        extends ResultWrapper
 
   private object ResultWrapper:
-    implicit val successResultWrapperDecoder: Decoder[SuccessResultWrapper] = deriveDecoder
-    implicit val failureResultWrapperDecoder: Decoder[FailureResultWrapper] = deriveDecoder
-    implicit val decoder: Decoder[ResultWrapper] = Decoder.instance { cursor =>
+    given Decoder[SuccessResultWrapper] = deriveDecoder
+    given Decoder[FailureResultWrapper] = deriveDecoder
+    given Decoder[ResultWrapper] = Decoder.instance { cursor =>
       cursor.downField("result").as[String].flatMap {
         case "SUCCESS" => cursor.as[SuccessResultWrapper]
         case "FAILURE" => cursor.as[FailureResultWrapper]
@@ -58,9 +58,9 @@ object RightmoveApiClient:
 
   def apply[F[_]: Async](client: Client[F], baseUrl: Uri) = new RightmoveApiClient[F]:
 
-    implicit val logger: SelfAwareStructuredLogger[F] = Slf4jLogger.getLogger[F]
+    private given logger: SelfAwareStructuredLogger[F] = Slf4jLogger.getLogger[F]
 
-    implicit private val entityDecoder: EntityDecoder[F, ResultWrapper] = jsonOf[F, ResultWrapper]
+    private given EntityDecoder[F, ResultWrapper] = jsonOf[F, ResultWrapper]
 
     override def listingDetails(listingId: ListingId): F[Option[ListingDetails]] =
       val uri = (baseUrl / "api" / "propertyDetails")

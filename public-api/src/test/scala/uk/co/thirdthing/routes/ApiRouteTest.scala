@@ -12,7 +12,7 @@ class ApiRouteTest extends munit.Http4sHttpRoutesSuite:
 
   private val thumbnailFromResources = fs2.io.file.Path(getClass.getResource("/simple-house-silhouette.jpg").getPath)
 
-  implicit val entityDecoder: EntityDecoder[IO, List[ListingSnapshot]] = jsonOf
+  private given EntityDecoder[IO, List[ListingSnapshot]] = jsonOf
 
   val listingSnapshot = listingSnapshotGen.sample.get
 

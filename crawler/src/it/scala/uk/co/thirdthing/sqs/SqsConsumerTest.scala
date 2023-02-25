@@ -30,7 +30,7 @@ class SqsConsumerTest extends munit.CatsEffectSuite:
     Parallelism(10)
   )
   case class TestMessage(message: String)
-  implicit val testMessageCodec: Codec[TestMessage] = deriveCodec
+  given Codec[TestMessage] = deriveCodec
 
   val testMessage = TestMessage("Hi")
 

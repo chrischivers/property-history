@@ -45,7 +45,7 @@ object Types:
     type ListingSnapshotId = ListingSnapshotId.Type
     object ListingSnapshotId extends NewtypeWrapped[Long] with DerivedCirceCodec
 
-    implicit val codec: Codec[ListingSnapshot] = deriveCodec
+    given Codec[ListingSnapshot] = deriveCodec
 
   type LastChange = LastChange.Type
   object LastChange extends NewtypeWrapped[Instant] with DerivedCirceCodec
@@ -98,7 +98,7 @@ object Types:
   )
 
   object PropertyDetails:
-    implicit val codec: Codec[PropertyDetails] = deriveCodec
+    given Codec[PropertyDetails] = deriveCodec
     val Deleted = PropertyDetails(None, None, None, Some(ListingStatus.Deleted), None, None, None, None)
     val Empty   = PropertyDetails(None, None, None, None, None, None, None, None)
     def from(
@@ -137,7 +137,7 @@ object Types:
   )
   
   object Transaction {
-    implicit val codec: Codec[Transaction] = deriveCodec
+    given Codec[Transaction] = deriveCodec
   }
 
   final case class AddressDetails(

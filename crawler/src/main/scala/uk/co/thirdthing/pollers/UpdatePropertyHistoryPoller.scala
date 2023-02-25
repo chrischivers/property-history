@@ -11,7 +11,7 @@ object UpdatePropertyHistoryPoller:
   def apply[F[_]: Async](jobStore: JobStore[F], updatePropertyHistoryService: UpdatePropertyHistoryService[F]) =
     new PollingService[F]:
 
-      implicit val logger: SelfAwareStructuredLogger[F] = Slf4jLogger.getLogger[F]
+      private val logger: SelfAwareStructuredLogger[F] = Slf4jLogger.getLogger[F]
       override def action: F[Unit] =
         jobStore.nextJobToRun.flatMap {
           case Some(job) =>

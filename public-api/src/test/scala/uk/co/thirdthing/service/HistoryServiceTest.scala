@@ -10,6 +10,7 @@ import uk.co.thirdthing.model.Types.*
 import uk.co.thirdthing.service.RetrievalService.RetrievalResult
 import uk.co.thirdthing.store.PropertyStore
 import uk.co.thirdthing.utils.Generators.*
+import uk.co.thirdthing.utils.Generators.given
 
 import java.time.Instant
 import java.time.temporal.ChronoUnit
@@ -19,7 +20,7 @@ import scala.concurrent.duration.*
 class HistoryServiceTest extends ScalaCheckSuite:
 
   private val now = Instant.now().truncatedTo(ChronoUnit.MILLIS)
-  private implicit val staticClock: Clock[IO] = new Clock[IO]:
+  private given staticClock: Clock[IO] = new Clock[IO]:
     override def applicative: Applicative[IO] = implicitly
 
     override def monotonic: IO[FiniteDuration] = now.toEpochMilli.millis.pure[IO]
