@@ -138,8 +138,10 @@ object PostgresPropertyStore:
       pool.use(_.prepare(insertPropertyRecordCommand).flatMap(_.execute(propertyRecord).void))
 
     override def getMostRecentListing(listingId: ListingId): F[Option[ListingSnapshot]] = pool.use { session =>
-      session
-        .prepare(getMostRecentListingCommand)
-        .flatMap(_.option(listingId.value))
-        .map(_.map(_.toListingSnapshot))
+      session.transaction.use { _ =>
+        session
+          .prepare(getMostRecentListingCommand)
+          .flatMap(_.option(listingId.value))
+          .map(_.map(_.toListingSnapshot))
+      }
     }
