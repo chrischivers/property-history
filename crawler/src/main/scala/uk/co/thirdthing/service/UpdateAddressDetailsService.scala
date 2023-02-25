@@ -31,13 +31,27 @@ object UpdateAddressDetailsService:
       override def run(postcode: Postcode): F[Unit] =
         withDurationMetricReporting(postcode) {
           rightmovePostcodeSearchHtmlClient.scrapeDetails(postcode).flatMap { results =>
-            results.toList.toNel.fold(logger.warn(s"No properties retrieved for postcode ${postcode.value}"))(
-              _.traverse(addressDetailsFrom).flatMap(addressStore.putAddresses)
-            )
+            deduplicateByAddress(results.toList).toNel
+              .fold(logger.warn(s"No properties retrieved for postcode ${postcode.value}"))(
+                _.traverse(addressDetailsFrom).flatMap(addressStore.putAddresses)
+              )
           }
         }
 
       private val logger: SelfAwareStructuredLogger[F] = Slf4jLogger.getLogger[F]
+
+      private def deduplicateByAddress(
+        results: List[RightmovePostcodeSearchResult]
+      ): List[RightmovePostcodeSearchResult] =
+        results
+          .groupBy(_.fullAddress)
+          .values
+          .map { results =>
+            val primaryResult        = results.head
+            val combinedTransactions = primaryResult.transactions ++ results.tail.flatMap(_.transactions)
+            primaryResult.copy(transactions = combinedTransactions)
+          }
+          .toList
 
       private def addressDetailsFrom(result: RightmovePostcodeSearchResult): F[AddressDetails] =
         result.listingId.flatTraverse(propertyStore.propertyIdFor).map { propertyIdOpt =>

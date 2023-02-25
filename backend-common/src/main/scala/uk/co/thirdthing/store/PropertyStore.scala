@@ -135,7 +135,11 @@ object PostgresPropertyStore:
         details.longitude,
         details.thumbnailUrl.map(_.value)
       )
-      pool.use(_.prepare(insertPropertyRecordCommand).flatMap(_.execute(propertyRecord).void))
+      pool.use { session =>
+        session.transaction.use { _ =>
+          session.prepare(insertPropertyRecordCommand).flatMap(_.execute(propertyRecord).void)
+        }
+      }
 
     override def getMostRecentListing(listingId: ListingId): F[Option[ListingSnapshot]] = pool.use { session =>
       session.transaction.use { _ =>

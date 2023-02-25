@@ -80,7 +80,7 @@ object RightmovePostcodeSearchHtmlClient:
 
       private def transform(result: PropertyDetails, postcode: Postcode): RightmovePostcodeSearchResult =
         RightmovePostcodeSearchResult(
-          FullAddress(result.address),
+          FullAddress(result.address.trim),
           postcode,
           extractListingId(result.detailUrl),
           result.transactions.map(tx =>
