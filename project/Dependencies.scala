@@ -4,9 +4,9 @@ import sbt._
 object Dependencies {
 
   object Versions {
-    val scala3                = "3.3.1-RC1-bin-20230218-7c9c72a-NIGHTLY"
+    val scala3                = "3.3.0-RC3"
     val http4s                = "0.23.18"
-    val http4sBlaze                = "0.23.13"
+    val http4sBlaze           = "0.23.13"
     val munit                 = "0.7.29"
     val munitCatsEffect       = "1.0.7"
     val munitScalaCheckEffect = "1.0.4"

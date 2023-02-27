@@ -8,7 +8,7 @@ import uk.co.thirdthing.metrics.MetricsRecorder
 import uk.co.thirdthing.model.Model.CrawlerJob.LastRunCompleted
 import uk.co.thirdthing.model.Model.*
 import uk.co.thirdthing.model.Types.*
-import uk.co.thirdthing.service.RetrievalService.RetrievalResult
+import uk.co.thirdthing.service.PropertyScrapingService.ScrapeResult
 import uk.co.thirdthing.store.{JobStore, PropertyStore}
 
 trait UpdatePropertyHistoryService[F[_]]:
@@ -21,7 +21,7 @@ object UpdatePropertyHistoryService:
   def apply[F[_]: Async: Clock](
     jobStore: JobStore[F],
     propertyStore: PropertyStore[F],
-    retrievalService: RetrievalService[F],
+    scrapingService: PropertyScrapingService[F],
     metricsRecorder: MetricsRecorder[F]
   ) =
     new UpdatePropertyHistoryService[F]:
@@ -106,16 +106,16 @@ object UpdatePropertyHistoryService:
         propertyStore
           .getMostRecentListing(listingId)
           .flatMap { existingPropertyRecord =>
-            retrievalService.retrieve(listingId).flatMap[Option[Result]] { retrievedRecord =>
-              (existingPropertyRecord, retrievedRecord) match
+            scrapingService.scrape(listingId).flatMap[Option[Result]] { scrapedResult =>
+              (existingPropertyRecord, scrapedResult) match
                 case (None, None) =>
                   logger.debug(s"No change for non-existing listing ${listingId.value}").as(none)
-                case (Some(existing), Some(retrieved)) =>
-                  handleBothExisting(existing, retrieved)
+                case (Some(existing), Some(scraped)) =>
+                  handleBothExisting(existing, scraped)
                 case (Some(existing), None) => handleDelete(existing).map(_.some)
-                case (None, Some(retrieved)) =>
+                case (None, Some(scraped)) =>
                   logger.debug(s"New listing ${listingId.value} found. Adding to store") *>
-                    updateStores(retrieved).map(_.some)
+                    updateStores(scraped).map(_.some)
             }
           }
           .handleErrorWith(err =>
@@ -124,15 +124,15 @@ object UpdatePropertyHistoryService:
 
       private def handleBothExisting(
         existingRecord: ListingSnapshot,
-        retrievalResult: RetrievalResult
+        scrapeResult: ScrapeResult
       ): F[Option[Result]] =
-        if existingRecord.details == retrievalResult.propertyDetails then
-          logger.debug(s"No change for existing listing ${retrievalResult.listingId.value}").as(Option.empty[Result])
+        if existingRecord.details == scrapeResult.propertyDetails then
+          logger.debug(s"No change for existing listing ${scrapeResult.listingId.value}").as(Option.empty[Result])
         else
           logger.debug(
-            s"Listing ${retrievalResult.listingId.value} has changed. Updating store."
+            s"Listing ${scrapeResult.listingId.value} has changed. Updating store."
           ) *>
-            updateStores(retrievalResult).map(Some(_))
+            updateStores(scrapeResult).map(Some(_))
 
       private def handleDelete(existingRecord: ListingSnapshot): F[Result] =
         Clock[F].realTimeInstant.flatMap { now =>
@@ -149,7 +149,7 @@ object UpdatePropertyHistoryService:
             Result(LastChange(now), snapshotToUpdate.dateAdded).pure[F]
         }
 
-      private def updateStores(result: RetrievalResult): F[Result] =
+      private def updateStores(result: ScrapeResult): F[Result] =
         Clock[F].realTimeInstant.flatMap { now =>
           val listingSnapshot =
             ListingSnapshot(

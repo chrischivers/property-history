@@ -82,11 +82,11 @@ object PostgresAddressStore:
 
     private def addressDetailsFrom(addressRecord: AddressRecord): F[AddressDetails] =
       Sync[F]
-        .fromEither(addressRecord.transactions.as[List[PropertyTransaction]])
-        .map: transactions =>
-          AddressDetails(
-            FullAddress(addressRecord.address),
-            Postcode(addressRecord.postcode),
-            addressRecord.propertyId.map(PropertyId(_)),
-            transactions
-          )
+        .fromEither(addressRecord.transactions.as[List[PropertyTransaction]]).map { transactions =>
+        AddressDetails(
+          FullAddress(addressRecord.address),
+          Postcode(addressRecord.postcode),
+          addressRecord.propertyId.map(PropertyId(_)),
+          transactions
+        )
+      }

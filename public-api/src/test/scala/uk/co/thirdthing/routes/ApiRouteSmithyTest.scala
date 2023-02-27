@@ -4,24 +4,28 @@ import cats.syntax.all.*
 import org.http4s.circe.*
 import org.http4s.{EntityDecoder, HttpRoutes}
 import uk.co.thirdthing.model.Types.*
-import uk.co.thirdthing.service.HistoryService
-import uk.co.thirdthing.utils.Generators.listingSnapshotGen
+import uk.co.thirdthing.utils.Generators.{listingSnapshotGen, transactionGen}
 import smithy4s.http4s.SimpleRestJsonBuilder
+import uk.co.thirdthing.service.PropertyLookupService
 
 class ApiRouteSmithyTest extends munit.Http4sHttpRoutesSuite:
 
-  given EntityDecoder[IO, List[ListingSnapshot]] = jsonOf
+  given EntityDecoder[IO, PropertyLookupDetails] = jsonOf
 
-  val listingSnapshot = listingSnapshotGen.sample.get
+  private val fullAddress     = FullAddress("1 Elm Road")
+  private val postcode        = Postcode("PL3 34L")
+  private val listingSnapshot = listingSnapshotGen.sample.get
+  private val transactions    = transactionGen.sample.get
+  private val propertyLookupDetails   = PropertyLookupDetails(fullAddress.some, postcode.some, List(listingSnapshot), List(transactions))
 
-  val historyServiceMock = new HistoryService[IO]:
-    override def historyFor(id: ListingId): fs2.Stream[IO, ListingSnapshot] =
-      fs2.Stream.emit[IO, ListingSnapshot](listingSnapshot)
+  private val lookupServiceMock = new PropertyLookupService[IO]:
+    override def detailsFor(id: ListingId): IO[Option[PropertyLookupDetails]] =
+      propertyLookupDetails.some.pure[IO]
 
   override val routes: HttpRoutes[IO] =
-    SimpleRestJsonBuilder.routes(ApiRouteSmithy(historyServiceMock)).make.getOrElse(fail("bang"))
+    SimpleRestJsonBuilder.routes(ApiRouteSmithy(lookupServiceMock)).make.getOrElse(fail("bang"))
 
   test(GET(uri"history" / listingSnapshot.listingId.value)).alias("Get history for a listing id") { response =>
-    val records = response.asJson.flatMap(j => IO.fromEither(j.hcursor.downField("records").as[List[ListingSnapshot]]))
-    assertIO(records, List(listingSnapshot))
+    val resp = response.as[PropertyLookupDetails]
+    assertIO(resp, propertyLookupDetails)
   }

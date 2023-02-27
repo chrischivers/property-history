@@ -9,7 +9,6 @@ import uk.co.thirdthing.model.Model.*
 import uk.co.thirdthing.model.Model.CrawlerJob.LastRunCompleted
 import uk.co.thirdthing.model.Types.*
 import uk.co.thirdthing.model.Types.ListingSnapshot.ListingSnapshotId
-import uk.co.thirdthing.service.RetrievalService.RetrievalResult
 import uk.co.thirdthing.utils.{MockAddressStore, MockJobStore, MockPropertyStore, NoOpMetricsRecorder}
 
 import java.time.Instant

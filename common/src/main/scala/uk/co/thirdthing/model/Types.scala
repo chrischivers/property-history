@@ -146,3 +146,13 @@ object Types:
     propertyId: Option[PropertyId],
     transactions: List[Transaction]
   )
+
+  case class PropertyLookupDetails(
+                                    fullAddress: Option[FullAddress],
+                                    postcode: Option[Postcode],
+                                    listingRecords: List[ListingSnapshot],
+                                    transactions: List[Transaction]
+                                  )
+
+  object PropertyLookupDetails:
+    given Codec[PropertyLookupDetails] = deriveCodec

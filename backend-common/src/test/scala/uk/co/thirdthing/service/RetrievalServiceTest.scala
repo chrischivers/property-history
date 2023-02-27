@@ -8,7 +8,7 @@ import org.http4s.dsl.io.*
 import org.http4s.{HttpRoutes, StaticFile, Uri}
 import uk.co.thirdthing.clients.{RightmoveApiClient, RightmoveListingHtmlClient}
 import uk.co.thirdthing.model.Types.*
-import uk.co.thirdthing.service.RetrievalService.RetrievalResult
+import uk.co.thirdthing.service.PropertyScrapingService.ScrapeResult
 
 import java.time.Instant
 
@@ -18,7 +18,7 @@ class RetrievalServiceTest extends munit.CatsEffectSuite:
 
   test("Scrape the data from the client successfully") {
 
-    val expectedResult = RetrievalResult(
+    val expectedResult = ScrapeResult(
       listingId = listingId,
       propertyId = PropertyId(72291262),
       dateAdded = DateAdded(Instant.ofEpochMilli(1657875302000L)),
@@ -36,12 +36,12 @@ class RetrievalServiceTest extends munit.CatsEffectSuite:
     )
 
     assertIO(
-      service("/rightmove-html-success-response.html", "/rightmove-api-success-response.json").retrieve(listingId),
+      service("/rightmove-html-success-response.html", "/rightmove-api-success-response.json").scrape(listingId),
       expectedResult.some
     )
   }
 
-  def service(htmlClientResponse: String, apiClientResponse: String): RetrievalService[IO] =
+  def service(htmlClientResponse: String, apiClientResponse: String): PropertyScrapingService[IO] =
 
     val apiClient: RightmoveApiClient[IO] = RightmoveApiClient.apply[IO](
       Client.fromHttpApp[IO](
@@ -69,4 +69,4 @@ class RetrievalServiceTest extends munit.CatsEffectSuite:
       ),
       Uri.unsafeFromString("/")
     )
-    RetrievalService.apply[IO](apiClient, htmlClient)
+    PropertyScrapingService.apply[IO](apiClient, htmlClient)

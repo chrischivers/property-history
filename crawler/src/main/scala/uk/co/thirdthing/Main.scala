@@ -15,18 +15,11 @@ import uk.co.thirdthing.consumer.JobSeedTriggerConsumer
 import uk.co.thirdthing.metrics.{CloudWatchMetricsRecorder, MetricsRecorder}
 import uk.co.thirdthing.pollers.UpdatePropertyHistoryPoller
 import uk.co.thirdthing.secrets.{AmazonSecretsManager, SecretsManager}
-import uk.co.thirdthing.service.{JobSeeder, RetrievalService, UpdateAddressDetailsService, UpdatePropertyHistoryService}
+import uk.co.thirdthing.service.{JobSeeder, PropertyScrapingService, UpdateAddressDetailsService, UpdatePropertyHistoryService}
 import uk.co.thirdthing.sqs.SqsConfig.*
 import uk.co.thirdthing.sqs.SqsConsumer.*
 import uk.co.thirdthing.sqs.{SqsConfig, SqsProcessingStream}
-import uk.co.thirdthing.store.{
-  JobStore,
-  PostgresAddressStore,
-  PostgresInitializer,
-  PostgresJobStore,
-  PostgresPostcodeStore,
-  PostgresPropertyStore
-}
+import uk.co.thirdthing.store.{JobStore, PostgresAddressStore, PostgresInitializer, PostgresJobStore, PostgresPostcodeStore, PostgresPropertyStore}
 
 import scala.concurrent.duration.*
 
@@ -59,7 +52,7 @@ object Main extends IOApp:
             .concurrently(
               updatePropertyHistoryPoller.startPolling(JobRunnerPollerConfig.default.minimumPollingInterval)
             )
-            .concurrently(updateAddressDetailsPoller.startPolling(JobRunnerPollerConfig.default.minimumPollingInterval))
+            .concurrently(updateAddressDetailsPoller.startPolling(1.second))
             .compile
             .drain
             .as(ExitCode.Success)
@@ -108,8 +101,8 @@ object Main extends IOApp:
     val rightmoveApiClient    = RightmoveApiClient(apiHttpClient, Uri.unsafeFromString("https://api.rightmove.co.uk"))
     val rightmoveHtmlClient =
       RightmoveListingHtmlClient(htmlHttpClient, Uri.unsafeFromString("https://www.rightmove.co.uk"))
-    val retrievalService = RetrievalService[IO](rightmoveApiClient, rightmoveHtmlClient)
-    UpdatePropertyHistoryService[IO](jobStore, postgresPropertyStore, retrievalService, metricsRecorder)
+    val scrapingService = PropertyScrapingService[IO](rightmoveApiClient, rightmoveHtmlClient)
+    UpdatePropertyHistoryService[IO](jobStore, postgresPropertyStore, scrapingService, metricsRecorder)
 
   private def buildUpdateAddressDetailsService(
     htmlHttpClient: Client[IO],

@@ -13,7 +13,6 @@ import uk.co.thirdthing.metrics.MetricsRecorder
 import uk.co.thirdthing.model.Model.CrawlerJob.LastRunCompleted
 import uk.co.thirdthing.model.Model.*
 import uk.co.thirdthing.model.Types.*
-import uk.co.thirdthing.service.RetrievalService.RetrievalResult
 import uk.co.thirdthing.store.{AddressStore, JobStore, PropertyStore}
 
 trait UpdateAddressDetailsService[F[_]]:

@@ -16,8 +16,8 @@ import software.amazon.awssdk.services.secretsmanager.SecretsManagerClient
 import uk.co.thirdthing.clients.{RightmoveApiClient, RightmoveListingHtmlClient}
 import uk.co.thirdthing.routes.*
 import uk.co.thirdthing.secrets.{AmazonSecretsManager, SecretsManager}
-import uk.co.thirdthing.service.{HistoryService, RetrievalService, ThumbnailService}
-import uk.co.thirdthing.store.{PostgresInitializer, PostgresPropertyStore, PropertyStore}
+import uk.co.thirdthing.service.{PropertyLookupService, PropertyScrapingService, ThumbnailService}
+import uk.co.thirdthing.store.{PostgresAddressStore, PostgresInitializer, PostgresPropertyStore, PropertyStore}
 
 import scala.concurrent.duration.*
 
@@ -28,18 +28,19 @@ object ApplicationBuilder:
       dbPool         <- databaseSessionPool(secretsManager)
       _              <- Resource.eval(PostgresInitializer.createPropertiesTableIfNotExisting[IO](dbPool))
       propertyStore = PostgresPropertyStore.apply[IO](dbPool)
+      addressStore = PostgresAddressStore.apply[IO](dbPool)
       apiHttpClient         <- buildApiHttpClient
       htmlScraperHtmlClient <- buildHtmlScraperHttpClient
       rightmoveApiClient = RightmoveApiClient
         .apply[IO](apiHttpClient, Uri.unsafeFromString("https://api.rightmove.co.uk"))
       rightmoveHtmlClient = RightmoveListingHtmlClient
         .apply[IO](htmlScraperHtmlClient, Uri.unsafeFromString("https://www.rightmove.co.uk"))
-      retrievalService = RetrievalService[IO](rightmoveApiClient, rightmoveHtmlClient)
-      historyService <- Resource.pure[IO, HistoryService[IO]](HistoryService.apply[IO](propertyStore, retrievalService))
+      scrapingService = PropertyScrapingService[IO](rightmoveApiClient, rightmoveHtmlClient)
+      lookupService = PropertyLookupService.apply[IO](propertyStore, addressStore, scrapingService)
       thumbnailService <- Resource.pure[IO, ThumbnailService[IO]](
         ThumbnailService.apply[IO](rightmoveApiClient, apiHttpClient)
       )
-      httpApp <- router(historyService, thumbnailService)
+      httpApp <- router(lookupService, thumbnailService)
       _       <- serverResource(httpApp)
     yield ()
 
@@ -91,12 +92,12 @@ object ApplicationBuilder:
     }
 
   private def router(
-    historyService: HistoryService[IO],
-    thumbnailService: ThumbnailService[IO]
+                      lookupService: PropertyLookupService[IO],
+                      thumbnailService: ThumbnailService[IO]
   ): Resource[IO, HttpApp[IO]] =
-    SimpleRestJsonBuilder.routes(ApiRouteSmithy(historyService)).resource.map { apiRoutesSmithy =>
+    SimpleRestJsonBuilder.routes(ApiRouteSmithy(lookupService)).resource.map { apiRoutesSmithy =>
       Router(
-        "/api/v1" -> ApiRoute.routes[IO](historyService, thumbnailService),
+        "/api/v1" -> ApiRoute.routes[IO](lookupService, thumbnailService),
         "/api/v2" -> apiRoutesSmithy,
         "/meta"   -> MetaRoute.routes[IO],
         "/"       -> StaticRoutes.routes[IO]

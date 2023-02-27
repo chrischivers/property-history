@@ -9,18 +9,18 @@ import uk.co.thirdthing.model.Types.*
 import uk.co.thirdthing.clients.RightmoveApiClient.ListingDetails
 import uk.co.thirdthing.clients.RightmoveListingHtmlClient.RightmoveHtmlScrapeResult
 import uk.co.thirdthing.clients.{RightmoveApiClient, RightmoveListingHtmlClient}
-import uk.co.thirdthing.service.RetrievalService.RetrievalResult
+import uk.co.thirdthing.service.PropertyScrapingService.ScrapeResult
 
 import java.time.Instant
 
-trait RetrievalService[F[_]]:
-  def retrieve(listingId: ListingId): F[Option[RetrievalResult]]
+trait PropertyScrapingService[F[_]]:
+  def scrape(listingId: ListingId): F[Option[ScrapeResult]]
 
-object RetrievalService:
+object PropertyScrapingService:
 
   private val DeletedStatusCodes = Set(302, 404)
 
-  final case class RetrievalResult(
+  final case class ScrapeResult(
     listingId: ListingId,
     propertyId: PropertyId,
     dateAdded: DateAdded,
@@ -30,17 +30,17 @@ object RetrievalService:
   def apply[F[_]: Sync](
     rightmoveApiClient: RightmoveApiClient[F],
     rightmoveHtmlClient: RightmoveListingHtmlClient[F]
-  ): RetrievalService[F] =
-    new RetrievalService[F]:
+  ): PropertyScrapingService[F] =
+    new PropertyScrapingService[F]:
 
       private val logger: SelfAwareStructuredLogger[F] = Slf4jLogger.getLogger[F]
 
-      override def retrieve(listingId: ListingId): F[Option[RetrievalResult]] =
+      override def scrape(listingId: ListingId): F[Option[ScrapeResult]] =
         logger.debug(s"Handling retrieval request for listing ${listingId.value}") *>
           OptionT(rightmoveApiClient.listingDetails(listingId)).flatMap { listingDetails =>
             OptionT.liftF(rightmoveHtmlClient.scrapeDetails(listingId)).flatMap { scrapeResult =>
               OptionT.fromOption(scrapeResult.propertyId).map { propertyId =>
-                RetrievalResult(
+                ScrapeResult(
                   listingId,
                   propertyId,
                   dateAddedFrom(listingDetails),
@@ -70,6 +70,7 @@ object RetrievalService:
         .orElse(validateMillisTimestamp(listingDetails.updateDate))
         .getOrElse(0L)
     DateAdded(Instant.ofEpochMilli(timestampMillis))
+    
   private def listingStatusFrom(
     htmlPageResult: RightmoveHtmlScrapeResult,
     listingDetails: ListingDetails

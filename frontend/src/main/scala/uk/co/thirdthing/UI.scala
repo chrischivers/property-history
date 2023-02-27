@@ -9,7 +9,7 @@ import com.raquo.laminar.nodes.ReactiveHtmlElement
 import io.circe.parser.*
 import org.scalajs.dom
 import org.scalajs.dom.{XMLHttpRequest, html}
-import uk.co.thirdthing.model.Types.{ListingId, ListingSnapshot, Price}
+import uk.co.thirdthing.model.Types.{ListingId, ListingSnapshot, Price, PropertyLookupDetails, Transaction}
 import uk.co.thirdthing.utils.TimeUtils.*
 import uk.co.thirdthing.views.PageHeader
 
@@ -18,10 +18,10 @@ import scala.scalajs.js.URIUtils
 
 object UI:
 
-  private val validatedListingId: Var[Option[ListingId]] = Var(initial = None)
-  private val resultsVar: Var[List[ListingSnapshot]]     = Var(initial = List.empty)
-  private val errorVar: Var[Option[String]]              = Var(None)
-  private val submittedVar: Var[Boolean]                 = Var(false)
+  private val validatedListingId: Var[Option[ListingId]]     = Var(initial = None)
+  private val resultsVar: Var[Option[PropertyLookupDetails]] = Var(initial = Option.empty)
+  private val errorVar: Var[Option[String]]                  = Var(None)
+  private val submittedVar: Var[Boolean]                     = Var(false)
 
   private def validateUrl(url: String): Option[ListingId] =
     val regex = "^(https://|http://)?www.rightmove.co.uk/properties/([0-9]+)".r
@@ -35,26 +35,41 @@ object UI:
   private def toUrl(listingId: ListingId) =
     s"https://www.rightmove.co.uk/properties/$listingId"
 
-  private def formatListingResults(results: List[ListingSnapshot]) =
-    if results.isEmpty then div()
-    else
+  private def formatListingResults(results: Option[PropertyLookupDetails]) =
+    results.fold(div()) { details =>
       div(
-        "The following listings were found for that property",
-        table(
-          cls := "table",
-          tr(
-            th(""),
-            th("Date Added"),
-            th("Sale/Rental"),
-            th("Status"),
-            th("Price"),
-            th("Link")
-          ) +:
-            results.map(formatRow)
+        details.fullAddress.fold(div())(add => div(s"Property full address is ${add.value}")),
+        div(
+          "The following listings were found for that property",
+          table(
+            cls := "table",
+            tr(
+              th(""),
+              th("Date Added"),
+              th("Sale/Rental"),
+              th("Status"),
+              th("Price"),
+              th("Link")
+            ) +:
+              details.listingRecords.map(formatListingsRow)
+          )
+        ),
+        div(
+          "The following sale transactions were found for that property",
+          table(
+            cls := "table",
+            tr(
+              th("Date"),
+              th("Price"),
+              th("Tenure")
+            ) +:
+              details.transactions.map(formatTransaction)
+          )
         )
       )
+    }
 
-  private def formatRow(ls: ListingSnapshot) =
+  private def formatListingsRow(ls: ListingSnapshot) =
     val unknownTd = td("unknown")
     def link(mod: Modifier[ReactiveHtmlElement[html.Anchor]]) =
       a(href := toUrl(ls.listingId), target := "_blank", mod)
@@ -66,6 +81,16 @@ object UI:
         ls.details.status.fold(unknownTd)(s => td(s.value)),
         ls.details.price.fold(unknownTd)(p => td(formatPrice(p))),
         td(link("[link]"))
+      )*
+    )
+
+  private def formatTransaction(tx: Transaction) =
+    val unknownTd = td("unknown")
+    tr(
+      List(
+        td(tx.date.toString),
+        td(tx.price.toString),
+        tx.tenure.fold(unknownTd)(ten => td(ten.value))
       )*
     )
 
@@ -92,7 +117,7 @@ object UI:
     child <-- validatedListingId.signal.map(_.fold(div())(submitButton))
   )
   private val resultsElem = div(
-    child <-- resultsVar.signal.map(r => formatListingResults(r))
+    child <-- resultsVar.signal.map(formatListingResults)
   )
 
   private def submitButton(listingId: ListingId): Div =
@@ -108,7 +133,7 @@ object UI:
             makeListingsRequest(listingId)
           }
           List(
-            $response --> { updatedValue => resultsVar.set(updatedValue) }
+            $response --> { updatedValue => resultsVar.set(Some(updatedValue)) }
           )
         }
       )
@@ -121,25 +146,25 @@ object UI:
       )
     s"api/v1/thumbnail?$queryParams"
 
-  private def makeListingsRequest(listingId: ListingId): EventStream[List[ListingSnapshot]] =
+  private def makeListingsRequest(listingId: ListingId): EventStream[PropertyLookupDetails] =
     AjaxEventStream
       .get(url = s"api/v1/history/${listingId.value}")
       .flatMap(parseResponse)
       .recover {
         case AjaxStatusError(_, 404, _) =>
           errorVar.set("No listings found at this location".some)
-          Some(List.empty[ListingSnapshot])
+          None
         case _: AjaxStreamError =>
           errorVar.set("Something went wrong".some)
-          Some(List.empty[ListingSnapshot])
+          None
         case _: io.circe.Error =>
           errorVar.set("Something went wrong".some)
-          Some(List.empty[ListingSnapshot])
+          None
       }
 
-  private def parseResponse(response: XMLHttpRequest): EventStream[List[ListingSnapshot]] =
+  private def parseResponse(response: XMLHttpRequest): EventStream[PropertyLookupDetails] =
     EventStream.fromTry(
-      parse(response.responseText).flatMap(_.hcursor.downField("records").as[List[ListingSnapshot]]).toTry
+      parse(response.responseText).flatMap(_.as[PropertyLookupDetails]).toTry
     )
 
   def apply: ReactiveHtmlElement[html.Div] =

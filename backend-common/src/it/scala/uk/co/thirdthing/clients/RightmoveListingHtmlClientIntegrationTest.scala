@@ -16,7 +16,7 @@ class RightmoveListingHtmlClientIntegrationTest extends munit.CatsEffectSuite:
 
   test("Scrape the correct result") {
 
-    val expectedResult = RightmoveHtmlScrapeResult(410, Some(PropertyId(81536734)))
+    val expectedResult = RightmoveHtmlScrapeResult(410, None)
     buildClient(client => assertIO(client.scrapeDetails(ListingId(104510633)), expectedResult))
   }
 

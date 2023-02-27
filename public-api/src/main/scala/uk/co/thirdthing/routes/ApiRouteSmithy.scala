@@ -6,27 +6,44 @@ import org.http4s.HttpRoutes
 import org.http4s.circe.CirceEntityEncoder.*
 import org.http4s.dsl.Http4sDsl
 import uk.co.thirdthing.model.Types.*
-import uk.co.thirdthing.service.{HistoryService, ThumbnailService}
+import uk.co.thirdthing.service.{PropertyLookupService, ThumbnailService}
 import cats.effect.IO
 import smithy4s.hello.*
 
+import java.time.ZoneId
+
 object ApiRouteSmithy:
 
-  def apply[F[_]: Sync](historyService: HistoryService[F]) = new PublicApiService[F]:
+  def apply[F[_]: Sync](lookupService: PropertyLookupService[F]) = new PublicApiService[F]:
     override def getHistoryOperation(input: GetHistoryRequest): F[GetHistoryResponse] =
-      historyService.historyFor(ListingId(input.listingId)).compile.toList.flatMap {
-        case Nil => Sync[F].raiseError(ListingNotFound())
-        case l   => Sync[F].pure(GetHistoryResponse(l.map(toHistoryRecord)))
+      lookupService.detailsFor(ListingId(input.listingId)).flatMap {
+        case None    => Sync[F].raiseError(ListingNotFound())
+        case Some(l) => Sync[F].pure(toResponse(l))
       }
 
-  private def toHistoryRecord(snapshot: ListingSnapshot): HistoryRecord =
-    HistoryRecord(
+  private def toResponse(details: PropertyLookupDetails) =
+    GetHistoryResponse(
+      details.listingRecords.map(toListingRecord),
+      details.transactions.map(toTransactionRecord),
+      details.fullAddress.map(_.value),
+      details.postcode.map(_.value)
+    )
+
+  private def toListingRecord(snapshot: ListingSnapshot): ListingRecord =
+    ListingRecord(
       snapshot.listingId.value,
       smithy4s.Timestamp.fromInstant(snapshot.lastChange.value),
       snapshot.propertyId.value,
       smithy4s.Timestamp.fromInstant(snapshot.dateAdded.value),
       toHistoryRecordDetails(snapshot.details),
       snapshot.listingSnapshotId.map(_.value)
+    )
+
+  private def toTransactionRecord(transaction: Transaction): TransactionRecord =
+    TransactionRecord(
+      transaction.price.value,
+      transaction.date.toString,
+      transaction.tenure.map(_.value)
     )
 
   private def toHistoryRecordDetails(details: PropertyDetails): HistoryRecordDetails =

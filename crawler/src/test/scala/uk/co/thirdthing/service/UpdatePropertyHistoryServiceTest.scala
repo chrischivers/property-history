@@ -7,7 +7,7 @@ import uk.co.thirdthing.model.Model.CrawlerJob.LastRunCompleted
 import uk.co.thirdthing.model.Model.*
 import uk.co.thirdthing.model.Types.ListingSnapshot.ListingSnapshotId
 import uk.co.thirdthing.model.Types.*
-import uk.co.thirdthing.service.RetrievalService.RetrievalResult
+import uk.co.thirdthing.service.PropertyScrapingService.ScrapeResult
 import uk.co.thirdthing.utils.{MockJobStore, MockPropertyStore, NoOpMetricsRecorder}
 
 import java.time.Instant
@@ -39,7 +39,7 @@ class UpdatePropertyHistoryServiceTest extends munit.CatsEffectSuite:
 
   private val listingId  = ListingId(500)
   private val propertyId = PropertyId(3495732)
-  private val retrievalResult1 = RetrievalResult(
+  private val scrapedResult1 = ScrapeResult(
     listingId,
     propertyId,
     DateAdded(Instant.now.truncatedTo(ChronoUnit.MILLIS)),
@@ -59,24 +59,24 @@ class UpdatePropertyHistoryServiceTest extends munit.CatsEffectSuite:
 
     testWith(
       jobId = jobId,
-      retrievalServiceResults = Set(retrievalResult1),
+      scrapeServiceResult = Set(scrapedResult1),
       initialJobs = Set(job1),
       initialListingSnapshots = Set.empty,
       expectedJobs = Set(
         job1.copy(
           lastRunCompleted = LastRunCompleted(now).some,
           lastChange = LastChange(now).some,
-          latestDateAdded = retrievalResult1.dateAdded.some,
+          latestDateAdded = scrapedResult1.dateAdded.some,
           state = JobState.Completed
         )
       ),
       expectedListingSnapshots = Set(
         ListingSnapshot(
-          retrievalResult1.listingId,
+          scrapedResult1.listingId,
           LastChange(now),
-          retrievalResult1.propertyId,
-          retrievalResult1.dateAdded,
-          retrievalResult1.propertyDetails,
+          scrapedResult1.propertyId,
+          scrapedResult1.dateAdded,
+          scrapedResult1.propertyDetails,
           staticListingSnapshotId.some
         )
       )
@@ -87,48 +87,48 @@ class UpdatePropertyHistoryServiceTest extends munit.CatsEffectSuite:
 
     val existingListingSnapshot =
       ListingSnapshot(
-        retrievalResult1.listingId,
+        scrapedResult1.listingId,
         LastChange(now.minus(1, ChronoUnit.DAYS)),
-        retrievalResult1.propertyId,
-        retrievalResult1.dateAdded,
-        retrievalResult1.propertyDetails.copy(price = Price(222).some),
+        scrapedResult1.propertyId,
+        scrapedResult1.dateAdded,
+        scrapedResult1.propertyDetails.copy(price = Price(222).some),
         staticListingSnapshotId.some
       )
 
     testWith(
       jobId = jobId,
-      retrievalServiceResults = Set(retrievalResult1),
+      scrapeServiceResult = Set(scrapedResult1),
       initialJobs = Set(job1),
       initialListingSnapshots = Set(existingListingSnapshot),
       expectedJobs = Set(
         job1.copy(
           lastRunCompleted = LastRunCompleted(now).some,
           lastChange = LastChange(now).some,
-          latestDateAdded = retrievalResult1.dateAdded.some,
+          latestDateAdded = scrapedResult1.dateAdded.some,
           state = JobState.Completed
         )
       ),
       expectedListingSnapshots = Set(
         existingListingSnapshot,
-        existingListingSnapshot.copy(lastChange = LastChange(now), details = retrievalResult1.propertyDetails)
+        existingListingSnapshot.copy(lastChange = LastChange(now), details = scrapedResult1.propertyDetails)
       )
     )
   }
 
   def testWith(
-    jobId: JobId,
-    retrievalServiceResults: Set[RetrievalResult],
-    initialJobs: Set[CrawlerJob],
-    initialListingSnapshots: Set[ListingSnapshot],
-    expectedJobs: Set[CrawlerJob],
-    expectedListingSnapshots: Set[ListingSnapshot]
+                jobId: JobId,
+                scrapeServiceResult: Set[ScrapeResult],
+                initialJobs: Set[CrawlerJob],
+                initialListingSnapshots: Set[ListingSnapshot],
+                expectedJobs: Set[CrawlerJob],
+                expectedListingSnapshots: Set[ListingSnapshot]
   ) =
     val result = for
       jobsStoreRef <- Ref.of[IO, Map[JobId, CrawlerJob]](initialJobs.map(job => job.jobId -> job).toMap)
       listingSnapshotRef <- Ref.of[IO, Map[(ListingId, LastChange), ListingSnapshot]](
         initialListingSnapshots.map(ls => (ls.listingId, ls.lastChange) -> ls).toMap
       )
-      jobRunner <- service(retrievalServiceResults.map(r => r.listingId -> r).toMap, jobsStoreRef, listingSnapshotRef)
+      jobRunner <- service(scrapeServiceResult.map(r => r.listingId -> r).toMap, jobsStoreRef, listingSnapshotRef)
       _         <- jobRunner.run(jobId)
       jobs      <- jobsStoreRef.get.map(_.view.values.toSet)
       listingSnapshots <- listingSnapshotRef.get.map(
@@ -142,19 +142,19 @@ class UpdatePropertyHistoryServiceTest extends munit.CatsEffectSuite:
     )
 
   def service(
-    retrievalServiceResults: Map[ListingId, RetrievalResult],
+    scrapeServiceResults: Map[ListingId, ScrapeResult],
     jobStoreRef: Ref[IO, Map[JobId, CrawlerJob]],
     listingSnapshotStoreRef: Ref[IO, Map[(ListingId, LastChange), ListingSnapshot]]
   ): IO[UpdatePropertyHistoryService[IO]] =
 
-    val mockRetrievalService = new RetrievalService[IO]:
-      override def retrieve(listingId: ListingId): IO[Option[RetrievalService.RetrievalResult]] =
-        retrievalServiceResults.get(listingId).pure[IO]
+    val mockScrapeService = new PropertyScrapingService[IO]:
+      override def scrape(listingId: ListingId): IO[Option[ScrapeResult]] =
+        scrapeServiceResults.get(listingId).pure[IO]
 
     for
       jobStore             <- MockJobStore(jobStoreRef)
       propertyListingStore <- MockPropertyStore(listingSnapshotStoreRef)
-    yield UpdatePropertyHistoryService.apply(jobStore, propertyListingStore, mockRetrievalService, NoOpMetricsRecorder.apply)(
+    yield UpdatePropertyHistoryService.apply(jobStore, propertyListingStore, mockScrapeService, NoOpMetricsRecorder.apply)(
       implicitly,
       staticClock
     )

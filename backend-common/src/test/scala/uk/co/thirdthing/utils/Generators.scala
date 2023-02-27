@@ -5,9 +5,9 @@ import org.scalacheck.{Arbitrary, Gen}
 import uk.co.thirdthing.clients.RightmoveApiClient.ListingDetails
 import uk.co.thirdthing.model.Types.ListingSnapshot.ListingSnapshotId
 import uk.co.thirdthing.model.Types.*
-import uk.co.thirdthing.service.RetrievalService.RetrievalResult
+import uk.co.thirdthing.service.PropertyScrapingService.ScrapeResult
 
-import java.time.Instant
+import java.time.{Instant, ZoneId}
 
 object Generators:
 
@@ -76,13 +76,27 @@ object Generators:
     longitude
   )
 
-  val retrievalResultGen: Gen[RetrievalResult] = for
+  val transactionGen: Gen[Transaction] = for
+    price  <- priceGen
+    date   <- instantGen.map(_.atZone(ZoneId.of("UTC")).toLocalDate)
+    tenure <- Gen.option(Gen.oneOf(Tenure.values))
+  yield Transaction(price, date, tenure)
+
+  val scrapeResultGen: Gen[ScrapeResult] = for
     listingId  <- listingIdGen
     propertyId <- propertyIdGen
     dateAdded  <- instantGen
     details    <- propertyDetailsGen
-  yield RetrievalResult(listingId, propertyId, DateAdded(dateAdded), details)
+  yield ScrapeResult(listingId, propertyId, DateAdded(dateAdded), details)
 
-  given Arbitrary[PropertyId]           = Arbitrary(propertyIdGen)
+  val addressDetailsGen: Gen[AddressDetails] = for
+    address      <- Gen.alphaNumStr.map(str => FullAddress(str.take(100)))
+    postcode     <- Gen.alphaNumStr.map(str => Postcode(str.take(9)))
+    propertyId   <- Gen.option(propertyIdGen)
+    transactions <- Gen.listOf(transactionGen)
+  yield AddressDetails(address, postcode, propertyId, transactions)
+
+  given Arbitrary[PropertyId]      = Arbitrary(propertyIdGen)
   given Arbitrary[ListingSnapshot] = Arbitrary(listingSnapshotGen)
-  given Arbitrary[RetrievalResult] = Arbitrary(retrievalResultGen)
+  given Arbitrary[ScrapeResult]    = Arbitrary(scrapeResultGen)
+  given Arbitrary[AddressDetails]  = Arbitrary(addressDetailsGen)

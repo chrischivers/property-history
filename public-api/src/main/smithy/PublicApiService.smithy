@@ -23,8 +23,12 @@ structure GetHistoryRequest {
     listingId: Long
 }
 
-list HistoryRecordList {
-  member: HistoryRecord
+list ListingRecordList {
+  member: ListingRecord
+}
+
+list TransactionRecordList {
+  member: TransactionRecord
 }
 
 structure HistoryRecordDetails {
@@ -38,7 +42,7 @@ structure HistoryRecordDetails {
   thumbnailUrl: String
 }
 
-structure HistoryRecord {
+structure ListingRecord {
   @required
   listingId: Long,
   @required
@@ -52,9 +56,21 @@ structure HistoryRecord {
   listingSnapshotId: Long
 }
 
-structure GetHistoryResponse {
+structure TransactionRecord {
   @required
-  records: HistoryRecordList
+  price: Integer,
+  @required
+  date: String,
+  tenure: String
+}
+
+structure GetHistoryResponse {
+  fullAddress: String,
+  postcode: String,
+  @required
+  listingRecords: ListingRecordList
+  @required
+  transactions: TransactionRecordList
 }
 
 @error("client")
